@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,9 +19,29 @@ import (
 // fixtureServer serves captured pages from disk so that adapter behaviour is
 // verified against real upstream output without touching the network.
 type fixtureServer struct {
+	mu    sync.Mutex
 	pages map[string]string
+
 	// requests records the paths served, in order.
 	requests []string
+}
+
+// record appends a served path.
+//
+// The adapter fetches listing pages concurrently, so this counter is written from
+// several goroutines. Guarding it here rather than in the assertion keeps the
+// double honest about the concurrency the code under test actually has.
+func (f *fixtureServer) record(path string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.requests = append(f.requests, path)
+}
+
+// requestCount reports how many requests have been served.
+func (f *fixtureServer) requestCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.requests)
 }
 
 func newFixtureServer(t *testing.T, files map[string]string) *fixtureServer {
@@ -43,7 +64,7 @@ func (f *fixtureServer) doer() source.HTTPDoer {
 		if q := req.URL.RawQuery; q != "" {
 			path += "?" + q
 		}
-		f.requests = append(f.requests, path)
+		f.record(path)
 		body, ok := f.pages[path]
 		if !ok {
 			return &http.Response{
@@ -173,7 +194,7 @@ func TestDiscoverStopsAtEndOfPagination(t *testing.T) {
 
 	// Traversal must stop well short of the requested page budget, which is what
 	// proves the end-of-listing rule fires rather than the ceiling.
-	fetched := len(srv.requests)
+	fetched := srv.requestCount()
 	if fetched >= 12 {
 		t.Errorf("fetched %d pages, want traversal to stop well before the ceiling", fetched)
 	}
