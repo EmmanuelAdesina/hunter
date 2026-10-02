@@ -1,0 +1,114 @@
+name: monitor
+
+# The scheduler for the monitoring system.
+#
+# The binary is a single-shot worker: it performs one scan, records what it saw,
+# optionally sends email, and exits. There is no server and no long-lived job, so
+# this workflow is the entire runtime.
+#
+# Credentials come only from repository secrets and are passed as environment
+# variables for the single step that needs them. Nothing is ever written to disk
+# or to the repository.
+
+on:
+  schedule:
+    # Every five minutes. Outside peak hours, GitHub may delay scheduled
+    # workflows; the system is built to tolerate that because it is a poller and
+    # not a stream consumer.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Traverse the whole listing rather than the profile default"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Generate and record alerts without sending email"
+        type: boolean
+        default: false
+
+# GitHub cancels a run still in progress when the next one starts. Cancelling
+# mid-scan is safe by design - state is written atomically - but overlapping runs
+# would still send duplicate work, so the older run is stopped explicitly.
+concurrency:
+  group: hunter-monitor
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    name: scan
+    runs-on: ubuntu-latest
+    # A stale checkout would compare against out-of-date state, so a scan is
+    # never run against stale data.
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify the profile parses
+        # A broken profile should fail before any request is made, so a
+        # configuration mistake never looks like "no opportunities".
+        run: go run ./cmd/hunter validate-config
+
+      - name: Re-parse the checked-in fixtures
+        # Confirms the parser still matches recorded upstream output before the
+        # live scan trusts it.
+        run: go run ./cmd/hunter test-fixtures
+
+      - name: Run scan
+        env:
+          HUNTER_FULL: ${{ github.event.inputs.full || 'false' }}
+          HUNTER_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          EMAIL_SMTP_HOST: ${{ secrets.EMAIL_SMTP_HOST }}
+          EMAIL_SMTP_PORT: ${{ secrets.EMAIL_SMTP_PORT }}
+          EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          ALERT_RECIPIENT: ${{ secrets.ALERT_RECIPIENT }}
+          EMAIL_FROM_NAME: ${{ secrets.EMAIL_FROM_NAME }}
+        run: |
+          set -euo pipefail
+
+          args=(scan)
+          if [ "$HUNTER_FULL" = "true" ]; then args+=(--full); fi
+          if [ "$HUNTER_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+
+          # Exit code 3 means the scan ran but its results are untrustworthy.
+          # That is reported as a failure on purpose: silence from a degraded
+          # scan must not be mistaken for an absence of opportunities.
+          set +e
+          go run ./cmd/hunter "${args[@]}"
+          code=$?
+          set -e
+
+          if [ "$code" -eq 3 ]; then
+            echo "::warning::scan completed but its results are untrustworthy; see the log"
+          fi
+          exit "$code"
+
+      - name: Commit updated state
+        # State is the record of what has been seen, so it is committed after a
+        # successful scan. Nothing else is written by a scan.
+        if: success()
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- state/; then
+            echo "state unchanged"
+            exit 0
+          fi
+          git config user.name  "hunter-bot"
+          git config user.email "hunter-bot@users.noreply.github.com"
+          git add state/
+          git commit -m "state: scan ${GITHUB_RUN_ID} at $(date -u +%Y%m%dT%H%M%SZ)"
+          # A push failure is reported but does not fail the scan: the alert has
+          # already been sent and losing state is recoverable, whereas retrying
+          # the whole scan would risk duplicate mail.
+          git push || echo "::warning::could not push state; the next run will re-derive it"

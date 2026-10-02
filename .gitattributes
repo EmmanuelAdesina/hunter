@@ -1,0 +1,31 @@
+# Line endings are pinned to LF.
+#
+# Git's autocrlf behaviour differs per machine, and a repository that is written
+# on Windows and built on Linux will otherwise produce files that fail on Linux:
+# a bash script committed with CRLF endings is rejected by the interpreter with
+# "bad interpreter: /usr/bin/env bash^M", and the scheduled workflow dies before it
+# runs a scan. Pinning the endings in the repository is the only way to make the
+# checked-in content authoritative on every platform.
+* text=auto eol=lf
+
+# Sources and configuration that must stay LF.
+*.go   text eol=lf
+*.mod  text eol=lf
+*.sum  text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.sh   text eol=lf
+Makefile text eol=lf
+*.json text eol=lf
+
+# Captured pages are fixtures and are stored byte-for-byte.
+#
+# They are evidence: assertions are pinned to these exact bytes, and the parser
+# locates its payload by matching a marker inside the document. Converting line
+# endings would silently change the thing the tests are verifying, so these files
+# are excluded from any transformation.
+fixtures/** -text
+
+# Build output is never tracked; this is belt-and-braces with .gitignore.
+*.exe -text

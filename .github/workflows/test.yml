@@ -1,0 +1,95 @@
+name: test
+
+# The full Go suite on every push and pull request.
+#
+# The race detector runs here rather than locally because it needs cgo, which is
+# not available on every developer machine. The pipeline fetches concurrently, so
+# this is the check that catches a shared-state mistake.
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: go test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check formatting
+        # Formatting is verified rather than fixed automatically, so a diff in a
+        # pull request is never something the author did not write.
+        run: |
+          unformatted="$(gofmt -l . | grep -v '^$' || true)"
+          if [ -n "$unformatted" ]; then
+            echo "The following files are not gofmt-clean:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Build for the target platform
+        # The scheduled workflow runs on Linux, so the binary must build there
+        # regardless of where it was developed.
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o /tmp/hunter ./cmd/hunter
+          /tmp/hunter version
+
+      - name: Test
+        run: go test -race -count=1 ./...
+
+      - name: Test with coverage
+        run: |
+          go test -count=1 -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -n 1
+
+      - name: Verify fixtures
+        # The recorded upstream pages must still parse. This is the check that
+        # catches a parser regression before it silently stops detecting
+        # opportunities.
+        run: go run ./cmd/hunter validate-config && go run ./cmd/hunter test-fixtures
+
+      - name: Verify the config layer rejects bad input
+        # A profile with a misspelled policy key must fail loudly rather than
+        # quietly disabling a filter.
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          cp configs/profiles/personal.yaml "$tmp/valid.yaml"
+
+          # An unknown enum value must be an error.
+          sed 's/^    mode: auto$/    mode: nonsense/' "$tmp/valid.yaml" > "$tmp/bad-mode.yaml"
+          if go run ./cmd/hunter validate-config --profile "$tmp/bad-mode.yaml" >/dev/null 2>&1; then
+            echo "::error::an invalid crypto mode was accepted"
+            exit 1
+          fi
+
+          # An unknown key must be an error rather than being ignored.
+          printf '\n  completely_unknown_key: true\n' >> "$tmp/valid.yaml"
+          if go run ./cmd/hunter validate-config --profile "$tmp/bad-key.yaml" >/dev/null 2>&1; then :; fi
+          cp "$tmp/valid.yaml" "$tmp/bad-key.yaml"
+          if go run ./cmd/hunter validate-config --profile "$tmp/bad-key.yaml" >/dev/null 2>&1; then
+            echo "::error::an unknown configuration key was accepted"
+            exit 1
+          fi
+
+          echo "configuration validation behaves as expected"

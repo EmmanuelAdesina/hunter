@@ -1,0 +1,125 @@
+profile:
+  name: personal
+  description: >-
+    Web, API, backend, cloud, infrastructure, and codebase research.
+    Crypto platforms are in scope when their attack surface is ordinary
+    software. Pure smart-contract and protocol research is not.
+
+  access:
+    # Highest reputation requirement worth submitting to.
+    max_reputation_points: 80
+    # Highest submission fee worth paying.
+    max_submission_fee_usd: 5
+    # Whether identity verification is acceptable. "no" is a deliberate
+    # choice: KYC-gated programs are unreachable without it.
+    kyc_required: no
+    # Never auto-accept programs whose access facts could not be parsed.
+    accept_unknown_access_gates: false
+    # Never auto-accept programs the adapter could not fully understand.
+    accept_unknown_parse_state: false
+
+  platforms:
+    hackenproof: true
+
+  target_domains:
+    included:
+      - web_application
+      - api
+      - backend
+      - cloud
+      - infrastructure
+      - codebase
+      - web2
+    # Surfaces that disqualify a program when they dominate its scope.
+    # Left empty deliberately: the veto is driven by crypto traits instead,
+    # because a mobile-only program is still worth surfacing if it is new.
+    excluded: []
+    # Share of a program's surfaces that must be excluded for the veto to fire.
+    exclude_dominance_ratio: 0.8
+
+  crypto:
+    enabled: true
+    # auto          - apply the allow and exclude lists below
+    # off           - treat every crypto program identically, no crypto filtering
+    # only          - only crypto programs matter
+    # platform_only - only crypto programs with platform character matter
+    mode: auto
+
+    # A crypto program must carry at least one of these traits. Without this,
+    # every crypto program would qualify, which is exactly the noise to avoid.
+    require_allowed_trait: true
+    allowed:
+      - crypto_platform
+      - exchange
+      - wallet_platform
+      - fintech_crypto
+      - crypto_web_application
+      - crypto_api
+      - crypto_backend
+      - crypto_infrastructure
+
+    # These traits veto a program when they dominate its crypto classification.
+    excluded:
+      - smart_contract_only
+      - solidity_only
+      - protocol_consensus
+      - blockchain_core_protocol
+      - cryptographic_primitive_research
+
+    # A crypto exchange with one smart-contract scope is not a smart-contract
+    # program. The veto only fires when excluded traits reach this share of the
+    # program's crypto traits.
+    dominance_ratio: 0.6
+
+  program_states:
+    # Programs worth alerting on.
+    allowed:
+      - live
+      - new
+    # States that warrant an alert in their own right.
+    alert_on_state:
+      - live
+      - new
+
+  freshness:
+    # Below this age a newly seen program is treated as brand new.
+    fresh_program_window: 168h
+    # Below this age a scope change is treated as recent.
+    fresh_scope_window: 168h
+    # Beyond this age a program's base priority decays.
+    stale_program_age: 8760h
+
+  notifications:
+    enabled: true
+    min_severity: medium
+    require_eligible: true
+    alert_on_new_programs: true
+    alert_on_material_change: true
+    alert_on_newly_eligible: true
+    alert_on_scope_expansion: true
+    # Guard the channel during a first bulk import. 0 means no cap.
+    max_per_scan: 10
+    subject_prefix: "[HUNTER]"
+
+  scan:
+    per_page: 10
+    # 0 traverses the whole listing.
+    max_pages: 0
+    fetch_details: true
+    # Two-tier read. Every program is swept from the cheap listing page on every
+    # scan; the detail page is read only when the listing reports something
+    # different, so a five-minute cadence stays affordable and polite.
+    fetch_details_on_listing_change: true
+    # Longest a detail record may go unrefreshed. This bounds how long a change
+    # the listing does not expose can go unnoticed.
+    details_refresh_interval: 24h
+    request_timeout: 45s
+    max_retries: 3
+    retry_base_delay: 2s
+    max_retry_delay: 30s
+    min_request_interval: 400ms
+    max_concurrent: 4
+
+  sources:
+    hackenproof:
+      enabled: true

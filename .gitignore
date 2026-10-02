@@ -1,0 +1,15 @@
+# Build output. The binary is reproducible from source and is not tracked.
+/bin/
+/dist/
+
+# Test and coverage artifacts.
+coverage.out
+*.test
+
+# Local scan state.
+#
+# State is committed on purpose so that change detection and alert deduplication
+# survive between runs, and so that a run can be inspected after the fact. Local
+# experiment state is not, which is why /tmp-style paths are ignored rather than
+# the directory itself.
+/state/local/
