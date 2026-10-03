@@ -3,6 +3,7 @@ package state_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -405,5 +406,190 @@ func TestDescribeReportsBackend(t *testing.T) {
 	dir := t.TempDir()
 	if got := state.NewFileStore(dir).Describe(); !strings.HasPrefix(got, "file:") {
 		t.Errorf("Describe() = %q, want a file: prefix", got)
+	}
+}
+
+// TestMaterialDigestIgnoresVolatileFields verifies a scan that learned nothing
+// produces the same digest.
+//
+// This is what stops the scheduled workflow from committing on every run. A
+// digest that moved on every scan would make the repository grow for no reason,
+// and would bury the commits that actually record something.
+func TestMaterialDigestIgnoresVolatileFields(t *testing.T) {
+	build := func() *state.Snapshot {
+		p := sampleProgram("hackenproof:alpha", "alpha")
+		snap := state.NewSnapshot()
+		snap.Programs[p.ID] = p
+		snap.Alerts["fp1"] = domain.AlertRecord{
+			Fingerprint: "fp1", Delivered: true, Kind: domain.AlertNewQualifying,
+			Subject: "s", CreatedAt: fixedNow,
+		}
+		return snap
+	}
+
+	first := build().MaterialDigest()
+
+	// Advance every volatile timestamp, as a later scan would.
+	snap := build()
+	p := snap.Programs["hackenproof:alpha"]
+	p.LastSeenAt = fixedNow.Add(time.Hour)
+	snap.Programs[p.ID] = p
+	snap.LastScanID = "20261001T130000Z"
+	snap.LastScanAt = fixedNow.Add(time.Hour)
+
+	if snap.MaterialDigest() != first {
+		t.Error("a scan that changed nothing moved the material digest")
+	}
+}
+
+// TestMaterialDigestDetectsRealChange verifies the digest is not so insensitive
+// that it ignores genuine change.
+func TestMaterialDigestDetectsRealChange(t *testing.T) {
+	baseline := func() *state.Snapshot {
+		p := sampleProgram("hackenproof:alpha", "alpha")
+		snap := state.NewSnapshot()
+		snap.Programs[p.ID] = p
+		return snap
+	}
+	first := baseline().MaterialDigest()
+
+	t.Run("scope change", func(t *testing.T) {
+		snap := baseline()
+		p := snap.Programs["hackenproof:alpha"]
+		p.ScopeFingerprint = "different"
+		snap.Programs[p.ID] = p
+		if snap.MaterialDigest() == first {
+			t.Error("a scope change did not move the digest")
+		}
+	})
+
+	t.Run("new program", func(t *testing.T) {
+		snap := baseline()
+		snap.Programs["hackenproof:beta"] = sampleProgram("hackenproof:beta", "beta")
+		if snap.MaterialDigest() == first {
+			t.Error("a new program did not move the digest")
+		}
+	})
+
+	t.Run("program removed", func(t *testing.T) {
+		snap := baseline()
+		delete(snap.Programs, "hackenproof:alpha")
+		if snap.MaterialDigest() == first {
+			t.Error("a removed program did not move the digest")
+		}
+	})
+
+	t.Run("alert recorded", func(t *testing.T) {
+		snap := baseline()
+		snap.Alerts["fp1"] = domain.AlertRecord{Fingerprint: "fp1"}
+		if snap.MaterialDigest() == first {
+			t.Error("a recorded alert did not move the digest")
+		}
+	})
+
+	t.Run("alert delivery state", func(t *testing.T) {
+		snap := baseline()
+		snap.Alerts["fp1"] = domain.AlertRecord{Fingerprint: "fp1", Delivered: true}
+		if snap.MaterialDigest() == first {
+			t.Error("a delivery state change did not move the digest")
+		}
+	})
+}
+
+// TestMaterialDigestIsStableAcrossWrites verifies a saved snapshot reloads to
+// the same digest, which is what makes it comparable in version control.
+func TestMaterialDigestIsStableAcrossWrites(t *testing.T) {
+	dir := t.TempDir()
+	ctx := context.Background()
+	s := state.NewFileStore(dir)
+
+	snap := state.NewSnapshot()
+	snap.Programs["hackenproof:alpha"] = sampleProgram("hackenproof:alpha", "alpha")
+	if err := s.Save(ctx, snap); err != nil {
+		t.Fatal(err)
+	}
+
+	reloaded, err := state.NewFileStore(dir).Load(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.MaterialDigest() != snap.MaterialDigest() {
+		t.Error("digest changed across a save and load round trip")
+	}
+}
+
+// TestSaveWritesDigestFile verifies the digest the workflow compares is written.
+func TestSaveWritesDigestFile(t *testing.T) {
+	dir := t.TempDir()
+	ctx := context.Background()
+	s := state.NewFileStore(dir)
+
+	snap := state.NewSnapshot()
+	snap.Programs["hackenproof:alpha"] = sampleProgram("hackenproof:alpha", "alpha")
+	if err := s.Save(ctx, snap); err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := os.ReadFile(filepath.Join(dir, "material.sha256"))
+	if err != nil {
+		t.Fatalf("digest file missing: %v", err)
+	}
+	got := strings.TrimSpace(string(raw))
+	if len(got) != 64 {
+		t.Errorf("digest file holds %q, want a 64-character hex digest", got)
+	}
+	if strings.ContainsAny(got, "\"\\") {
+		t.Errorf("digest file looks JSON-encoded: %q", got)
+	}
+	if got != snap.MaterialDigest() {
+		t.Errorf("digest file = %s, want %s", got, snap.MaterialDigest())
+	}
+}
+
+// TestDeliveredAlertsArePruned verifies bounded growth of the alert store, and
+// that an alert still owed to the researcher is never the one discarded.
+func TestDeliveredAlertsArePruned(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	s := state.NewFileStore(dir)
+
+	snap := state.NewSnapshot()
+	base := fixedNow
+	for i := 0; i < state.MaxDeliveredAlerts+50; i++ {
+		fp := fmt.Sprintf("fp%05d", i)
+		snap.Alerts[fp] = domain.AlertRecord{
+			Fingerprint: fp,
+			Delivered:   true,
+			CreatedAt:   base.Add(time.Duration(i) * time.Second),
+		}
+	}
+	// One alert still awaiting delivery must survive regardless of age.
+	snap.Alerts["pending"] = domain.AlertRecord{
+		Fingerprint: "pending", CreatedAt: base.Add(-time.Hour),
+	}
+
+	if err := s.Save(ctx, snap); err != nil {
+		t.Fatal(err)
+	}
+
+	reloaded, err := state.NewFileStore(dir).Load(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := reloaded.Alerts["pending"]; !ok {
+		t.Fatal("an undelivered alert was pruned; the researcher would never receive it")
+	}
+	delivered := 0
+	for _, rec := range reloaded.Alerts {
+		if rec.Delivered {
+			delivered++
+		}
+	}
+	if delivered > state.MaxDeliveredAlerts {
+		t.Errorf("retained %d delivered records, want at most %d", delivered, state.MaxDeliveredAlerts)
+	}
+	if len(reloaded.Alerts) > state.MaxDeliveredAlerts+1 {
+		t.Errorf("retained %d records overall, want the cap plus the pending one",
+			len(reloaded.Alerts))
 	}
 }

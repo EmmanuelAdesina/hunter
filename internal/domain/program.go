@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -451,4 +452,36 @@ func (s ListingSignal) SubmissionSummary() string {
 		return "not published"
 	}
 	return itoa(s.SubmissionCount) + " submissions"
+}
+
+// Digest renders a listing signal as a stable string.
+//
+// It omits the observation timestamp, which changes on every scan and cannot
+// affect a decision, so that comparing digests reports only genuine change.
+func (s ListingSignal) Digest() string {
+	var b strings.Builder
+	if s.UpdatedAt != nil {
+		b.WriteString(s.UpdatedAt.UTC().Format(time.RFC3339))
+	}
+	b.WriteString("|")
+	b.WriteString(s.Status)
+	b.WriteString("|")
+	b.WriteString(s.State)
+	b.WriteString("|")
+	b.WriteString(s.RewardRaw)
+	b.WriteString("|")
+	b.WriteString(s.RewardsPaidRaw)
+	b.WriteString("|")
+	b.WriteString(s.ActivityStatus)
+	b.WriteString("|")
+	b.WriteString(strconv.FormatBool(s.Unending))
+	b.WriteString("|")
+	b.WriteString(strings.Join(s.Categories, ","))
+	b.WriteString("|")
+	b.WriteString(strings.Join(s.ProjectTypes, ","))
+	b.WriteString("|")
+	b.WriteString(strings.Join(s.Technologies, ","))
+	b.WriteString("|")
+	b.WriteString(strconv.Itoa(s.SubmissionCount))
+	return b.String()
 }

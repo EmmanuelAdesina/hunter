@@ -220,7 +220,7 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 
 	// Persist before notifying. An alert that exists in state but was never sent
 	// is recoverable; one that was sent but never recorded is not.
-	if err := s.persist(ctx, snap, evaluated, res.Metrics); err != nil {
+	if err := s.persist(ctx, snap, evaluated, res.Metrics, generated); err != nil {
 		res.Errors = append(res.Errors, fmt.Errorf("persist state: %w", err))
 		res.Metrics.Errors++
 	}
@@ -666,7 +666,27 @@ func shouldHaveAlerted(e Evaluated) bool {
 }
 
 // persist writes the scan's state.
-func (s *Scanner) persist(ctx context.Context, snap *state.Snapshot, evaluated []Evaluated, metrics obs.ScanMetrics) error {
+//
+// Alert records are written here, in the same atomic save as the programs, rather
+// than during delivery. A crash between the two used to lose an alert entirely:
+// the condition that produced it was no longer new, so no later scan would
+// regenerate it, and nothing had been recorded to retry. Writing both together
+// means a snapshot either contains the alert or the scan never decided to
+// create it.
+func (s *Scanner) persist(ctx context.Context, snap *state.Snapshot, evaluated []Evaluated, metrics obs.ScanMetrics, generated []domain.Alert) error {
+	for _, a := range generated {
+		snap.RecordAlert(domain.AlertRecord{
+			Fingerprint:   a.Fingerprint,
+			Kind:          a.Kind,
+			ProgramID:     a.ProgramID,
+			ScanID:        a.ScanID,
+			CreatedAt:     a.DetectedAt,
+			Subject:       a.Subject,
+			Body:          a.Body,
+			LastAttemptAt: metrics.Started,
+		})
+	}
+
 	for _, e := range evaluated {
 		snap.Programs[e.Program.ID] = e.Program
 

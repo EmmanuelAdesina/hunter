@@ -32,6 +32,7 @@ type FileStore struct {
 	programsPath string
 	alertsPath   string
 	historyDir   string
+	digestPath   string
 }
 
 // NewFileStore builds a store rooted at dir.
@@ -41,6 +42,7 @@ func NewFileStore(dir string) *FileStore {
 		programsPath: filepath.Join(dir, "programs.json"),
 		alertsPath:   filepath.Join(dir, "alerts.json"),
 		historyDir:   filepath.Join(dir, "history"),
+		digestPath:   filepath.Join(dir, "material.sha256"),
 	}
 }
 
@@ -153,6 +155,11 @@ func (s *FileStore) Save(ctx context.Context, snap *Snapshot) error {
 		return fmt.Errorf("create state directory: %w", err)
 	}
 
+	// Undelivered alerts are retained unconditionally; only delivered records
+	// past the cap are dropped, so an alert still owed to the researcher is
+	// never the one discarded.
+	pruneAlerts(snap.Alerts)
+
 	pf := programsFile{
 		Version:    CurrentVersion,
 		LastScanID: snap.LastScanID,
@@ -166,6 +173,52 @@ func (s *FileStore) Save(ctx context.Context, snap *Snapshot) error {
 	af := alertsFile{Version: CurrentVersion, Alerts: snap.Alerts}
 	if err := writeCanonicalFile(s.alertsPath, af); err != nil {
 		return fmt.Errorf("write alerts: %w", err)
+	}
+
+	// The material digest is written last and is the only file the scheduled
+	// workflow compares, so a scan that learned nothing produces no commit.
+	if err := writeRawFile(s.digestPath, snap.MaterialDigest()+"\n"); err != nil {
+		return fmt.Errorf("write material digest: %w", err)
+	}
+	return nil
+}
+
+// writeRawFile writes plain bytes atomically.
+//
+// The digest is compared as text by the workflow, so it is not JSON-encoded: a
+// quoted, escaped string would still be comparable, but it would read as though
+// the file held a JSON document rather than a checksum.
+func writeRawFile(path, content string) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("create %s: %w", filepath.Dir(path), err)
+	}
+
+	tmp, err := os.CreateTemp(dir, ".tmp-"+filepath.Base(path)+"-*")
+	if err != nil {
+		return fmt.Errorf("create temp file: %w", err)
+	}
+	tmpName := tmp.Name()
+	cleanup := func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+	}
+
+	if _, err := tmp.WriteString(content); err != nil {
+		cleanup()
+		return fmt.Errorf("write temp file: %w", err)
+	}
+	if err := tmp.Sync(); err != nil {
+		cleanup()
+		return fmt.Errorf("sync temp file: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("close temp file: %w", err)
+	}
+	if err := replaceFile(tmpName, path); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("replace %s: %w", filepath.Base(path), err)
 	}
 	return nil
 }

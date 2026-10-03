@@ -12,10 +12,13 @@ name: monitor
 
 on:
   schedule:
-    # Every five minutes. Outside peak hours, GitHub may delay scheduled
-    # workflows; the system is built to tolerate that because it is a poller and
-    # not a stream consumer.
-    - cron: "*/5 * * * *"
+    # Every five minutes, deliberately offset from the top of the hour.
+    #
+    # GitHub's scheduler is heavily congested at :00, and a naive "*/5" fires at
+    # exactly the worst minute. Offsetting the schedule removes most of the
+    # queueing delay, which matters because the whole value of this system is how
+    # quickly it notices a new program.
+    - cron: "3,8,13,18,23,28,33,38,43,48,53,58 * * * *"
   workflow_dispatch:
     inputs:
       full:
@@ -54,15 +57,19 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Verify the profile parses
-        # A broken profile should fail before any request is made, so a
-        # configuration mistake never looks like "no opportunities".
-        run: go run ./cmd/hunter validate-config
+      - name: Build once
+        # The binary is built a single time and reused. Three separate "go run"
+        # invocations would resolve and link the same program three times, which
+        # is wasted work on a schedule that runs hundreds of times a day.
+        run: go build -o "$RUNNER_TEMP/hunter" ./cmd/hunter
 
-      - name: Re-parse the checked-in fixtures
-        # Confirms the parser still matches recorded upstream output before the
-        # live scan trusts it.
-        run: go run ./cmd/hunter test-fixtures
+      - name: Verify the profile and the parser
+        # Both checks run before any live request is made, so a broken profile or
+        # a parser regression can never be mistaken for "no opportunities".
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/hunter" validate-config
+          "$RUNNER_TEMP/hunter" test-fixtures
 
       - name: Run scan
         env:
@@ -83,31 +90,51 @@ jobs:
 
           # Exit code 3 means the scan ran but its results are untrustworthy.
           # That is reported as a failure on purpose: silence from a degraded
-          # scan must not be mistaken for an absence of opportunities.
+          # scan must not be mistaken for an absence of opportunities, and the
+          # state commit is deliberately skipped in that case so a broken run
+          # cannot overwrite a good baseline.
           set +e
-          go run ./cmd/hunter "${args[@]}"
+          "$RUNNER_TEMP/hunter" "${args[@]}"
           code=$?
           set -e
 
           if [ "$code" -eq 3 ]; then
-            echo "::warning::scan completed but its results are untrustworthy; see the log"
+            echo "::warning::scan completed but its results are untrustworthy; state was not committed"
           fi
           exit "$code"
 
       - name: Commit updated state
         # State is the record of what has been seen, so it is committed after a
         # successful scan. Nothing else is written by a scan.
+        #
+        # The comparison is against the material digest rather than the whole
+        # directory. Every scan rewrites last-seen times and scan metadata, so
+        # comparing the directory would commit on every run and bury the commits
+        # that actually record something the system learned. The digest covers
+        # only what can change a future decision.
         if: success()
         run: |
           set -euo pipefail
-          if git diff --quiet -- state/; then
-            echo "state unchanged"
+
+          if git diff --quiet -- state/material.sha256; then
+            echo "nothing material changed; not committing"
             exit 0
           fi
+
           git config user.name  "hunter-bot"
           git config user.email "hunter-bot@users.noreply.github.com"
           git add state/
-          git commit -m "state: scan ${GITHUB_RUN_ID} at $(date -u +%Y%m%dT%H%M%SZ)"
+
+          if git diff --cached --quiet; then
+            echo "no staged changes; not committing"
+            exit 0
+          fi
+
+          summary="$(git diff --cached --stat -- state/ | tail -n 1)"
+          git commit -m "state: scan ${GITHUB_RUN_ID} at $(date -u +%Y%m%dT%H%M%SZ)
+
+          ${summary}"
+
           # A push failure is reported but does not fail the scan: the alert has
           # already been sent and losing state is recoverable, whereas retrying
           # the whole scan would risk duplicate mail.

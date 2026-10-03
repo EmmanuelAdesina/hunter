@@ -17,9 +17,13 @@ package state
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/eadeshina/hunter/internal/domain"
@@ -162,6 +166,110 @@ func (s *Snapshot) AlertDelivered(fingerprint string) bool {
 // only consumer is human inspection of recent history.
 const MaxHistoryPerProgram = 200
 
+// MaxDeliveredAlerts bounds retained delivery records.
+//
+// Every record carries a full rendered alert body of a few kilobytes, and the
+// whole file is rewritten on every save. Without a bound the file grows for as
+// long as the system runs, and both the write cost and the version-control churn
+// grow with it.
+//
+// Undelivered alerts are never pruned: they are the ones still owed to the
+// researcher, and discarding them would silently lose an opportunity. Only
+// delivered records are eligible for removal.
+const MaxDeliveredAlerts = 500
+
+// MaterialDigest is a hash over the parts of a snapshot that affect future
+// decisions.
+//
+// It exists because the snapshot also carries fields that change on every scan -
+// last-seen times and scan metadata - which would otherwise make every scheduled
+// run produce a commit. Comparing digests instead of files means the repository
+// is only written when the system genuinely learned something: a new program, a
+// real change, an alert, or a new history entry.
+//
+// Fields deliberately excluded: LastSeenAt, LastScanID, LastScanAt, and the
+// observation timestamp on a listing signal. None of them can change a decision.
+func (s *Snapshot) MaterialDigest() string {
+	h := sha256.New()
+
+	fmt.Fprintf(h, "hunter/state-material/v1\n")
+
+	programs := make([]string, 0, len(s.Programs))
+	for id := range s.Programs {
+		programs = append(programs, id)
+	}
+	sort.Strings(programs)
+	for _, id := range programs {
+		p := s.Programs[id]
+		fmt.Fprintf(h, "program=%s scope=%s req=%s meta=%s listing=%s state=%s name=%q\n",
+			id,
+			p.ScopeFingerprint,
+			p.RequirementFingerprint,
+			p.MetadataFingerprint,
+			p.Listing.Digest(),
+			p.State,
+			p.Name,
+		)
+	}
+
+	alerts := make([]string, 0, len(s.Alerts))
+	for fp := range s.Alerts {
+		alerts = append(alerts, fp)
+	}
+	sort.Strings(alerts)
+	for _, fp := range alerts {
+		rec := s.Alerts[fp]
+		fmt.Fprintf(h, "alert=%s delivered=%t kind=%s subject=%q\n",
+			fp, rec.Delivered, rec.Kind, rec.Subject)
+	}
+
+	history := make([]string, 0, len(s.History))
+	for id := range s.History {
+		history = append(history, id)
+	}
+	sort.Strings(history)
+	for _, id := range history {
+		entries := s.History[id]
+		fmt.Fprintf(h, "history=%s entries=%d\n", id, len(entries))
+		// The newest entry identifies what was learned; older ones cannot change.
+		if n := len(entries); n > 0 {
+			last := entries[n-1]
+			fmt.Fprintf(h, "  last=%s kinds=%s eligible=%t\n",
+				last.ScanID, strings.Join(last.Kinds, ","), last.Eligible)
+		}
+	}
+
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// Delivered records are retained in newest-first order and pruned from the end,
+// which is the order they stop being interesting in.
+func pruneAlerts(alerts map[string]domain.AlertRecord) int {
+	if len(alerts) <= MaxDeliveredAlerts {
+		return 0
+	}
+
+	delivered := make([]domain.AlertRecord, 0, len(alerts))
+	for _, rec := range alerts {
+		if rec.Delivered {
+			delivered = append(delivered, rec)
+		}
+	}
+
+	excess := len(delivered) - MaxDeliveredAlerts
+	if excess <= 0 {
+		return 0
+	}
+
+	sort.Slice(delivered, func(i, j int) bool {
+		return delivered[i].CreatedAt.After(delivered[j].CreatedAt)
+	})
+	for _, rec := range delivered[:excess] {
+		delete(alerts, rec.Fingerprint)
+	}
+	return excess
+}
+
 // appendHistoryBounded adds an entry, trimming the oldest beyond the cap.
 func appendHistoryBounded(entries []HistoryEntry, entry HistoryEntry) []HistoryEntry {
 	out := append(entries, entry)
@@ -177,4 +285,44 @@ func classifyLoadError(err error) error {
 		return nil
 	}
 	return fmt.Errorf("load state: %w", err)
+}
+
+// RecordAlert stores an alert record in the snapshot.
+//
+// The snapshot owns the attempt count rather than the caller, because it is the
+// only component that can see history across a workflow retry. Recording an alert
+// that is already known refreshes its subject and body rather than resetting it,
+// so a redelivery always carries the current rendering.
+//
+// A delivered alert is never reopened by a later scan. Doing so would resend a
+// message the researcher already has, which is the one failure mode that would
+// make the alert channel unusable.
+func (s *Snapshot) RecordAlert(rec domain.AlertRecord) {
+	if rec.Fingerprint == "" {
+		return
+	}
+	if s.Alerts == nil {
+		s.Alerts = map[string]domain.AlertRecord{}
+	}
+
+	existing, known := s.Alerts[rec.Fingerprint]
+	if !known {
+		rec.Attempts = 1
+		s.Alerts[rec.Fingerprint] = rec
+		return
+	}
+	if existing.Delivered {
+		return
+	}
+
+	rec.Attempts = existing.Attempts + 1
+	if rec.CreatedAt.IsZero() {
+		rec.CreatedAt = existing.CreatedAt
+	}
+	if existing.CreatedAt.Before(rec.CreatedAt) {
+		// The original detection time is what identifies the event, so the
+		// earliest of the two is preserved.
+		rec.CreatedAt = existing.CreatedAt
+	}
+	s.Alerts[rec.Fingerprint] = rec
 }
