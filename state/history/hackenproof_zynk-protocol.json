@@ -1,0 +1,39 @@
+[
+  {
+    "scan_id": "20261003T191123Z",
+    "at": "2026-10-03T19:12:00.5602364Z",
+    "changes": [
+      {
+        "kind": "REQUIREMENT_CHANGED",
+        "severity": "medium",
+        "field": "program_rules",
+        "detail": "participation rules changed"
+      },
+      {
+        "kind": "SCOPE_REVIEW_CHANGED",
+        "severity": "medium",
+        "field": "scope_review",
+        "detail": "the stated in-scope vulnerability list changed"
+      }
+    ],
+    "eligible": false,
+    "reasons": [
+      "fully understood (access facts present)",
+      "no reputation required (<= 80 reputation points)",
+      "no submission fee",
+      "KYC is required, which does not meet the profile does not accept KYC",
+      "program state is paused, which does not meet one of: live, new",
+      "exposes codebase (one of api, backend, cloud, codebase, infrastructure, web2, web_application)",
+      "crypto classification is mixed (compatible with crypto.mode=auto)",
+      "carries crypto_platform, wallet_platform (one of crypto_api, crypto_backend, crypto_infrastructure, crypto_platform, crypto_web_application, exchange, fintech_crypto, wallet_platform)",
+      "excluded crypto traits are a minority of blockchain_core_protocol, crypto_platform, smart_contract_only, wallet_platform (less than 60% excluded crypto character)"
+    ],
+    "kinds": [
+      "REQUIREMENT_CHANGED",
+      "SCOPE_REVIEW_CHANGED"
+    ],
+    "scope_fingerprint": "aed1b4bc538cff276b86e4ef8fa26066727012f815889bda5bcbd469565cfc5a",
+    "requirement_fingerprint": "2a9588f3b754d28f1e6e387b24091382e9a855bec2f7df1f89ce5ebcd00a929c",
+    "metadata_fingerprint": "6807c4226973a4b24393c6203cf6dd25c50d523bdf6fdb5614d85e6dcc141e98"
+  }
+]
