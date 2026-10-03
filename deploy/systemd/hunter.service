@@ -1,0 +1,91 @@
+# hunter - single-shot scan unit.
+#
+# The binary opens no listening socket. There is no port to allocate, no port to
+# firewall, and nothing that can collide with a production service: this unit
+# runs, writes state, exits.
+
+[Unit]
+Description=hunter bug-bounty opportunity scan
+Documentation=https://github.com/EmmanuelAdesina/hunter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# A dedicated unprivileged account. The scan only needs to read the program
+# definition and read and write its own state directory; it needs no shell, no
+# home directory, and no privilege of any kind.
+User=hunter
+Group=hunter
+
+EnvironmentFile=/etc/hunter/hunter.env
+ExecStart=/usr/local/lib/hunter/hunter scan \
+  --profile /etc/hunter/profile.yaml \
+  --state /var/lib/hunter/state \
+  --log-level info
+
+# The profile is configuration, not a credential, so it is delivered by the
+# deployment rather than by the secret store. Everything that is a credential
+# comes from the environment file alone.
+WorkingDirectory=/var/lib/hunter
+
+# ---------------------------------------------------------------------------
+# Hardening.
+#
+# The unit needs exactly four outbound connections: DNS, HTTPS to the program
+# platform, and SMTP to the mail provider. Everything else is denied below.
+# ---------------------------------------------------------------------------
+
+# No process can gain privilege through a setuid or setgid binary.
+NoNewPrivileges=true
+
+# Drop every capability, and do not allow any to be reacquired. The unit binds
+# nothing below 1024, so it needs none.
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# The filesystem is read-only except for the state directory.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/hunter
+
+# The unit must not reach the service account's home directory, which is where
+# an SSH key would otherwise be readable.
+ProtectHome=true
+
+# A private mount and device namespace, so nothing in /tmp or /dev leaks in.
+PrivateTmp=true
+PrivateDevices=true
+
+# Kernel interfaces are off limits.
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+
+# No suid transition, no personality changes, no realtime scheduling.
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+
+# x86-64 only, which removes the syscall classes used for 32-bit compat tricks.
+SystemCallArchitectures=native
+
+# Writable and executable memory is never needed by a Go binary.
+MemoryDenyWriteExecute=true
+
+# Restrict the network syscalls to the families actually used: AF_UNIX for
+# NSS resolution, AF_INET and AF_INET6 for outbound.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# Only the service account may read the credential file.
+UMask=0077
+
+# The systemd unit is the unit of failure, so a hung scan is bounded rather
+# than left to overlap the next one.
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

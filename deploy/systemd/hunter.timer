@@ -1,0 +1,36 @@
+# hunter - scan schedule.
+#
+# This timer, not GitHub Actions, is what gives a reliable five-minute cadence.
+#
+# GitHub's scheduled-workflow trigger was measured firing roughly once every
+# three to five hours against a five-minute cron, which is about 42 times less
+# often than configured. That delay is in the scheduler that decides when to
+# start a run, so relocating the job to a self-hosted runner would not change it:
+# a runner decides where work executes, not when it is dispatched.
+
+[Unit]
+Description=hunter bug-bounty opportunity scan schedule
+Documentation=https://github.com/EmmanuelAdesina/hunter
+
+[Timer]
+# Every five minutes, offset from the top of the hour for the same reason the
+# cron expression is: the top of the hour is the most contended.
+OnCalendar=*-*-* *:01/5:00
+
+# Catch up once after downtime. A missed window, whether the machine was
+# rebooting or the timer was disabled, is the case a five-minute monitor most
+# needs to recover from.
+Persistent=true
+
+# A short random delay stops every timer on the host firing at the same instant,
+# which matters if the scan is ever run on more than one machine.
+RandomizedDelaySec=20
+
+# Coarse accuracy is correct here. The schedule has a five-minute granularity,
+# so asking systemd to wake within one second would only add power draw.
+AccuracySec=30s
+
+Unit=hunter.service
+
+[Install]
+WantedBy=timers.target
