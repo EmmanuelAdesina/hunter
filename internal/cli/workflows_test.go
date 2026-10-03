@@ -102,75 +102,72 @@ func TestWorkflowShellIsValidBash(t *testing.T) {
 	}
 }
 
-// TestMonitorWorkflowHasSchedule verifies the monitor is scheduled.
+// TestMonitorWorkflowHasSchedule verifies the monitor has a usable trigger.
 //
-// A monitor with no schedule never runs. That is the single failure that would
-// make the whole repository inert while every other signal looked healthy.
+// The schedule itself moved to a host-local systemd timer, because GitHub's
+// scheduled-workflow trigger was measured firing roughly 42 times less often
+// than a five-minute cron asks for. This workflow is now a manual tool, and a
+// manual tool that cannot be dispatched by hand is not a tool.
 func TestMonitorWorkflowHasSchedule(t *testing.T) {
-	wf := loadWorkflow(t, "monitor.yml")
-
-	// The on: key parses as a mapping, so it is inspected structurally.
 	raw, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", "monitor.yml"))
 	if err != nil {
 		t.Fatal(err)
-	}
-	if !strings.Contains(string(raw), "schedule:") {
-		t.Fatal("the monitor workflow declares no schedule")
-	}
-	if !strings.Contains(string(raw), "cron:") {
-		t.Fatal("the monitor schedule has no cron expression")
 	}
 	if !strings.Contains(string(raw), "workflow_dispatch:") {
-		t.Error("the monitor workflow has no manual trigger, so it cannot be validated by hand")
+		t.Error("the monitor workflow has no manual trigger, so it cannot be run by hand")
 	}
-	_ = wf
+
+	// A schedule here would mean two independent schedulers and therefore two
+	// independent alert stores, which double-emails every opportunity.
+	if strings.Contains(string(raw), "schedule:") {
+		t.Error("the monitor workflow declares a schedule; the host timer is the single scheduler")
+	}
+	if strings.Contains(string(raw), "cron:") {
+		t.Error("the monitor workflow declares a cron entry, but it is no longer the scheduler")
+	}
+
+	// The dispatch path defaults to a dry run so that running it by hand cannot
+	// surprise the recipient with mail.
+	body := string(raw)
+	if !strings.Contains(body, "default: true") {
+		t.Error("the manual dry_run input does not default to true")
+	}
 }
 
-// TestCronIsOffsetFromTheHour pins the deliberate offset.
+// TestSchedulerOwnershipIsUnambiguous asserts exactly one component schedules a
+// scan.
 //
-// GitHub's scheduler is congested at the top of the hour. A naive "*/5" fires at
-// exactly the worst minute every time, and a schedule that runs late defeats the
-// purpose of a five-minute monitor.
-func TestCronIsOffsetFromTheHour(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", "monitor.yml"))
+// The host timer is the scheduler. If GitHub Actions also scheduled a scan, the
+// two would hold separate state stores and each would consider the same alert
+// undelivered, so every opportunity would arrive twice.
+func TestSchedulerOwnershipIsUnambiguous(t *testing.T) {
+	entries, err := os.ReadDir(filepath.Join("..", "..", ".github", "workflows"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := string(raw)
-
-	const cronKey = "- cron: \""
-	i := strings.Index(body, cronKey)
-	if i < 0 {
-		t.Fatal("no cron expression found")
-	}
-	expr := body[i+len(cronKey):]
-	if j := strings.Index(expr, "\""); j >= 0 {
-		expr = expr[:j]
-	}
-
-	fields := strings.Fields(expr)
-	if len(fields) != 5 {
-		t.Fatalf("cron %q has %d fields, want 5", expr, len(fields))
-	}
-
-	minutes := strings.Split(fields[0], ",")
-	if len(minutes) < 2 {
-		t.Fatalf("cron %q runs less often than every five minutes", expr)
-	}
-	if minutes[0] == "0" {
-		t.Errorf("cron %q fires at minute 0, the most congested slot; offset it", expr)
-	}
-	if minutes[len(minutes)-1] == "59" {
-		t.Errorf("cron %q fires at minute 59, immediately before the congested hour", expr)
-	}
-
-	// Every minute must be distinct and within range.
-	seen := map[string]bool{}
-	for _, m := range minutes {
-		if seen[m] {
-			t.Errorf("cron %q repeats minute %s", expr, m)
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
 		}
-		seen[m] = true
+		raw, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", e.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(raw), "schedule:") {
+			t.Errorf("%s declares a schedule; only the host timer should schedule a scan", e.Name())
+		}
+	}
+
+	// The timer must exist and be self-contained.
+	timer, err := os.ReadFile(filepath.Join("..", "..", "deploy", "systemd", "hunter.timer"))
+	if err != nil {
+		t.Fatalf("the host timer is missing, so nothing schedules a scan: %v", err)
+	}
+	if !strings.Contains(string(timer), "OnCalendar=") {
+		t.Error("the host timer has no schedule")
+	}
+	if !strings.Contains(string(timer), "Persistent=true") {
+		t.Error("the host timer will not catch up after downtime")
 	}
 }
 

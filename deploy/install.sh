@@ -14,6 +14,7 @@
 set -euo pipefail
 
 readonly BINARY="${BINARY:-}"
+readonly PROFILE_SRC="${PROFILE_SRC:-}"
 readonly APP_USER="hunter"
 readonly APP_GROUP="hunter"
 readonly ETC_DIR="/etc/hunter"
@@ -71,13 +72,33 @@ install_profile() {
 	log "installing program definition to ${ETC_DIR}/profile.yaml"
 	install -d -m 0750 -o root -g "$APP_GROUP" "$ETC_DIR"
 
-	local src="${SRC_DIR}/../../configs/profiles/personal.yaml"
-	[[ -f "$src" ]] || die "cannot find the profile at ${src}"
+	# The profile is located rather than assumed, so the script works from a
+	# checkout, from a copy of deploy/ alone, or from an explicit path.
+	local src=""
+	local candidate
+	for candidate in \
+		"$PROFILE_SRC" \
+		"${SRC_DIR}/../../configs/profiles/personal.yaml" \
+		"${SRC_DIR}/../configs/profiles/personal.yaml" \
+		"${SRC_DIR}/configs/profiles/personal.yaml" \
+		"${SRC_DIR}/personal.yaml"
+	do
+		[[ -n "$candidate" && -f "$candidate" ]] || continue
+		src="$candidate"
+		break
+	done
+	[[ -n "$src" ]] || die "cannot find personal.yaml; set PROFILE_SRC to its path"
+
+	# Refuse to install a profile that does not parse, rather than discovering
+	# it at the first scan.
+	"$BINARY" validate-config --profile "$src" >/dev/null 2>&1 \
+		|| die "the program definition at ${src} does not validate"
 
 	# Root-owned and group-readable only. The profile is configuration, not a
 	# credential, but it does describe the researcher's constraints and there is
 	# no reason for it to be world-readable.
 	install -m 0640 -o root -g "$APP_GROUP" "$src" "${ETC_DIR}/profile.yaml"
+	log "program definition validated and installed"
 }
 
 install_env() {

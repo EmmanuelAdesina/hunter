@@ -11,14 +11,18 @@ name: monitor
 # or to the repository.
 
 on:
-  schedule:
-    # Every five minutes, deliberately offset from the top of the hour.
-    #
-    # GitHub's scheduler is heavily congested at :00, and a naive "*/5" fires at
-    # exactly the worst minute. Offsetting the schedule removes most of the
-    # queueing delay, which matters because the whole value of this system is how
-    # quickly it notices a new program.
-    - cron: "3,8,13,18,23,28,33,38,43,48,53,58 * * * *"
+  # There is deliberately no schedule here.
+  #
+  # GitHub's scheduled-workflow trigger was measured firing once every three to
+  # five hours against a five-minute cron, roughly 42 times less often than
+  # configured, and that delay is in the dispatcher rather than in the runner, so
+  # moving the job to a self-hosted runner would not have fixed it. A host-local
+  # systemd timer is the scheduler instead; see deploy/ in the repository.
+  #
+  # Running both would also be actively harmful: this workflow uses the state
+  # committed in the repository, while a host-local timer keeps its own state
+  # directory. Two independent stores each believe an alert is undelivered, so
+  # the same opportunity would be emailed twice.
   workflow_dispatch:
     inputs:
       full:
@@ -28,7 +32,7 @@ on:
       dry_run:
         description: "Generate and record alerts without sending email"
         type: boolean
-        default: false
+        default: true
 
 # GitHub cancels a run still in progress when the next one starts. Cancelling
 # mid-scan is safe by design - state is written atomically - but overlapping runs

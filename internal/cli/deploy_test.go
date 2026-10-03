@@ -233,3 +233,24 @@ func TestTimerCatchesUpAfterDowntime(t *testing.T) {
 		t.Error("the timer is not enabled into timers.target")
 	}
 }
+
+// TestScanYieldsToProduction asserts the unit cannot compete with production
+// workloads for the processor.
+//
+// The scan shares a single core with the production services on the target
+// host, so scheduling it at normal priority would let a scan contribute to
+// latency on a service people are actually using.
+func TestScanYieldsToProduction(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "deploy", "systemd", "hunter.service"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(raw)
+
+	if !strings.Contains(body, "Nice=19") {
+		t.Error("the unit does not request the lowest normal CPU priority")
+	}
+	if !strings.Contains(body, "IOSchedulingClass=idle") {
+		t.Error("the unit does not use the idle I/O class")
+	}
+}

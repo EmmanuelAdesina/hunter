@@ -144,6 +144,22 @@ func cmdScan(ctx context.Context, env *Env, args []string) int {
 		fmt.Fprintf(env.Stderr, "\nscan results are untrustworthy: %s\n", why)
 		return exitDegradedRun
 	}
+
+	// A profile that enables notifications but has no delivery channel is the
+	// quietest possible failure mode: every scan succeeds, alerts accumulate,
+	// and none is ever received. It is reported on stderr so it is visible in a
+	// terminal and in the journal. The exit code is unchanged, because the scan
+	// itself did its job and the cause is a configuration fault, not a fault in
+	// the scan.
+	if !cfg.DryRun && profile.Notifications.Enabled && cfg.Notifier == nil && len(res.Alerts) > 0 {
+		fmt.Fprintf(env.Stderr,
+			"\nWARNING: %d alert(s) were generated but NOT delivered.\n"+
+				"         The profile enables notifications, so a delivery channel was\n"+
+				"         expected. Check the delivery environment variables, starting\n"+
+				"         with %s.\n",
+			len(res.Alerts), notify.EnvSMTPHost)
+	}
+
 	if runErr != nil {
 		return exitFailure
 	}

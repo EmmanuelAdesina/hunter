@@ -87,5 +87,21 @@ UMask=0077
 # than left to overlap the next one.
 TimeoutStartSec=900
 
+# ---------------------------------------------------------------------------
+# Resource courtesy.
+#
+# This host also runs production workloads. The scan is network-bound rather
+# than CPU-bound, but on a single-core machine it should still yield the
+# processor the instant anything else wants it, so that a scan can never be the
+# reason a request to the production service is slow.
+# ---------------------------------------------------------------------------
+
+# Run at the lowest normal priority.
+Nice=19
+
+# Use the idle I/O class, so disk reads are only issued when nothing else is
+# waiting.
+IOSchedulingClass=idle
+
 [Install]
 WantedBy=multi-user.target

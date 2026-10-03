@@ -750,6 +750,22 @@ func (s *Scanner) deliver(ctx context.Context, generated []domain.Alert) (sent, 
 		reason := dispatchReason(s, dispatcher)
 		s.cfg.Logger.Info("delivery skipped", "phase", obs.PhaseNotify,
 			"reason", reason, "alerts", len(generated))
+
+		// Notifications being enabled in the profile while no channel is
+		// configured is a misconfiguration, not a neutral outcome: the system
+		// would generate alerts indefinitely and deliver none of them, reporting
+		// success every time. It is recorded so that the caller can say so out
+		// loud rather than letting a missing credential look like a quiet day.
+		if !s.cfg.DryRun && s.cfg.Profile.Notifications.Enabled && len(generated) > 0 {
+			s.cfg.Logger.Error("notifications are enabled but no delivery channel is configured; "+
+				"alerts will be generated and recorded but never sent",
+				"phase", obs.PhaseNotify, "alerts", len(generated), "reason", reason)
+		}
+		if len(generated) == 0 && !s.cfg.DryRun && s.cfg.Profile.Notifications.Enabled {
+			s.cfg.Logger.Warn("no delivery channel is configured",
+				"phase", obs.PhaseNotify, "reason", reason)
+		}
+
 		for _, a := range generated {
 			rec := domain.AlertRecord{
 				Fingerprint:   a.Fingerprint,
