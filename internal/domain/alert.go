@@ -56,8 +56,21 @@ type Alert struct {
 	// observed at alert time.
 	DetectedAt time.Time `json:"detected_at"`
 
+	// LaunchAge is how long ago the source reported the program launching, and
+	// LaunchKnown records whether it reported one at all. Both travel with the
+	// alert so the message can state how new the program is without recomputing
+	// it, and so an alert can never be rendered without the evidence for its own
+	// headline claim.
+	LaunchAge   time.Duration `json:"launch_age,omitempty"`
+	LaunchKnown bool          `json:"launch_known"`
+
 	// ScanID ties the alert back to the scan that produced it.
 	ScanID string `json:"scan_id"`
+
+	// HTMLBody is the styled alternative to Body. Both are rendered from the
+	// same state, so the two can never disagree, and the plain-text part
+	// remains a complete fallback for clients that will not render HTML.
+	HTMLBody string `json:"-"`
 
 	// Subject and Body are pre-rendered so that delivery is deterministic and
 	// testable without a mail transport.

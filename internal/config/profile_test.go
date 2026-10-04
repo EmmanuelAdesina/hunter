@@ -21,6 +21,7 @@ profile:
     kyc_required: no
   notifications:
     alert_on_new_programs: true
+    new_program_window: 24h
 `
 
 // TestTheShippedProfileIsValid verifies the profile that ships with the
@@ -171,6 +172,7 @@ access:
   kyc_required: no
 notifications:
   alert_on_new_programs: true
+  new_program_window: 24h
 `
 	p, err := config.Parse([]byte(flat))
 	if err != nil {

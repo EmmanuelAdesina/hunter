@@ -485,3 +485,6 @@ func (s ListingSignal) Digest() string {
 	b.WriteString(strconv.Itoa(s.SubmissionCount))
 	return b.String()
 }
+
+// StartedAtIsKnown reports whether the source published a launch date.
+func (p Program) StartedAtIsKnown() bool { return p.StartedAt != nil && !p.StartedAt.IsZero() }

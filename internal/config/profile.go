@@ -155,6 +155,19 @@ type NotificationConfig struct {
 	// first time.
 	AlertOnNewPrograms bool `yaml:"alert_on_new_programs"`
 
+	// NewProgramWindow is the launch-recency gate.
+	//
+	// A program earns an alert only if the source reports it launched within
+	// this window. A program that has been live for months is not an
+	// opportunity, however well it matches the profile, so this is what keeps an
+	// existing program off the channel entirely.
+	//
+	// A program whose launch date the source does not publish is never alerted
+	// on, because "recently launched" cannot be established. The window is
+	// sized to absorb a missed scan or a short outage: too tight and a single
+	// failure silently loses an opportunity forever.
+	NewProgramWindow stringDuration `yaml:"new_program_window"`
+
 	// AlertOnMaterialChange alerts when a qualifying program's scope or
 	// requirements change materially.
 	AlertOnMaterialChange bool `yaml:"alert_on_material_change"`
@@ -516,6 +529,13 @@ func (p *Profile) applyDefaultsAndValidate() error {
 	}
 	if p.Notifications.MaxPerScan < 0 {
 		fail("notifications.max_per_scan must be >= 0")
+	}
+	if p.Notifications.NewProgramWindow < 0 {
+		fail("notifications.new_program_window must be >= 0")
+	}
+	if p.Notifications.NewProgramWindow == 0 {
+		fail("notifications.new_program_window must be set: without it a program that " +
+			"launched years ago would be reported as new")
 	}
 	if !p.Notifications.AlertOnNewPrograms && !p.Notifications.AlertOnMaterialChange &&
 		!p.Notifications.AlertOnNewlyEligible && !p.Notifications.AlertOnScopeExpansion {

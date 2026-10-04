@@ -55,6 +55,12 @@ type ProgramRequest struct {
 	Source string
 	// Limit caps the result count. Zero means unlimited.
 	Limit int
+
+	// LaunchWindow filters to programs the source reports as launched within
+	// this duration. Zero uses the profile's configured window. This is the
+	// filter that answers "what is actually new", as opposed to what the
+	// monitor has not happened to have seen yet.
+	LaunchWindow time.Duration
 }
 
 // Programs returns evaluated programs matching the request.
@@ -91,6 +97,9 @@ func (q *Query) Programs(ctx context.Context, req ProgramRequest) ([]Evaluated, 
 			continue
 		}
 		if req.Changed && !changedSet[id] {
+			continue
+		}
+		if window := q.launchWindow(req); window > 0 && !withinLaunchWindow(p, q.now(), window) {
 			continue
 		}
 		ev := q.evaluateStored(p, snap)
@@ -146,17 +155,42 @@ func (q *Query) changedInScan(ctx context.Context, snap *state.Snapshot, program
 	return snap.LastScanID != "" && last.ScanID == snap.LastScanID, nil
 }
 
-// firstSeenInScan reports whether a program was first observed in the most
+// firstSeenInScan reports whether a program was first observed by the most
 // recent scan.
 //
-// The comparison uses a window rather than an exact timestamp match because a
-// program's first-seen time and the scan's completion time differ by the
-// duration of the scan itself.
+// The test is whether the observation is newer than the previous scan's
+// completion. A sliding window was used before, which made every program look
+// new for the first hour after any cold start, because they had all been
+// observed within the window. That reported a baseline import as a wave of new
+// opportunities, which is precisely the confusion this filter has to avoid.
 func firstSeenInScan(snap *state.Snapshot, p domain.Program) bool {
-	if snap.LastScanID == "" || p.FirstSeenAt.IsZero() || snap.LastScanAt.IsZero() {
+	if p.FirstSeenAt.IsZero() {
 		return false
 	}
-	return snap.LastScanAt.Sub(p.FirstSeenAt) < time.Hour
+	if snap.LastScanAt.IsZero() {
+		// No scan has been recorded yet, so the only observation is this one.
+		return true
+	}
+	return p.FirstSeenAt.After(snap.LastScanAt.Add(-scanOverlapTolerance))
+}
+
+// scanOverlapTolerance allows a scan to attribute its own observations to
+// itself.
+//
+// A program discovered partway through a scan has a first-seen time before the
+// scan finishes, so a strict comparison would drop it from its own scan's
+// results. The tolerance is small relative to the interval and exists only to
+// absorb that ordering.
+const scanOverlapTolerance = 90 * time.Second
+
+// withinLaunchWindow reports whether a program's source-reported launch date is
+// recent enough to count as newly launched.
+func withinLaunchWindow(p domain.Program, now time.Time, window time.Duration) bool {
+	if !p.StartedAtIsKnown() {
+		return false
+	}
+	age := now.Sub(*p.StartedAt)
+	return age >= 0 && age <= window
 }
 
 // FreshnessFor derives the age signals for a stored record.
@@ -177,6 +211,14 @@ func FreshnessFor(p domain.Program, snap *state.Snapshot, now time.Time) domain.
 		f.SourceUpdateAge = now.Sub(*p.SourceUpdatedAt)
 	}
 	return f
+}
+
+// launchWindow resolves the requested recency filter.
+func (q *Query) launchWindow(req ProgramRequest) time.Duration {
+	if req.LaunchWindow > 0 {
+		return req.LaunchWindow
+	}
+	return q.profile.NewProgramWindow()
 }
 
 // Explain returns the full decision for one program.
@@ -264,6 +306,9 @@ func (q *Query) Snapshot(ctx context.Context) (*state.Snapshot, error) { return 
 
 // Profile returns the profile in use.
 func (q *Query) Profile() *config.Profile { return q.profile }
+
+// Now returns the clock the query evaluates against.
+func (q *Query) Now() time.Time { return q.now() }
 
 // sortEvaluated orders rows by attention priority, breaking ties on identifier
 // so the ordering is total and reproducible.

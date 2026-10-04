@@ -45,14 +45,17 @@ func cmdPrograms(env *Env, args []string) int {
 		changed  bool
 		source   string
 		limit    int
+		launched bool
 	)
 	fs := flag.NewFlagSet("programs", flag.ContinueOnError)
 	common.register(fs)
 	fs.BoolVar(&eligible, "eligible", false, "only programs the profile accepts")
-	fs.BoolVar(&isNew, "new", false, "only programs first seen in the last scan")
+	fs.BoolVar(&isNew, "new", false, "only programs first seen by the most recent scan")
 	fs.BoolVar(&changed, "changed", false, "only programs changed in the last scan")
 	fs.StringVar(&source, "source", "", "filter by source name")
 	fs.IntVar(&limit, "limit", 0, "maximum rows")
+	fs.BoolVar(&launched, "launched", false,
+		"only programs the source reports as launched within the configured window")
 	if !parseFlags(fs, env, args) {
 		return exitFailure
 	}
@@ -63,9 +66,13 @@ func cmdPrograms(env *Env, args []string) int {
 		return classifyConfigError(err)
 	}
 
-	rows, err := q.Programs(context.Background(), pipeline.ProgramRequest{
+	req := pipeline.ProgramRequest{
 		Eligible: eligible, New: isNew, Changed: changed, Source: source, Limit: limit,
-	})
+	}
+	if launched {
+		req.LaunchWindow = q.Profile().NewProgramWindow()
+	}
+	rows, err := q.Programs(context.Background(), req)
 	if err != nil {
 		fmt.Fprintf(env.Stderr, "programs: %v\n", err)
 		return exitFailure

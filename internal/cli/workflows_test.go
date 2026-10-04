@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/eadeshina/hunter/internal/config"
+	"github.com/eadeshina/hunter/internal/domain"
 	"gopkg.in/yaml.v3"
 )
 
@@ -25,9 +26,7 @@ type workflowFile struct {
 			Env  map[string]string `yaml:"env"`
 			If   string            `yaml:"if"`
 		} `yaml:"steps"`
-		Permissions any `yaml:"permissions"`
 	} `yaml:"jobs"`
-	Permissions any `yaml:"permissions"`
 }
 
 // loadWorkflow parses a workflow from the repository.
@@ -44,20 +43,78 @@ func loadWorkflow(t *testing.T, name string) workflowFile {
 	return wf
 }
 
+// listWorkflows returns the workflow file names present.
+func listWorkflows(t *testing.T) []string {
+	t.Helper()
+	entries, err := os.ReadDir(filepath.Join("..", "..", ".github", "workflows"))
+	if err != nil {
+		t.Fatalf("read workflows: %v", err)
+	}
+	out := make([]string, 0, len(entries))
+	for _, e := range entries {
+		if !e.IsDir() {
+			out = append(out, e.Name())
+		}
+	}
+	return out
+}
+
+// TestExactlyOneWorkflowRemains pins the consolidation.
+//
+// The scan runs on a host as a systemd timer. A GitHub workflow that also
+// scanned would use a different state store and every alert would arrive twice.
+func TestExactlyOneWorkflowRemains(t *testing.T) {
+	names := listWorkflows(t)
+	if len(names) != 1 || names[0] != "test.yml" {
+		t.Errorf("workflows = %v, want only test.yml; the scan is scheduled by the host timer", names)
+	}
+}
+
+// TestNoWorkflowSchedulesAScan verifies nothing reintroduces a second
+// scheduler.
+func TestNoWorkflowSchedulesAScan(t *testing.T) {
+	for _, name := range listWorkflows(t) {
+		raw, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(raw), "schedule:") {
+			t.Errorf("%s declares a schedule; only the host timer may schedule a scan", name)
+		}
+		if strings.Contains(string(raw), "cron:") {
+			t.Errorf("%s declares a cron entry; only the host timer may schedule a scan", name)
+		}
+	}
+}
+
+// TestNoWorkflowReadsDeliveryCredentials verifies the mail credential is not
+// requested anywhere in version control.
+//
+// The repository is public. The credential lives only on the host that sends
+// the mail, so no workflow may hold it, and none may ask for it.
+func TestNoWorkflowReadsDeliveryCredentials(t *testing.T) {
+	for _, name := range listWorkflows(t) {
+		raw, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, forbidden := range []string{
+			"secrets.EMAIL_PASSWORD", "secrets.EMAIL_USERNAME",
+			"secrets.EMAIL_SMTP", "secrets.ALERT_RECIPIENT",
+		} {
+			if strings.Contains(string(raw), forbidden) {
+				t.Errorf("%s references %s; delivery is the host's job", name, forbidden)
+			}
+		}
+	}
+}
+
 // TestWorkflowsAreValidYAML verifies every workflow parses. A workflow that does
-// not parse is silently skipped by the runner, so a scheduled monitor could stop
-// firing without any error being reported anywhere.
+// not parse is silently skipped, so a broken file looks like a passing suite.
 func TestWorkflowsAreValidYAML(t *testing.T) {
-	for _, name := range []string{"monitor.yml", "test.yml", "release.yml"} {
+	for _, name := range listWorkflows(t) {
 		t.Run(name, func(t *testing.T) {
-			raw, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", name))
-			if err != nil {
-				t.Fatalf("read: %v", err)
-			}
-			var wf workflowFile
-			if err := yaml.Unmarshal(raw, &wf); err != nil {
-				t.Fatalf("workflow does not parse: %v", err)
-			}
+			wf := loadWorkflow(t, name)
 			if len(wf.Jobs) == 0 {
 				t.Error("workflow declares no jobs")
 			}
@@ -67,12 +124,9 @@ func TestWorkflowsAreValidYAML(t *testing.T) {
 
 // TestWorkflowShellIsValidBash verifies every run block is syntactically valid.
 //
-// Shell inside a workflow is not compiled anywhere, so a typo sits unnoticed
-// until the schedule fires. The monitor runs unattended, which means a broken
-// block would be discovered at an awkward time rather than in review.
-//
-// The check is skipped when bash is unavailable rather than failing, so the suite
-// still runs on a machine without a POSIX shell.
+// Shell inside a workflow is compiled nowhere, so a typo sits unnoticed until
+// CI runs. The check is skipped when bash is unavailable rather than failing,
+// so the suite still runs on a host without a POSIX shell.
 func TestWorkflowShellIsValidBash(t *testing.T) {
 	bash, err := exec.LookPath("bash")
 	if err != nil {
@@ -80,13 +134,15 @@ func TestWorkflowShellIsValidBash(t *testing.T) {
 	}
 
 	dir := t.TempDir()
-	for _, name := range []string{"monitor.yml", "test.yml", "release.yml"} {
+	total := 0
+	for _, name := range listWorkflows(t) {
 		wf := loadWorkflow(t, name)
 		for jobName, job := range wf.Jobs {
 			for i, step := range job.Steps {
 				if step.Run == "" {
 					continue
 				}
+				total++
 				path := filepath.Join(dir, "step.sh")
 				// The path is quoted because a temp directory can contain spaces.
 				if err := os.WriteFile(path, []byte(step.Run), 0o600); err != nil {
@@ -100,172 +156,90 @@ func TestWorkflowShellIsValidBash(t *testing.T) {
 			}
 		}
 	}
-}
-
-// TestMonitorWorkflowHasSchedule verifies the monitor has a usable trigger.
-//
-// The schedule itself moved to a host-local systemd timer, because GitHub's
-// scheduled-workflow trigger was measured firing roughly 42 times less often
-// than a five-minute cron asks for. This workflow is now a manual tool, and a
-// manual tool that cannot be dispatched by hand is not a tool.
-func TestMonitorWorkflowHasSchedule(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", "monitor.yml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(raw), "workflow_dispatch:") {
-		t.Error("the monitor workflow has no manual trigger, so it cannot be run by hand")
-	}
-
-	// A schedule here would mean two independent schedulers and therefore two
-	// independent alert stores, which double-emails every opportunity.
-	if strings.Contains(string(raw), "schedule:") {
-		t.Error("the monitor workflow declares a schedule; the host timer is the single scheduler")
-	}
-	if strings.Contains(string(raw), "cron:") {
-		t.Error("the monitor workflow declares a cron entry, but it is no longer the scheduler")
-	}
-
-	// The dispatch path defaults to a dry run so that running it by hand cannot
-	// surprise the recipient with mail.
-	body := string(raw)
-	if !strings.Contains(body, "default: true") {
-		t.Error("the manual dry_run input does not default to true")
+	if total == 0 {
+		t.Error("no shell steps were inspected; the check is not running")
 	}
 }
 
-// TestSchedulerOwnershipIsUnambiguous asserts exactly one component schedules a
-// scan.
+// TestEnvExampleHoldsNoValues verifies the credential template ships empty.
 //
-// The host timer is the scheduler. If GitHub Actions also scheduled a scan, the
-// two would hold separate state stores and each would consider the same alert
-// undelivered, so every opportunity would arrive twice.
-func TestSchedulerOwnershipIsUnambiguous(t *testing.T) {
-	entries, err := os.ReadDir(filepath.Join("..", "..", ".github", "workflows"))
+// The template is copied to the live credential file during installation, so a
+// real value left in it would be published with the repository the moment the
+// repository was made public. Every key must be present and every value blank.
+func TestEnvExampleHoldsNoValues(t *testing.T) {
+	path := filepath.Join("..", "..", "deploy", "systemd", "hunter.env.example")
+	raw, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("read: %v", err)
 	}
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		raw, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", e.Name()))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if strings.Contains(string(raw), "schedule:") {
-			t.Errorf("%s declares a schedule; only the host timer should schedule a scan", e.Name())
-		}
-	}
-
-	// The timer must exist and be self-contained.
-	timer, err := os.ReadFile(filepath.Join("..", "..", "deploy", "systemd", "hunter.timer"))
-	if err != nil {
-		t.Fatalf("the host timer is missing, so nothing schedules a scan: %v", err)
-	}
-	if !strings.Contains(string(timer), "OnCalendar=") {
-		t.Error("the host timer has no schedule")
-	}
-	if !strings.Contains(string(timer), "Persistent=true") {
-		t.Error("the host timer will not catch up after downtime")
-	}
-}
-
-// TestMonitorReadsOnlySecretBackedEnvironment verifies delivery credentials come
-// from secrets and are never written into the repository.
-//
-// A literal credential in a workflow file would be published with the repository
-// the moment it went public, so the only acceptable spelling is a secrets
-// reference.
-func TestMonitorReadsOnlySecretBackedEnvironment(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", "monitor.yml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	body := string(raw)
 
 	required := []string{
 		"EMAIL_SMTP_HOST", "EMAIL_SMTP_PORT", "EMAIL_USERNAME",
-		"EMAIL_PASSWORD", "ALERT_RECIPIENT",
+		"EMAIL_PASSWORD", "ALERT_RECIPIENT", "EMAIL_FROM_NAME",
 	}
-	for _, name := range required {
-		if !strings.Contains(body, "secrets."+name) {
-			t.Errorf("%s is not read from secrets", name)
+
+	seen := map[string]bool{}
+	for i, line := range strings.Split(string(raw), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		key, value, found := strings.Cut(trimmed, "=")
+		if !found {
+			t.Errorf("line %d is neither a comment nor an assignment: %q", i+1, trimmed)
+			continue
+		}
+		key = strings.TrimSpace(key)
+		seen[key] = true
+		if strings.TrimSpace(value) != "" {
+			t.Errorf("line %d sets a value for %s; the template must ship empty", i+1, key)
+		}
+		if strings.Contains(trimmed, `"`) || strings.Contains(trimmed, "'") {
+			t.Errorf("line %d is quoted; the template shows the bare form", i+1)
+		}
+	}
+
+	for _, key := range required {
+		if !seen[key] {
+			t.Errorf("the template is missing %s", key)
 		}
 	}
 }
 
-// TestRepositoryContainsNoCredentials verifies no committed file holds a value
-// that looks like a live credential.
+// TestEnvExampleKeysMatchTheBinary verifies the template documents exactly the
+// variables the code reads.
 //
-// The repository is public, so a credential committed at any point is disclosed
-// immediately and must be treated as compromised. This runs in CI so that an
-// accidental commit is caught before it ships rather than after.
-func TestRepositoryContainsNoCredentials(t *testing.T) {
-	// Patterns for credentials that must never appear in tracked files.
-	//
-	// Only unambiguous, provider-specific shapes are listed. A generic
-	// "long alphanumeric string" rule is deliberately absent: it matches Go
-	// identifiers, module hashes and base64 fragments, so it reports constantly
-	// and trains the reader to ignore it. Detection of a specific leaked value
-	// is handled by scanning for that value at the point of use instead.
-	patterns := []struct {
-		name string
-		re   string
-	}{
-		{"GitHub token", `gh[pousr]_[A-Za-z0-9]{20,}`},
-		{"GitHub fine-grained token", `github_pat_[A-Za-z0-9_]{20,}`},
-		{"AWS access key id", `AKIA[0-9A-Z]{16}`},
-		{"Slack token", `xox[baprs]-[A-Za-z0-9-]{10,}`},
-		{"Private key block", `-----BEGIN [A-Z ]*PRIVATE KEY-----`},
-	}
-
-	skipDirs := map[string]bool{".git": true, "bin": true, "dist": true, "fixtures": true}
-	var checked int
-
-	err := filepath.Walk("../..", func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if info.IsDir() {
-			if skipDirs[info.Name()] {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		ext := strings.ToLower(filepath.Ext(path))
-		if ext != ".go" && ext != ".yml" && ext != ".yaml" && ext != ".sh" &&
-			ext != ".md" && ext != ".json" && ext != "" && ext != ".mod" && ext != ".sum" {
-			return nil
-		}
-		body, rerr := os.ReadFile(path)
-		if rerr != nil {
-			return nil
-		}
-		checked++
-
-		for _, p := range patterns {
-			re, cerr := regexpCompile(p.re)
-			if cerr != nil {
-				continue
-			}
-			if loc := re.FindIndex(body); loc != nil {
-				// Report the shape rather than the value, so the finding itself
-				// never leaks the secret into a build log.
-				t.Errorf("%s: file contains something matching %s near byte %d; "+
-					"if this is a real credential, revoke it before anything else",
-					strings.TrimPrefix(path, "../../"), p.name, loc[0])
-			}
-		}
-		return nil
-	})
+// A key in the template that nothing reads is a credential on disk for no
+// reason. A key the code reads that the template omits is a scan that silently
+// generates alerts and delivers nothing.
+func TestEnvExampleKeysMatchTheBinary(t *testing.T) {
+	tmpl, err := os.ReadFile(filepath.Join("..", "..", "deploy", "systemd", "hunter.env.example"))
 	if err != nil {
-		t.Fatalf("walk: %v", err)
+		t.Fatal(err)
 	}
-	if checked == 0 {
-		t.Fatal("no files were inspected; the check is not running")
+
+	smtp, err := os.ReadFile(filepath.Join("..", "..", "internal", "notify", "smtp.go"))
+	if err != nil {
+		t.Fatal(err)
 	}
-	t.Logf("inspected %d files for credential patterns", checked)
+
+	for _, line := range strings.Split(string(smtp), "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "Env") || !strings.Contains(line, "=") {
+			continue
+		}
+		_, value, found := strings.Cut(line, "=")
+		if !found {
+			continue
+		}
+		name := strings.Trim(strings.TrimSpace(value), `"`)
+		if !strings.HasPrefix(name, "EMAIL_") && !strings.HasPrefix(name, "ALERT_") {
+			continue
+		}
+		if !strings.Contains(string(tmpl), name) {
+			t.Errorf("the binary reads %s but the credential template omits it", name)
+		}
+	}
 }
 
 // TestShippedProfileHoldsNoCredentials verifies the profile carries policy only.
@@ -280,12 +254,117 @@ func TestShippedProfileHoldsNoCredentials(t *testing.T) {
 			t.Errorf("the profile mentions %q; it must hold policy only", forbidden)
 		}
 	}
-	// It must still be valid, which is the property that matters.
 	if _, err := config.Parse(raw); err != nil {
 		t.Fatalf("the shipped profile is invalid: %v", err)
 	}
 }
 
-// regexpCompile is a thin wrapper so the test file does not need the regexp
-// import at every call site.
-func regexpCompile(expr string) (*regexp.Regexp, error) { return regexp.Compile(expr) }
+// TestShippedProfileOnlyAlertsOnNewLaunches pins the profile to the intended
+// posture: new launches only, with the access gates as a hard filter.
+func TestShippedProfileOnlyAlertsOnNewLaunches(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "configs", "profiles", "personal.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := config.Parse(raw)
+	if err != nil {
+		t.Fatalf("the shipped profile is invalid: %v", err)
+	}
+
+	if !p.Notifications.AlertOnNewPrograms {
+		t.Error("new-program alerts are off; the channel would never fire")
+	}
+	if p.NewProgramWindow() <= 0 {
+		t.Error("no launch window is set")
+	}
+	if !p.Notifications.RequireEligible {
+		t.Error("alerts are not gated on eligibility; a program failing an access " +
+			"requirement could be announced")
+	}
+	// The gates themselves must remain strict.
+	if p.Access.KYCRequired != domain.TriNo {
+		t.Error("KYC is now acceptable; that reverses the stated constraint")
+	}
+	if p.Access.MaxReputationPoints <= 0 {
+		t.Error("no reputation ceiling is set")
+	}
+	if p.Access.MaxSubmissionFeeUSD < 0 {
+		t.Error("no submission fee ceiling is set")
+	}
+	if p.Access.AcceptUnknownAccessGates {
+		t.Error("unknown access gates are accepted; a program whose requirements " +
+			"could not be read could be announced")
+	}
+
+	// Triggers that fire for already-running programs must be off.
+	if p.Notifications.AlertOnMaterialChange {
+		t.Error("material-change alerts are on; an existing program would be reported")
+	}
+	if p.Notifications.AlertOnScopeExpansion {
+		t.Error("scope-expansion alerts are on; an existing program would be reported")
+	}
+}
+
+// TestRepositoryContainsNoCredentials verifies no committed file holds a value
+// that looks like a live credential.
+//
+// The repository is public, so a credential committed at any point is disclosed
+// immediately and must be treated as compromised.
+func TestRepositoryContainsNoCredentials(t *testing.T) {
+	patterns := []struct {
+		name string
+		re   string
+	}{
+		{"GitHub token", `gh[pousr]_[A-Za-z0-9]{20,}`},
+		{"GitHub fine-grained token", `github_pat_[A-Za-z0-9_]{20,}`},
+		{"AWS access key id", `AKIA[0-9A-Z]{16}`},
+		{"Slack token", `xox[baprs]-[A-Za-z0-9-]{10,}`},
+		{"Private key block", `-----BEGIN [A-Z ]*PRIVATE KEY-----`},
+	}
+
+	skipDirs := map[string]bool{".git": true, "bin": true, "dist": true, "fixtures": true, "state": true}
+	var checked int
+
+	err := filepath.Walk("../..", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if info.IsDir() {
+			if skipDirs[info.Name()] {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		switch strings.ToLower(filepath.Ext(path)) {
+		case ".go", ".yml", ".yaml", ".sh", ".md", ".json", ".mod", ".sum", "":
+		default:
+			return nil
+		}
+		body, rerr := os.ReadFile(path)
+		if rerr != nil {
+			return nil
+		}
+		checked++
+		for _, p := range patterns {
+			re, cerr := regexp.Compile(p.re)
+			if cerr != nil {
+				continue
+			}
+			if loc := re.FindIndex(body); loc != nil {
+				// The shape is reported, never the value, so the finding itself
+				// cannot leak a secret into a build log.
+				t.Errorf("%s: matches %s near byte %d; if this is a real credential, "+
+					"revoke it before anything else",
+					strings.TrimPrefix(path, "../../"), p.name, loc[0])
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walk: %v", err)
+	}
+	if checked == 0 {
+		t.Fatal("no files were inspected; the check is not running")
+	}
+	t.Logf("inspected %d files for credential patterns", checked)
+}

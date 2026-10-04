@@ -17,9 +17,18 @@ import (
 // would bury the signal in a notification.
 //
 // The output is deterministic for a given candidate.
-func Render(c Candidate, profile *config.Profile) (subject, body string) {
+// Render produces the subject and both bodies for a candidate.
+//
+// The clock is a parameter rather than read from the environment so that the
+// launch age quoted in the subject line, the plain-text body, and the styled
+// body all come from one computation. A renderer that had to trust a
+// caller-populated field would be one careless caller away from printing a
+// different number in the subject than in the body.
+func Render(c Candidate, profile *config.Profile, now time.Time) (subject, body, htmlBody string) {
+	c.LaunchAge, c.LaunchKnown = launchAge(c.Program, now)
+
 	subject = renderSubject(c, profile)
-	return subject, renderBody(c, profile)
+	return subject, renderBody(c, profile), RenderHTML(c, profile)
 }
 
 // renderSubject builds the one-line summary.
@@ -366,14 +375,13 @@ func writeFreshness(b *strings.Builder, f domain.Freshness) {
 // Durations are phrased as a noun phrase so that the caller can append "old"
 // without producing nonsense like "just now old".
 func headlineAge(c Candidate) string {
-	switch {
-	case c.Fresh.FirstSeenAge > 0:
-		return HumanizeAge(c.Fresh.FirstSeenAge)
-	case c.Program.StartedAt != nil:
-		return "started " + HumanizeAge(time.Since(*c.Program.StartedAt))
-	default:
-		return ""
+	if c.LaunchKnown {
+		return "launched " + HumanizeAge(c.LaunchAge) + " ago"
 	}
+	if c.Fresh.FirstSeenAge > 0 {
+		return "seen " + HumanizeAge(c.Fresh.FirstSeenAge) + " ago"
+	}
+	return ""
 }
 
 // HumanizeAge renders a duration as an age phrase.

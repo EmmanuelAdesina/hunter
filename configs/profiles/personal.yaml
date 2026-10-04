@@ -92,12 +92,27 @@ profile:
   notifications:
     enabled: true
     min_severity: medium
+
+    # Hard gate. A program that fails any access requirement is never
+    # announced, regardless of how new it is or how well it matches. This is the
+    # single most important setting in the profile.
     require_eligible: true
+
+    # Only newly launched programs are worth interrupting for.
     alert_on_new_programs: true
-    alert_on_material_change: true
+    new_program_window: 24h
+
+    # A program the monitor could not assess, and now can, is still a fresh
+    # launch worth reporting. This trigger is also window-gated, so it can only
+    # ever fire for something newly launched.
     alert_on_newly_eligible: true
-    alert_on_scope_expansion: true
-    # Guard the channel during a first bulk import. 0 means no cap.
+
+    # Off. These fire for programs that already existed, which is exactly the
+    # noise this channel exists to exclude. They remain available.
+    alert_on_material_change: false
+    alert_on_scope_expansion: false
+
+    # Guard the channel if several programs launch at once. 0 means no cap.
     max_per_scan: 10
     subject_prefix: "[HUNTER]"
 

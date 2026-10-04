@@ -48,6 +48,7 @@ profile:
     enabled: true
     min_severity: medium
     alert_on_new_programs: true
+    new_program_window: 24h
 `
 
 // programOption mutates a base program so that each test varies one dimension.

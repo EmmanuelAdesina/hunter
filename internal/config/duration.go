@@ -120,3 +120,26 @@ func (p *Profile) DetailsRefreshInterval() time.Duration {
 func (p *Profile) FetchDetailsOnListingChange() bool {
 	return p.Scan.FetchDetailsOnListingChange
 }
+
+// NewProgramWindow returns how recently a program must have launched to earn an
+// alert.
+//
+// This is the single most important number in the profile. It is the difference
+// between hearing about an opportunity opened twenty minutes ago and hearing
+// about the four hundred programs that were already live before the monitor
+// existed.
+func (p *Profile) NewProgramWindow() time.Duration {
+	if p.Notifications.NewProgramWindow <= 0 {
+		return defaultNewProgramWindow
+	}
+	return time.Duration(p.Notifications.NewProgramWindow)
+}
+
+// defaultNewProgramWindow is 24 hours.
+//
+// It is deliberately far wider than the polling interval. The interval decides
+// how quickly a launch is noticed; the window decides whether a launch is still
+// worth reporting after an outage, a slow platform response, or a missed run.
+// Setting the window to the interval would lose every program that appeared
+// while the monitor was briefly unavailable.
+const defaultNewProgramWindow = 24 * time.Hour

@@ -35,6 +35,7 @@ profile:
     min_severity: medium
     require_eligible: true
     alert_on_new_programs: true
+    new_program_window: 24h
     alert_on_material_change: true
     alert_on_newly_eligible: true
     alert_on_scope_expansion: true
@@ -58,7 +59,9 @@ func generator(p *config.Profile) *alerts.Generator {
 // program builds a qualifying program.
 func program(mutators ...func(*domain.Program)) domain.Program {
 	max := 5000.0
-	started := fixedNow.Add(-72 * time.Hour)
+	// Launched three hours ago, comfortably inside the default window, so the
+	// baseline program is a qualifying new launch rather than a long-running one.
+	started := fixedNow.Add(-3 * time.Hour)
 	subs := 12
 
 	p := domain.Program{
@@ -410,13 +413,16 @@ func TestBodyIsMobileFriendly(t *testing.T) {
 func TestRenderingIsDeterministic(t *testing.T) {
 	g := generator(profile(t))
 	first := g.Decide(candidate())
-	subject, body := alerts.Render(candidate(), profile(t))
+	subject, body, htmlBody := alerts.Render(candidate(), profile(t), fixedNow)
 
 	if first.Subject != subject {
 		t.Errorf("subject differs:\n %q\n %q", first.Subject, subject)
 	}
 	if first.Body != body {
 		t.Error("body differs between two identical renderings")
+	}
+	if first.HTMLBody != htmlBody {
+		t.Error("html body differs between two identical renderings")
 	}
 }
 

@@ -43,26 +43,37 @@ type PriorDecision struct {
 
 // Candidate is one evaluated observation offered for alerting.
 type Candidate struct {
-	Program  domain.Program
-	Diff     domain.Diff
-	Decision domain.EligibilityDecision
-	Triage   domain.Triage
-	Fresh    domain.Freshness
-	Prior    PriorDecision
+	Program domain.Program
+
+	// LaunchAge is how long ago the source reported the program launching, and
+	// LaunchKnown whether it reported one. Both are populated by the generator
+	// before rendering, so the subject line and the message body cannot quote
+	// different numbers for the same program.
+	LaunchAge   time.Duration
+	LaunchKnown bool
+	Diff        domain.Diff
+	Decision    domain.EligibilityDecision
+	Triage      domain.Triage
+	Fresh       domain.Freshness
+	Prior       PriorDecision
 }
 
 // Decide returns the alert to raise for a candidate, or nil if none is due.
 //
-// The triggers mirror the ones the mandate specifies, and each is separately
-// configurable so that a researcher can be told about new programs without being
-// told about every metadata edit.
+// The trigger is launch recency, not novelty. Every alert this system raises is
+// for a program the source reports as having launched within the configured
+// window. A program that has been live for a year is not an opportunity however
+// well it matches the profile, and it never reaches a channel.
 func (g *Generator) Decide(c Candidate) *domain.Alert {
 	cfg := g.profile.Notifications
 	if !cfg.Enabled {
 		return nil
 	}
 
-	kind, trigger := g.selectKind(c)
+	launchAge, launchKnown := launchAge(c.Program, g.now())
+	window := g.profile.NewProgramWindow()
+
+	kind, trigger := g.selectKind(c, launchAge, launchKnown, window)
 	if kind == "" {
 		return nil
 	}
@@ -82,34 +93,65 @@ func (g *Generator) Decide(c Candidate) *domain.Alert {
 
 	now := g.now().UTC()
 	alert := domain.Alert{
-		Kind:       kind,
-		ProgramID:  c.Program.ID,
-		Program:    c.Program,
-		Changes:    c.Diff.Changes,
-		Decision:   c.Decision,
-		Triage:     c.Triage,
-		Freshness:  c.Fresh,
-		DetectedAt: now,
+		Kind:        kind,
+		ProgramID:   c.Program.ID,
+		Program:     c.Program,
+		Changes:     c.Diff.Changes,
+		Decision:    c.Decision,
+		Triage:      c.Triage,
+		Freshness:   c.Fresh,
+		DetectedAt:  now,
+		LaunchAge:   launchAge,
+		LaunchKnown: launchKnown,
 	}
 	alert.Fingerprint = domain.ComputeFingerprint(kind, c.Program.ID, c.Diff.Changes, c.Decision, trigger)
-	alert.Subject, alert.Body = Render(c, g.profile)
+
+	alert.Subject, alert.Body, alert.HTMLBody = Render(c, g.profile, now)
 	return &alert
+}
+
+// launchAge returns how long ago the source says the program launched, and
+// whether it said so at all.
+//
+// A program with no published launch date returns ok=false. That is the
+// system's central rule applied to recency: "recently launched" cannot be
+// established, so no alert is raised. Treating an unknown launch date as recent
+// would put every program the source is vague about straight back on the channel.
+func launchAge(p domain.Program, now time.Time) (time.Duration, bool) {
+	if p.StartedAt == nil || p.StartedAt.IsZero() {
+		return 0, false
+	}
+	age := now.Sub(*p.StartedAt)
+	if age < 0 {
+		// A future launch date is clock skew or a typo, and is not evidence of
+		// a freshly launched program.
+		return 0, false
+	}
+	return age, true
+}
+
+// withinLaunchWindow reports whether a launch age falls inside the window.
+func withinLaunchWindow(age time.Duration, known bool, window time.Duration) bool {
+	return known && age <= window
 }
 
 // selectKind picks the single most significant trigger for a candidate.
 //
-// Only one alert is raised per program per scan. A new program that is also a
-// scope expansion is reported as a new program, because that is the stronger
-// claim, and reporting both would double the noise for one event.
-func (g *Generator) selectKind(c Candidate) (domain.AlertKind, string) {
+// The launch window is checked first and gates everything. Only one alert is
+// raised per program per scan, so a program that is both newly launched and
+// newly eligible is reported once, as the stronger claim.
+func (g *Generator) selectKind(c Candidate, age time.Duration, known bool, window time.Duration) (domain.AlertKind, string) {
 	cfg := g.profile.Notifications
 
-	// A program the profile previously rejected and now accepts is the highest
-	// value signal: it means an opportunity opened without anyone announcing it.
-	if cfg.AlertOnNewlyEligible && c.Prior.Known && !c.Prior.Eligible && c.Decision.Eligible {
-		return domain.AlertNewlyEligible, "newly_eligible"
+	// The launch window is the master gate. Nothing outside it reaches a
+	// channel, whatever else changed, because the purpose of the channel is
+	// opportunities that just opened rather than a survey of what already
+	// exists.
+	if !withinLaunchWindow(age, known, window) {
+		return "", ""
 	}
 
+	// A program seen for the first time is the primary event.
 	if c.Diff.IsNew {
 		if cfg.AlertOnNewPrograms {
 			return domain.AlertNewQualifying, "new_program"
@@ -117,24 +159,19 @@ func (g *Generator) selectKind(c Candidate) (domain.AlertKind, string) {
 		return "", ""
 	}
 
-	// Previously rejected and still rejected: nothing to say even if it changed,
-	// because the change did not make it reachable.
-	if c.Prior.Known && !c.Prior.Eligible && !c.Decision.Eligible {
-		return "", ""
+	// A program that was seen but could not be assessed, and can now, is still a
+	// freshly launched program worth reporting. This is window-gated above, so it
+	// can only ever apply to something new.
+	if cfg.AlertOnNewlyEligible && c.Prior.Known && !c.Prior.Eligible && c.Decision.Eligible {
+		return domain.AlertNewlyEligible, "newly_eligible"
 	}
 
-	// Reactivation outranks other changes: a reopened program is a fresh window.
-	if c.Diff.Changes.Contains(domain.ChangeProgramReactivated) {
-		if cfg.AlertOnMaterialChange {
-			return domain.AlertMaterialChange, "reactivated"
-		}
-		return "", ""
-	}
-
+	// The remaining triggers concern programs that already existed. They are off
+	// by default because an existing program is not the signal being bought,
+	// but they remain available for a profile that wants them.
 	if cfg.AlertOnScopeExpansion && hasSurfaceExpansion(c) {
 		return domain.AlertScopeExpansion, "scope_expansion"
 	}
-
 	if cfg.AlertOnMaterialChange && c.Diff.Material() {
 		return domain.AlertMaterialChange, "material_change"
 	}

@@ -232,6 +232,16 @@ func (n *SMTPNotifier) Send(ctx context.Context, a domain.Alert) error {
 
 // buildMessage renders the RFC 5322 message.
 //
+// The body is sent as multipart/alternative with a plain-text part first and a
+// styled HTML part second. That ordering is what lets the recipient choose, and
+// it means a client that cannot render the HTML still receives every fact in a
+// readable form rather than an empty or mangled message.
+//
+// No external resources are referenced anywhere in the message: no images, no
+// web fonts, no tracking pixel. It therefore leaks nothing about when it was
+// opened, renders identically offline, and cannot be broken by a content
+// blocker.
+//
 // Headers are ordered deterministically and the body is encoded as UTF-8 so
 // that a program name containing non-ASCII characters is not mangled.
 func (n *SMTPNotifier) buildMessage(a domain.Alert) ([]byte, error) {
@@ -265,16 +275,51 @@ func (n *SMTPNotifier) buildMessage(a domain.Alert) ([]byte, error) {
 	b.WriteString("Precedence: bulk\r\n")
 	b.WriteString("Auto-Submitted: auto-generated\r\n")
 	b.WriteString("MIME-Version: 1.0\r\n")
+
+	// Without a styled part the message is plain text, which is what a client
+	// that cannot render HTML should receive in full.
+	if strings.TrimSpace(a.HTMLBody) == "" {
+		b.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
+		b.WriteString("Content-Transfer-Encoding: 8bit\r\n")
+		b.WriteString("\r\n")
+		b.WriteString(ensureTrailingNewline(a.Body))
+		return []byte(b.String()), nil
+	}
+
+	// The boundary is derived from the fingerprint, so two alerts cannot collide
+	// and a redelivery produces byte-identical output.
+	boundary := "hunter-" + a.Fingerprint
+	if len(boundary) > 60 {
+		boundary = boundary[:60]
+	}
+
+	fmt.Fprintf(&b, "Content-Type: multipart/alternative; boundary=%q\r\n\r\n", boundary)
+
+	// The plain-text alternative comes first, which makes it the default choice
+	// for a client that cannot or will not render HTML.
+	fmt.Fprintf(&b, "--%s\r\n", boundary)
 	b.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
-	b.WriteString("Content-Transfer-Encoding: 8bit\r\n")
+	b.WriteString("Content-Transfer-Encoding: 8bit\r\n\r\n")
+	b.WriteString(ensureTrailingNewline(a.Body))
 	b.WriteString("\r\n")
 
-	body := a.Body
-	if !strings.HasSuffix(body, "\n") {
-		body += "\n"
-	}
-	b.WriteString(body)
+	fmt.Fprintf(&b, "--%s\r\n", boundary)
+	b.WriteString("Content-Type: text/html; charset=UTF-8\r\n")
+	b.WriteString("Content-Transfer-Encoding: 8bit\r\n\r\n")
+	b.WriteString(ensureTrailingNewline(a.HTMLBody))
+	b.WriteString("\r\n")
+
+	fmt.Fprintf(&b, "--%s--\r\n", boundary)
 	return []byte(b.String()), nil
+}
+
+// ensureTrailingNewline guarantees a body part ends with a newline so the
+// boundary delimiter always begins a line of its own.
+func ensureTrailingNewline(s string) string {
+	if s == "" || strings.HasSuffix(s, "\n") {
+		return s
+	}
+	return s + "\n"
 }
 
 // encodeHeader encodes a header value as RFC 2047 base64 when it is not plain

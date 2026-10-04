@@ -8,6 +8,10 @@ PKG     := ./cmd/hunter
 VERSION ?= dev
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
+# The scan runs on the VPS as a systemd timer; see deploy/. A static Linux
+# binary is what gets installed there.
+LINUX_BINARY := bin/hunter-linux
+
 .DEFAULT_GOAL := help
 
 .PHONY: help
@@ -54,6 +58,16 @@ vet: ## Run go vet.
 .PHONY: check
 check: fmt-check vet build test ## Everything CI runs before building.
 
+.PHONY: linux
+linux: ## Build the static Linux binary the VPS runs.
+	@mkdir -p bin
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 		go build -trimpath -ldflags "$(LDFLAGS)" -o $(LINUX_BINARY) $(PKG)
+	@echo "built $(LINUX_BINARY)"
+
+.PHONY: deploy
+deploy: linux ## Build and copy the Linux binary plus the deploy files to a host.
+	@echo "run: scp $(LINUX_BINARY) deploy/ <host>:/tmp/ && ssh <host> 'sudo BINARY=/tmp/hunter-linux ./install.sh'"
+
 .PHONY: validate
 validate: build ## Validate the profile.
 	$(BINARY) validate-config
@@ -81,10 +95,6 @@ eligible: build ## List programs the profile accepts.
 .PHONY: alerts
 alerts: build ## List recorded alerts.
 	$(BINARY) alerts
-
-.PHONY: release
-release: ## Build reproducible binaries into dist/.
-	./scripts/release.sh $(VERSION)
 
 .PHONY: clean
 clean: ## Remove build output. State and fixtures are left alone.

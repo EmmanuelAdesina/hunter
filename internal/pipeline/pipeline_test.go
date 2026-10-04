@@ -47,6 +47,7 @@ profile:
     min_severity: medium
     require_eligible: true
     alert_on_new_programs: true
+    new_program_window: 24h
     alert_on_material_change: true
     alert_on_newly_eligible: true
     alert_on_scope_expansion: true
@@ -113,6 +114,7 @@ func defaultRecord(id string) domain.RawProgram {
 		CategoriesRaw:   []string{"Web", "API"},
 		ProjectTypesRaw: []string{"CEX"},
 		Description:     "A cryptocurrency exchange with a web application and REST API.",
+		RawDates:        domain.RawDates{Start: "01 Oct 2026"},
 		Scopes: []domain.RawScope{
 			{Title: "Web", Target: "*." + id + ".example.com"},
 			{Title: "API", Target: "https://api." + id + ".example.com"},
