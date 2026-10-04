@@ -93,12 +93,12 @@ func cmdPrograms(env *Env, args []string) int {
 		})
 	}
 
-	renderProgramTable(env.Stdout, rows, snap)
+	renderProgramTable(env.Stdout, q, rows, snap)
 	return exitOK
 }
 
 // renderProgramTable writes the human-readable program listing.
-func renderProgramTable(w io.Writer, rows []pipeline.Evaluated, snap *state.Snapshot) {
+func renderProgramTable(w io.Writer, q *pipeline.Query, rows []pipeline.Evaluated, snap *state.Snapshot) {
 	if len(rows) == 0 {
 		fmt.Fprintln(w, "No programs match.")
 		fmt.Fprintf(w, "State directory holds %d program(s); last scan %s.\n",
@@ -106,16 +106,19 @@ func renderProgramTable(w io.Writer, rows []pipeline.Evaluated, snap *state.Snap
 		return
 	}
 
-	fmt.Fprintf(w, "%-44s %-8s %5s %7s %-14s %-5s %s\n",
-		"PROGRAM", "STATE", "SCORE", "AGE", "CRYPTO", "OK", "SURFACES")
+	// LAUNCHED and SEEN are deliberately separate columns. They answer
+	// different questions, and conflating them is how a baseline import gets
+	// misread as a wave of freshly uploaded opportunities.
+	fmt.Fprintf(w, "%-40s %-8s %5s %9s %9s %-4s %s\n",
+		"PROGRAM", "STATE", "SCORE", "LAUNCHED", "SEEN", "OK", "SURFACES")
 	for _, e := range rows {
-		age := ""
-		if e.Fresh.FirstSeenAge > 0 {
-			age = domain.HumanizeDuration(e.Fresh.FirstSeenAge)
+		launchedAt := "-"
+		if e.Program.StartedAtIsKnown() {
+			launchedAt = domain.HumanizeDuration(q.Now().Sub(*e.Program.StartedAt))
 		}
-		crypto := string(e.Program.CryptoKind)
-		if crypto == "" || crypto == string(domain.CryptoNotCrypto) {
-			crypto = "-"
+		seenAt := "-"
+		if e.Fresh.FirstSeenAge > 0 {
+			seenAt = domain.HumanizeDuration(e.Fresh.FirstSeenAge)
 		}
 		mark := "no"
 		if e.Decision.Eligible {
@@ -125,9 +128,10 @@ func renderProgramTable(w io.Writer, rows []pipeline.Evaluated, snap *state.Snap
 		if surfaces == "" {
 			surfaces = "-"
 		}
-		fmt.Fprintf(w, "%-44s %-8s %5d %7s %-14s %-5s %s\n",
-			truncate(e.Program.Name, 44), string(e.Program.State),
-			e.Triage.Total, age, truncate(crypto, 14), mark, truncate(surfaces, 40))
+		fmt.Fprintf(w, "%-40s %-8s %5d %9s %9s %-4s %s\n",
+			truncate(e.Program.Name, 40), string(e.Program.State),
+			e.Triage.Total, truncate(launchedAt, 9), truncate(seenAt, 9),
+			mark, truncate(surfaces, 36))
 	}
 	fmt.Fprintf(w, "\n%d program(s) shown; last scan %s.\n", len(rows), scanLabel(snap.LastScanID))
 }

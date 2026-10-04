@@ -87,6 +87,8 @@ func Run(ctx context.Context, env *Env) int {
 		return cmdValidateConfig(env, rest)
 	case "test-fixtures":
 		return cmdTestFixtures(env, rest)
+	case "test-email":
+		return cmdTestEmail(env, rest)
 	case "version":
 		fmt.Fprintln(env.Stdout, version)
 		return exitOK
@@ -223,6 +225,7 @@ Commands:
     --limit <n>         Maximum rows.
   validate-config     Parse and validate the profile.
   test-fixtures       Re-parse checked-in fixtures and report what was found.
+  test-email [id]     Send one rendered sample so the email layout can be checked.
   version             Print the build version.
 
 Common flags:

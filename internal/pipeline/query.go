@@ -57,9 +57,12 @@ type ProgramRequest struct {
 	Limit int
 
 	// LaunchWindow filters to programs the source reports as launched within
-	// this duration. Zero uses the profile's configured window. This is the
-	// filter that answers "what is actually new", as opposed to what the
-	// monitor has not happened to have seen yet.
+	// this duration.
+	//
+	// Zero means no recency filter, so a plain listing still shows everything
+	// the monitor knows about. The recency filter is opt-in because applying it
+	// by default would silently hide the whole catalogue and make the base
+	// listing indistinguishable from "nothing is happening".
 	LaunchWindow time.Duration
 }
 
@@ -214,11 +217,12 @@ func FreshnessFor(p domain.Program, snap *state.Snapshot, now time.Time) domain.
 }
 
 // launchWindow resolves the requested recency filter.
+//
+// Zero means the caller did not ask for one. It deliberately does not fall back
+// to the profile window: the profile window governs alerting, while this filter
+// governs a query, and conflating them would make the default listing empty.
 func (q *Query) launchWindow(req ProgramRequest) time.Duration {
-	if req.LaunchWindow > 0 {
-		return req.LaunchWindow
-	}
-	return q.profile.NewProgramWindow()
+	return req.LaunchWindow
 }
 
 // Explain returns the full decision for one program.

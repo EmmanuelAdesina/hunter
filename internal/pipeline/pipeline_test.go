@@ -898,3 +898,86 @@ func TestChangedMetricMatchesTheChangedQuery(t *testing.T) {
 		t.Errorf("minor_changed = %d, want 1", res.Metrics.MinorChanged)
 	}
 }
+
+// TestQueryWithNoFiltersReturnsEverything guards the base listing.
+//
+// A recency filter must be opt-in. When it was applied by default, every
+// program on the platform was hidden and `hunter programs` reported nothing at
+// all, which reads as "the monitor is broken" rather than "you filtered
+// everything out".
+func TestQueryWithNoFiltersReturnsEverything(t *testing.T) {
+	src := newFakeSource("alpha", "beta")
+	dir := t.TempDir()
+	if _, err := runScanner(t, src, dir); err != nil {
+		t.Fatal(err)
+	}
+
+	q := pipeline.NewQuery(testProfile(t), state.NewFileStore(dir), func() time.Time { return fixedNow })
+
+	all, err := q.Programs(context.Background(), pipeline.ProgramRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(all) != 2 {
+		t.Fatalf("unfiltered listing returned %d programs, want 2", len(all))
+	}
+
+	eligible, err := q.Programs(context.Background(), pipeline.ProgramRequest{Eligible: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(eligible) == 0 {
+		t.Error("the eligible listing is empty")
+	}
+}
+
+// TestQueryLaunchWindowIsOptIn verifies the recency filter applies only when
+// asked for, and then actually filters.
+func TestQueryLaunchWindowIsOptIn(t *testing.T) {
+	src := newFakeSource("alpha", "beta")
+	dir := t.TempDir()
+	if _, err := runScanner(t, src, dir); err != nil {
+		t.Fatal(err)
+	}
+
+	q := pipeline.NewQuery(testProfile(t), state.NewFileStore(dir), func() time.Time { return fixedNow })
+
+	// The fixtures were launched the same day, so a window that excludes them
+	// must exclude them, and an absent filter must not.
+	old := fixedNow.Add(-72 * time.Hour)
+	snap, err := state.NewFileStore(dir).Load(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for id, p := range snap.Programs {
+		p.StartedAt = &old
+		snap.Programs[id] = p
+	}
+	if err := state.NewFileStore(dir).Save(context.Background(), snap); err != nil {
+		t.Fatal(err)
+	}
+
+	all, err := q.Programs(context.Background(), pipeline.ProgramRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(all) != 2 {
+		t.Errorf("unfiltered listing returned %d, want 2; the recency filter must be opt-in", len(all))
+	}
+
+	fresh, err := q.Programs(context.Background(), pipeline.ProgramRequest{LaunchWindow: time.Hour})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fresh) != 0 {
+		t.Errorf("a one-hour window returned %d programs that launched three days ago", len(fresh))
+	}
+
+	wide, err := q.Programs(context.Background(), pipeline.ProgramRequest{LaunchWindow: 30 * 24 * time.Hour})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wide) != 2 {
+		t.Errorf("a thirty-day window returned %d, want 2", len(wide))
+	}
+}
