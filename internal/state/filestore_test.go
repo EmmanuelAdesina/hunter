@@ -496,6 +496,156 @@ func TestMaterialDigestDetectsRealChange(t *testing.T) {
 	})
 }
 
+func TestMaterialDigestTracksProgramDecisionInputs(t *testing.T) {
+	build := func() *state.Snapshot {
+		p := sampleProgram("hackenproof:alpha", "alpha")
+		detailsFetched := fixedNow.Add(-2 * time.Hour)
+		p.DetailsFetchedAt = &detailsFetched
+		snap := state.NewSnapshot()
+		snap.Programs[p.ID] = p
+		return snap
+	}
+	first := build().MaterialDigest()
+
+	t.Run("source launch date", func(t *testing.T) {
+		snap := build()
+		p := snap.Programs["hackenproof:alpha"]
+		started := p.StartedAt.Add(-24 * time.Hour)
+		p.StartedAt = &started
+		snap.Programs[p.ID] = p
+		if snap.MaterialDigest() == first {
+			t.Error("changing the source launch date did not move the digest")
+		}
+	})
+
+	t.Run("first observation", func(t *testing.T) {
+		snap := build()
+		p := snap.Programs["hackenproof:alpha"]
+		p.FirstSeenAt = p.FirstSeenAt.Add(time.Minute)
+		snap.Programs[p.ID] = p
+		if snap.MaterialDigest() == first {
+			t.Error("changing the first-seen basis did not move the digest")
+		}
+	})
+
+	t.Run("detail refresh time", func(t *testing.T) {
+		snap := build()
+		p := snap.Programs["hackenproof:alpha"]
+		detailsFetched := p.DetailsFetchedAt.Add(time.Minute)
+		p.DetailsFetchedAt = &detailsFetched
+		snap.Programs[p.ID] = p
+		if snap.MaterialDigest() == first {
+			t.Error("changing the detail-refresh basis did not move the digest")
+		}
+	})
+
+	t.Run("detail-only submission count", func(t *testing.T) {
+		snap := build()
+		p := snap.Programs["hackenproof:alpha"]
+		submissions := 7
+		p.SubmittedReports = &submissions
+		p.SubmittedReportsKnown = true
+		snap.Programs[p.ID] = p
+		if snap.MaterialDigest() == first {
+			t.Error("changing the fallback submission count did not move the digest")
+		}
+	})
+
+	t.Run("listing count becomes known zero", func(t *testing.T) {
+		snap := build()
+		p := snap.Programs["hackenproof:alpha"]
+		p.Listing.SubmissionCountKnown = true
+		snap.Programs[p.ID] = p
+		if snap.MaterialDigest() == first {
+			t.Error("observing a real zero listing count did not move the digest")
+		}
+	})
+
+	t.Run("parse trust changes", func(t *testing.T) {
+		snap := build()
+		p := snap.Programs["hackenproof:alpha"]
+		p.ParseConfidence = domain.ConfidenceLow
+		p.ParseIssues = []string{"access gate was not parsed"}
+		snap.Programs[p.ID] = p
+		if snap.MaterialDigest() == first {
+			t.Error("changing parse trust did not move the digest")
+		}
+	})
+
+	t.Run("derived surface changes", func(t *testing.T) {
+		snap := build()
+		p := snap.Programs["hackenproof:alpha"]
+		p.SurfaceTags = domain.NewTags("mobile")
+		snap.Programs[p.ID] = p
+		if snap.MaterialDigest() == first {
+			t.Error("changing a score- and policy-relevant surface did not move the digest")
+		}
+	})
+
+	t.Run("stored change interval", func(t *testing.T) {
+		snap := build()
+		p := snap.Programs["hackenproof:alpha"]
+		p.RequirementsChanged = domain.NewObservationInterval(fixedNow.Add(-time.Hour), fixedNow)
+		snap.Programs[p.ID] = p
+		if snap.MaterialDigest() == first {
+			t.Error("changing a score- and trigger-relevant interval did not move the digest")
+		}
+	})
+}
+
+func TestMaterialDigestTracksWindowScoringEvidenceButIgnoresDeliveryState(t *testing.T) {
+	build := func() (*state.Snapshot, string) {
+		snap := state.NewSnapshot()
+		baseline, current := 12, 15
+		window := domain.NewOpportunityWindow("hackenproof:alpha", "Alpha",
+			domain.NewObservationInterval(fixedNow.Add(-2*time.Hour), fixedNow.Add(-time.Hour)),
+			domain.Deltas{{
+				Kind: domain.ChangeKYCRemoved, Field: "kyc",
+				Direction: domain.DirectionImproved,
+			}}, domain.OpportunityWindowOptions{})
+		window.SetOpeningSubmissions(&baseline, true)
+		window.Observe(&current, true)
+		snap.Windows[window.ID] = window
+		return snap, window.ID
+	}
+
+	first, _ := build()
+	firstDigest := first.MaterialDigest()
+
+	t.Run("upper observation bound", func(t *testing.T) {
+		snap, id := build()
+		window := snap.Windows[id]
+		window.Observed.NotAfter = window.Observed.NotAfter.Add(time.Minute)
+		snap.Windows[id] = window
+		if snap.MaterialDigest() == firstDigest {
+			t.Error("changing the window observation bound did not move the digest")
+		}
+	})
+
+	t.Run("signed movement", func(t *testing.T) {
+		snap, id := build()
+		window := snap.Windows[id]
+		movement := 4
+		window.SubmissionsSinceOpen = &movement
+		snap.Windows[id] = window
+		if snap.MaterialDigest() == firstDigest {
+			t.Error("changing post-change count movement did not move the digest")
+		}
+	})
+
+	t.Run("delivery state excluded", func(t *testing.T) {
+		snap, id := build()
+		window := snap.Windows[id]
+		notifiedAt := fixedNow
+		window.Notified = true
+		window.NotifiedAt = &notifiedAt
+		snap.Windows[id] = window
+		if snap.MaterialDigest() != firstDigest {
+			t.Error("changing window delivery state moved the material digest")
+		}
+	})
+}
+
 // TestMaterialDigestIsStableAcrossWrites verifies a saved snapshot reloads to
 // the same digest, which is what makes it comparable in version control.
 func TestMaterialDigestIsStableAcrossWrites(t *testing.T) {

@@ -81,8 +81,12 @@ func Run(ctx context.Context, env *Env) int {
 		return cmdExplain(env, rest)
 	case "history":
 		return cmdHistory(env, rest)
+	case "replay":
+		return cmdReplay(env, rest)
 	case "alerts":
 		return cmdAlerts(env, rest)
+	case "windows":
+		return cmdWindows(env, rest)
 	case "validate-config":
 		return cmdValidateConfig(env, rest)
 	case "test-fixtures":
@@ -220,8 +224,14 @@ Commands:
     --limit <n>         Maximum rows.
   explain <id>        Show the full eligibility decision and reasoning.
   history <id>        Show recorded changes for one program.
+  replay <id>         Replay saved history and windows as a read-only timeline.
+    --limit <n>         Maximum events (default 200; zero is unlimited).
   alerts              List recorded alerts.
     --undelivered       Only alerts that have not been confirmed delivered.
+    --limit <n>         Maximum rows.
+  windows             List recorded opportunity windows and their current status.
+    --open              Only windows that remain open.
+    --program <id>      Filter by program ID, slug, or unambiguous name.
     --limit <n>         Maximum rows.
   validate-config     Parse and validate the profile.
   test-fixtures       Re-parse checked-in fixtures and report what was found.

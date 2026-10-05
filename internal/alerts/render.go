@@ -9,38 +9,36 @@ import (
 	"github.com/eadeshina/hunter/internal/domain"
 )
 
-// Render produces the subject and body for one alert.
+// Render produces the subject and both bodies for one candidate.
 //
 // The body is deliberately built for a phone: short lines, the decision facts
 // first, then what changed, then why. Prose from the source is never included,
 // because program descriptions routinely run to thousands of characters and
-// would bury the signal in a notification.
+// would bury the signal in a notification. The trigger determines which clock is
+// prominent: launch alerts use the launch age, while change alerts use their
+// bounded observation interval and keep program age separate.
 //
-// The output is deterministic for a given candidate.
-// Render produces the subject and both bodies for a candidate.
-//
-// The clock is a parameter rather than read from the environment so that the
-// launch age quoted in the subject line, the plain-text body, and the styled
-// body all come from one computation. A renderer that had to trust a
-// caller-populated field would be one careless caller away from printing a
-// different number in the subject than in the body.
+// The clock is supplied rather than read from the environment, so all rendered
+// ages use one reference instant and output is deterministic for a candidate.
 func Render(c Candidate, profile *config.Profile, now time.Time) (subject, body, htmlBody string) {
 	c.LaunchAge, c.LaunchKnown = launchAge(c.Program, now)
+	trigger := selectedTrigger(c, profile, now)
 
-	subject = renderSubject(c, profile)
-	return subject, renderBody(c, profile, now), RenderHTML(c, profile, now)
+	subject = renderSubject(c, profile, now, trigger)
+	return subject, renderBody(c, profile, now, trigger), renderHTML(c, profile, now, trigger)
 }
 
 // renderSubject builds the one-line summary.
 //
-// The format is fixed: prefix, kind, name, surface, age. Age is included because
-// "8m old" in the subject is often the only thing read before deciding whether
-// to open the message.
-func renderSubject(c Candidate, profile *config.Profile) string {
+// The format is fixed: prefix, kind, name, surface, and the age evidence for the
+// selected trigger. Launch alerts use the launch age; change alerts use the
+// bounded change interval. This is often the only timing evidence read before a
+// recipient decides whether to open the message.
+func renderSubject(c Candidate, profile *config.Profile, now time.Time, trigger domain.AlertKind) string {
 	prefix := strings.TrimSpace(profile.Notifications.SubjectPrefix)
-	kind := subjectKind(c)
+	kind := subjectKind(c, trigger)
 	surface := headlineSurface(c.Program)
-	age := headlineAge(c)
+	age := triggerAge(c, profile, now, trigger)
 
 	parts := nonEmpty([]string{prefix, kind, displayName(c.Program), surface, age})
 	// The prefix commonly ends in a bracket, so appending the separator would
@@ -49,37 +47,62 @@ func renderSubject(c Candidate, profile *config.Profile) string {
 }
 
 // subjectKind is the short kind label used in the subject line.
-func subjectKind(c Candidate) string {
-	switch {
-	case c.Diff.IsNew:
+func subjectKind(c Candidate, trigger domain.AlertKind) string {
+	switch trigger {
+	case domain.AlertNewQualifying:
 		return "NEW MATCH"
-	case c.Decision.Eligible && !c.Prior.Known:
-		return "NEW PROGRAM"
-	case c.Prior.Known && !c.Prior.Eligible && c.Decision.Eligible:
+	case domain.AlertNewlyEligible:
 		return "NOW ELIGIBLE"
-	case c.Diff.Changes.Contains(domain.ChangeProgramReactivated):
-		return "REACTIVATED"
-	case hasSurfaceExpansion(c):
+	case domain.AlertScopeExpansion:
 		return "SCOPE EXPANDED"
+	case domain.AlertMaterialChange:
+		if c.Diff.Changes.Contains(domain.ChangeProgramReactivated) {
+			return "REACTIVATED"
+		}
+		return "CHANGED"
 	default:
+		if c.Diff.IsNew {
+			return "NEW MATCH"
+		}
+		if c.Prior.Known && !c.Prior.Eligible && c.Decision.Eligible {
+			return "NOW ELIGIBLE"
+		}
+		if c.Diff.Changes.Contains(domain.ChangeProgramReactivated) {
+			return "REACTIVATED"
+		}
+		if hasSurfaceExpansion(c) {
+			return "SCOPE EXPANDED"
+		}
 		return "CHANGED"
 	}
 }
 
 // renderBody builds the message body.
-func renderBody(c Candidate, profile *config.Profile, now time.Time) string {
+func renderBody(c Candidate, profile *config.Profile, now time.Time, trigger domain.AlertKind) string {
 	var b strings.Builder
 
 	headline := "MATERIAL CHANGE"
-	switch {
-	case c.Diff.IsNew:
+	switch trigger {
+	case domain.AlertNewQualifying:
 		headline = "NEW QUALIFYING OPPORTUNITY"
-	case c.Prior.Known && !c.Prior.Eligible && c.Decision.Eligible:
+	case domain.AlertNewlyEligible:
 		headline = "PREVIOUSLY EXCLUDED — NOW QUALIFYING"
-	case c.Diff.Changes.Contains(domain.ChangeProgramReactivated):
-		headline = "PROGRAM REACTIVATED"
-	case hasSurfaceExpansion(c):
+	case domain.AlertScopeExpansion:
 		headline = "ATTACK SURFACE EXPANDED"
+	case domain.AlertMaterialChange:
+		if c.Diff.Changes.Contains(domain.ChangeProgramReactivated) {
+			headline = "PROGRAM REACTIVATED"
+		}
+	default:
+		if c.Diff.IsNew {
+			headline = "NEW QUALIFYING OPPORTUNITY"
+		} else if c.Prior.Known && !c.Prior.Eligible && c.Decision.Eligible {
+			headline = "PREVIOUSLY EXCLUDED — NOW QUALIFYING"
+		} else if c.Diff.Changes.Contains(domain.ChangeProgramReactivated) {
+			headline = "PROGRAM REACTIVATED"
+		} else if hasSurfaceExpansion(c) {
+			headline = "ATTACK SURFACE EXPANDED"
+		}
 	}
 	b.WriteString(headline)
 	b.WriteString("\n")
@@ -87,11 +110,18 @@ func renderBody(c Candidate, profile *config.Profile, now time.Time) string {
 	b.WriteString("\n\n")
 
 	writeField(&b, "Program", c.Program.Name)
-	if age := headlineAge(c); age != "" {
+	if trigger == domain.AlertScopeExpansion || trigger == domain.AlertMaterialChange {
+		observed := triggerObservation(c, trigger, profile, now)
+		age := "unknown"
+		if observed.Known() {
+			age = observed.Humanize(now)
+		}
+		writeField(&b, "Change observed", age)
+	} else if age := headlineAge(c); age != "" {
 		writeField(&b, "Detected", age)
 	}
-	if c.Program.StartedAt != nil {
-		writeField(&b, "Started", domain.HumanizeDuration(time.Since(*c.Program.StartedAt)))
+	if c.LaunchKnown {
+		writeField(&b, "Started", domain.HumanizeDuration(c.LaunchAge))
 	}
 	if c.Program.State != domain.StateUnknown {
 		writeField(&b, "State", string(c.Program.State))
@@ -387,6 +417,22 @@ func headlineAge(c Candidate) string {
 		return "seen " + HumanizeAge(c.Fresh.FirstSeenAge) + " ago"
 	}
 	return ""
+}
+
+// triggerAge selects the age evidence that justifies the alert. Launch-triggered
+// alerts use the source-reported launch age; change-triggered alerts use the
+// bounded observation interval and never borrow the program's launch date.
+func triggerAge(c Candidate, profile *config.Profile, now time.Time, trigger domain.AlertKind) string {
+	switch trigger {
+	case domain.AlertScopeExpansion, domain.AlertMaterialChange:
+		observed := triggerObservation(c, trigger, profile, now)
+		if observed.Known() {
+			return observed.Humanize(now)
+		}
+		return "change timing unknown"
+	default:
+		return headlineAge(c)
+	}
 }
 
 // HumanizeAge renders a duration as an age phrase.

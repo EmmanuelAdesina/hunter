@@ -121,6 +121,16 @@ profile:
       scope_expansion: 72h
       access_improved: 168h
       reactivated: 72h
+      # Zero keeps each scan transition as its own window; changes detected
+      # together still share a window and keep their individual deltas.
+      bundle_window: 0s
+      # Match the widest trigger window above. If omitted, Hunter derives this
+      # from the widest configured change window so an alertable window is not
+      # expired before its own trigger window ends.
+      max_age: 168h
+      # Submission counts are a noisy proxy for competition, so crowding is
+      # disabled until a researcher chooses an evidence-based threshold.
+      max_post_change_submissions: 0
 
     # Guard the channel if several programs change at once. 0 means no cap.
     max_per_scan: 10

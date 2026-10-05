@@ -15,9 +15,9 @@ import (
 //
 // Design constraints, in priority order:
 //
-//  1. The launch age is the largest thing on the page. The whole point of the
-//     channel is that the program is new, so that is stated before anything
-//     else and cannot be missed while scrolling a phone.
+//  1. The event that triggered the alert is the largest thing on the page. A
+//     change alert must not be presented as a launch alert; each trigger has its
+//     own evidence and its own headline.
 //  2. Access gates are shown as confirmed, because an alert only exists once
 //     they have all passed. Showing them as checkmarks is a reassurance the
 //     recipient has earned, not a claim they have to verify.
@@ -29,22 +29,25 @@ import (
 //
 // The output is deterministic for a given candidate.
 func RenderHTML(c Candidate, profile *config.Profile, now time.Time) string {
+	c.LaunchAge, c.LaunchKnown = launchAge(c.Program, now)
+	trigger := selectedTrigger(c, profile, now)
+	return renderHTML(c, profile, now, trigger)
+}
+
+func renderHTML(c Candidate, profile *config.Profile, now time.Time, trigger domain.AlertKind) string {
 	var b strings.Builder
 	p := c.Program
 
-	launchLabel, launchKnown := launchHeadline(c)
-	detected := domain.HumanizeDuration(c.Fresh.FirstSeenAge)
-
 	b.WriteString(htmlHeader())
 	b.WriteString(htmlWrap(c, func() string {
-		return htmlHero(launchLabel, launchKnown, p, detected) +
+		return htmlHero(c, trigger, profile, now) +
 			htmlGates(p) +
 			htmlSurface(p) +
 			htmlCrypto(p) +
 			htmlWhy(c) +
 			htmlCompetition(p) +
 			htmlCTA(p) +
-			htmlFooter(profile)
+			htmlFooter(trigger, profile)
 	}))
 	return b.String()
 }
@@ -63,27 +66,84 @@ func htmlWrap(c Candidate, content func() string) string {
 		`</td></tr></table>`)
 }
 
-// htmlHero is the headline block: what launched, how long ago, and what it is.
-func htmlHero(launchLabel string, launchKnown bool, p domain.Program, detected string) string {
+// htmlHero is the headline block for the trigger that produced the alert.
+func htmlHero(c Candidate, trigger domain.AlertKind, profile *config.Profile, now time.Time) string {
 	var b strings.Builder
 
-	b.WriteString(badge("NEWLY LAUNCHED", accentIf(launchKnown, palette.Green, palette.Amber)))
+	p := c.Program
+	launchLabel, launchKnown := launchHeadline(c)
+	badgeLabel, badgeAccent := triggerHeadline(trigger)
+	b.WriteString(badge(badgeLabel, badgeAccent))
 	b.WriteString(`<div style="height:14px"></div>`)
 	b.WriteString(fmt.Sprintf(
 		`<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:24px;line-height:30px;font-weight:700;color:%s;letter-spacing:-.4px;">%s</div>`,
 		palette.Ink, escapeHTML(p.Name)))
 
-	// The launch age is the single largest fact on the page.
 	b.WriteString(`<div style="height:16px"></div>`)
 	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>`)
-	b.WriteString(htmlStat("LAUNCHED", launchLabel, accentIf(launchKnown, palette.Green, palette.Amber)))
-	b.WriteString(htmlStat("YOU NOTICED IT", detected, palette.Blue))
+	if trigger == domain.AlertNewQualifying || trigger == domain.AlertNewlyEligible {
+		b.WriteString(htmlStat("LAUNCHED", launchLabel, accentIf(launchKnown, palette.Green, palette.Amber)))
+		b.WriteString(htmlStat("YOU NOTICED IT", domain.HumanizeDuration(c.Fresh.FirstSeenAge), palette.Blue))
+	} else {
+		observed := triggerObservation(c, trigger, profile, now)
+		ageLabel := "unknown"
+		if observed.Known() {
+			ageLabel = observed.Humanize(now)
+		}
+		b.WriteString(htmlStat("CHANGE OBSERVED", ageLabel, palette.Blue))
+		b.WriteString(htmlStat("PROGRAM AGE", launchLabel, accentIf(launchKnown, palette.Muted, palette.Amber)))
+	}
 	b.WriteString(`</tr></table>`)
 
 	if p.MaxBountyUSD != nil {
 		b.WriteString(htmlStatLine("Bounty ceiling", fmt.Sprintf("$%.0f", *p.MaxBountyUSD)))
 	}
 	return b.String()
+}
+
+func triggerHeadline(trigger domain.AlertKind) (string, string) {
+	switch trigger {
+	case domain.AlertNewQualifying:
+		return "NEWLY LAUNCHED", palette.Green
+	case domain.AlertNewlyEligible:
+		return "NEWLY ELIGIBLE", palette.Green
+	case domain.AlertScopeExpansion:
+		return "SCOPE EXPANDED", palette.Blue
+	case domain.AlertMaterialChange:
+		return "PROGRAM CHANGED", palette.Amber
+	default:
+		return "PROGRAM UPDATE", palette.Amber
+	}
+}
+
+// triggerObservation returns the bounded evidence associated with the selected
+// trigger. The span is shown as a range because the scan observes a transition
+// between reads, not at a point in time.
+func triggerObservation(c Candidate, trigger domain.AlertKind, profile *config.Profile, now time.Time) domain.ObservationInterval {
+	var observed domain.ObservationInterval
+	for _, change := range c.Diff.Changes {
+		if !change.Alertable() {
+			continue
+		}
+		if trigger == domain.AlertScopeExpansion && !isSurfaceExpansion(change) {
+			continue
+		}
+		interval, ok := changeInterval(c.Fresh, change.Kind)
+		if !ok || !interval.PossiblyWithin(now, profile.ChangeWindowFor(change.Kind)) {
+			continue
+		}
+		if !observed.Known() {
+			observed = interval
+			continue
+		}
+		if interval.NotBefore.Before(observed.NotBefore) {
+			observed.NotBefore = interval.NotBefore
+		}
+		if interval.NotAfter.After(observed.NotAfter) {
+			observed.NotAfter = interval.NotAfter
+		}
+	}
+	return observed
 }
 
 // htmlGates renders the access requirements as confirmed facts.
@@ -236,12 +296,22 @@ func htmlCTA(p domain.Program) string {
 		palette.Accent, escapeHTML(p.URL), palette.Muted, escapeHTML(p.URL))
 }
 
-// htmlFooter states what the message is and is not, so the numbers attached to
-// it are not mistaken for estimates.
-func htmlFooter(profile *config.Profile) string {
+// htmlFooter states why this specific trigger was sent and what the scores mean.
+func htmlFooter(trigger domain.AlertKind, profile *config.Profile) string {
+	reason := "a configured opportunity trigger matched"
+	switch trigger {
+	case domain.AlertNewQualifying:
+		reason = "the program launched within " + humanDuration(profile.NewProgramWindow())
+	case domain.AlertNewlyEligible:
+		reason = "the program became eligible within its configured launch window"
+	case domain.AlertScopeExpansion:
+		reason = "an attack-surface expansion was observed within its configured change window"
+	case domain.AlertMaterialChange:
+		reason = "a material change was observed within its configured change window"
+	}
 	return `<div style="height:26px"></div>` +
 		`<div style="border-top:1px solid ` + palette.Hairline + `;padding-top:14px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:11px;line-height:17px;color:` + palette.Muted + `;">` +
-		`Sent because this program launched within ` + escapeHTML(humanDuration(profile.NewProgramWindow())) + ` and passed every access gate in the ` + escapeHTML(profile.Name) + ` profile.<br>` +
+		`Sent because ` + escapeHTML(reason) + ` and the program passed every access gate in the ` + escapeHTML(profile.Name) + ` profile.<br>` +
 		`Scores order your reading; they do not estimate how likely a bug is to be found.` +
 		`</div>`
 }
@@ -292,7 +362,7 @@ func htmlHeader() string {
 		`<meta name="viewport" content="width=device-width,initial-scale=1">` +
 		`<meta name="color-scheme" content="light dark">` +
 		`<meta name="supported-color-schemes" content="light dark">` +
-		`<title>New bug bounty program</title>` +
+		`<title>Hunter opportunity alert</title>` +
 		`<style>` +
 		`@media (prefers-color-scheme:dark){` +
 		`body,.wrap{background:#0b0f19 !important;}` +

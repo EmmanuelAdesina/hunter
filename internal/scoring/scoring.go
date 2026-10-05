@@ -15,6 +15,8 @@ package scoring
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/eadeshina/hunter/internal/config"
@@ -38,6 +40,7 @@ type input struct {
 	freshness domain.Freshness
 	changes   domain.ChangeSet
 	profile   *config.Profile
+	windows   []domain.OpportunityWindow
 	// now is the clock every age is measured against. It is supplied by the
 	// caller so that a score is reproducible and so that an interval cannot be
 	// rendered against a different moment than it was scored against.
@@ -49,13 +52,15 @@ type input struct {
 // Order matters only for presentation; the total is weight-based and therefore
 // independent of it.
 var components = []component{
-	{name: "eligibility", weight: 0.25, value: eligibilityFit},
+	{name: "eligibility", weight: 0.22, value: eligibilityFit},
 	{name: "freshness", weight: 0.20, value: freshnessScore},
-	{name: "surface relevance", weight: 0.20, value: surfaceScore},
-	{name: "scope richness", weight: 0.12, value: scopeRichness},
+	{name: "surface relevance", weight: 0.18, value: surfaceScore},
+	{name: "scope richness", weight: 0.10, value: scopeRichness},
 	{name: "change magnitude", weight: 0.10, value: changeMagnitude},
-	{name: "low competition", weight: 0.08, value: competitionScore},
-	{name: "bounty", weight: 0.05, value: bountyScore},
+	{name: "access delta", weight: 0.08, value: accessDeltaScore},
+	{name: "low competition", weight: 0.04, value: competitionScore},
+	{name: "post-change competition", weight: 0.04, value: postChangeCompetitionScore},
+	{name: "bounty", weight: 0.04, value: bountyScore},
 }
 
 // Scorer computes triage for programs against a profile.
@@ -76,9 +81,25 @@ func New(profile *config.Profile, now ...func() time.Time) *Scorer {
 	return &Scorer{profile: profile, now: clock}
 }
 
-// Score produces a triage result for one program.
+// Score produces triage for one program without persisted opportunity windows.
 func (s *Scorer) Score(p domain.Program, d domain.EligibilityDecision, f domain.Freshness, cs domain.ChangeSet) domain.Triage {
-	in := input{program: p, decision: d, freshness: f, changes: cs, profile: s.profile, now: s.now()}
+	return s.ScoreWithWindows(p, d, f, cs, nil)
+}
+
+// ScoreWithWindows adds stored opportunity-window evidence to the same single
+// attention score. Current transition evidence in cs takes precedence over an
+// older window, so the count baseline is zero movement when the transition opens.
+func (s *Scorer) ScoreWithWindows(
+	p domain.Program,
+	d domain.EligibilityDecision,
+	f domain.Freshness,
+	cs domain.ChangeSet,
+	windows []domain.OpportunityWindow,
+) domain.Triage {
+	in := input{
+		program: p, decision: d, freshness: f, changes: cs,
+		profile: s.profile, windows: windows, now: s.now(),
+	}
 
 	comps := make([]domain.TriageComponent, 0, len(components))
 	total := 0.0
@@ -100,7 +121,7 @@ func (s *Scorer) Score(p domain.Program, d domain.EligibilityDecision, f domain.
 	return domain.Triage{
 		Total:      int(total + 0.5),
 		Components: comps,
-		Inputs:     rawInputs(p, f, cs),
+		Inputs:     rawInputs(in),
 	}
 }
 
@@ -143,9 +164,9 @@ type freshCandidate struct {
 //
 // A change-derived candidate prints its whole age range, so the published number
 // is never more precise than the observation behind it.
-func (c freshCandidate) basis() string {
+func (c freshCandidate) basis(now time.Time) string {
 	if c.interval.Known() {
-		return c.interval.Humanize(time.Now())
+		return c.interval.Humanize(now)
 	}
 	return domain.HumanizeDuration(c.age)
 }
@@ -206,14 +227,14 @@ func freshnessScore(in input) (int, string) {
 		window = 7 * 24 * time.Hour
 	}
 	if best.age <= window {
-		return 100, best.label + " " + best.basis()
+		return 100, best.label + " " + best.basis(now)
 	}
 	over := float64(best.age-window) / float64(10*window)
 	score := 100 - int(over*100)
 	if score < 0 {
 		score = 0
 	}
-	return score, best.label + " " + best.basis()
+	return score, best.label + " " + best.basis(now)
 }
 
 // surfaceScore rewards the surfaces the researcher actually specializes in.
@@ -281,6 +302,227 @@ func changeMagnitude(in input) (int, string) {
 	return score, fmt.Sprintf("%d weighted change events", weighted)
 }
 
+// accessDeltaScore scores typed, directional changes to the four access gates.
+// Fifty is neutral; each net gate movement changes the score by 25 points, with
+// the result clamped to [0,100]. Only explicit change kinds count. Unknown or
+// prose-only movements remain neutral rather than being interpreted.
+func accessDeltaScore(in input) (int, string) {
+	kinds := accessDeltas(in)
+	if len(kinds) == 0 {
+		return 50, "no typed access-gate delta in bounded evidence"
+	}
+
+	gateMovement := map[string]int{}
+	for _, raw := range kinds {
+		gate, direction := accessGateDirection(domain.ChangeKind(raw))
+		if gate != "" {
+			gateMovement[gate] += direction
+		}
+	}
+	net := 0
+	for _, movement := range gateMovement {
+		switch {
+		case movement > 0:
+			net++
+		case movement < 0:
+			net--
+		}
+	}
+	score := 50 + 25*net
+	if score < 0 {
+		score = 0
+	}
+	if score > 100 {
+		score = 100
+	}
+	return score, "typed deltas: " + strings.Join(kinds, ", ")
+}
+
+// accessDeltas chooses current bounded typed gate changes when present;
+// otherwise it reads the latest age-open opportunity window. It returns atomic
+// change kinds only, including degraded changes without making them alertable.
+func accessDeltas(in input) []string {
+	if kinds := currentAccessChangeKinds(in); len(kinds) > 0 {
+		return kinds
+	}
+	window, ok := latestOpportunityWindow(in)
+	if !ok {
+		return nil
+	}
+	var kinds []string
+	for _, delta := range window.Deltas {
+		if gate, direction := accessGateDirection(delta.Kind); gate != "" &&
+			matchesAccessDirection(direction, delta.Direction) {
+			kinds = append(kinds, string(delta.Kind))
+		}
+	}
+	return sortedUnique(kinds)
+}
+
+func currentAccessChangeKinds(in input) []string {
+	var kinds []string
+	maxAge := in.profile.ChangeWindowMaxAge()
+	for _, change := range in.changes {
+		gate, direction := accessGateDirection(change.Kind)
+		if gate == "" || !matchesAccessDirection(direction, change.Direction) {
+			continue
+		}
+		interval, ok := domain.ChangeInterval(change.Kind, in.freshness)
+		if !ok || !interval.PossiblyWithin(in.now, in.profile.ChangeWindowFor(change.Kind)) {
+			continue
+		}
+		if maxAge > 0 && interval.OldestAge(in.now) > maxAge {
+			continue
+		}
+		kinds = append(kinds, string(change.Kind))
+	}
+	return sortedUnique(kinds)
+}
+
+// accessGateDirection maps only explicit directional event kinds onto a gate
+// and sign. No prose or before/after string is parsed.
+func accessGateDirection(kind domain.ChangeKind) (string, int) {
+	switch kind {
+	case domain.ChangeReputationLowered:
+		return "reputation", 1
+	case domain.ChangeReputationRaised:
+		return "reputation", -1
+	case domain.ChangeKYCRemoved:
+		return "kyc", 1
+	case domain.ChangeKYCRequired:
+		return "kyc", -1
+	case domain.ChangeFeeReduced, domain.ChangeFeeRemoved:
+		return "submission_fee", 1
+	case domain.ChangeFeeIncreased, domain.ChangeFeeIntroduced:
+		return "submission_fee", -1
+	case domain.ChangePOCRemoved:
+		return "proof_of_concept", 1
+	case domain.ChangePOCRequired:
+		return "proof_of_concept", -1
+	default:
+		return "", 0
+	}
+}
+
+func matchesAccessDirection(sign int, direction domain.Direction) bool {
+	if sign > 0 {
+		return direction == domain.DirectionImproved
+	}
+	return sign < 0 && direction == domain.DirectionDegraded
+}
+
+func currentOpportunityChanges(in input) domain.ChangeSet {
+	out := make(domain.ChangeSet, 0, len(in.changes))
+	maxAge := in.profile.ChangeWindowMaxAge()
+	for _, change := range in.changes {
+		if !change.Alertable() {
+			continue
+		}
+		interval, ok := domain.ChangeInterval(change.Kind, in.freshness)
+		if !ok || !interval.PossiblyWithin(in.now, in.profile.ChangeWindowFor(change.Kind)) {
+			continue
+		}
+		if maxAge > 0 && interval.OldestAge(in.now) > maxAge {
+			continue
+		}
+		out = append(out, change)
+	}
+	return out
+}
+
+// latestOpportunityWindow returns the newest unexpired window. Crowding is not
+// used to hide the observed count movement from scoring; the movement is a raw
+// signal even when a separately configured crowding threshold has been crossed.
+func latestOpportunityWindow(in input) (domain.OpportunityWindow, bool) {
+	opts := domain.OpportunityWindowOptions{MaxAge: in.profile.ChangeWindowMaxAge()}
+	var best domain.OpportunityWindow
+	found := false
+	for _, window := range in.windows {
+		if window.ProgramID != in.program.ID || window.Status(in.now, opts) != domain.WindowOpen {
+			continue
+		}
+		if !found || window.Observed.NotAfter.After(best.Observed.NotAfter) ||
+			(window.Observed.NotAfter.Equal(best.Observed.NotAfter) && window.ID < best.ID) {
+			best = window
+			found = true
+		}
+	}
+	return best, found
+}
+
+// postChangeCompetitionScore scores the signed count movement from the latest
+// opportunity's opening baseline. A decrease is treated as no more submissions;
+// the basis always preserves the signed platform-reported movement.
+func postChangeCompetitionScore(in input) (int, string) {
+	_, delta := postChangeSubmissionObservation(in)
+	if delta == nil {
+		return 50, "opening baseline or current count is unknown"
+	}
+	movement := *delta
+	submissions := movement
+	if submissions < 0 {
+		submissions = 0
+	}
+	score := competitionScoreFor(submissions, 0)
+	return score, fmt.Sprintf("%+d platform-reported submissions since the window baseline", movement)
+}
+
+// postChangeSubmissionObservation returns the opening count and signed movement
+// for the current transition or, when there is no current transition, the latest
+// age-open stored window.
+func postChangeSubmissionObservation(in input) (*int, *int) {
+	if len(currentOpportunityChanges(in)) > 0 {
+		count, known := reportedSubmissions(in.program)
+		if !known {
+			return nil, nil
+		}
+		baseline := count
+		movement := 0
+		return &baseline, &movement
+	}
+
+	window, ok := latestOpportunityWindow(in)
+	if !ok || window.BaselineSubmissions == nil {
+		return nil, nil
+	}
+	baseline := *window.BaselineSubmissions
+	if current, known := reportedSubmissions(in.program); known {
+		movement := current - baseline
+		return &baseline, &movement
+	}
+	if window.SubmissionsSinceOpen != nil {
+		movement := *window.SubmissionsSinceOpen
+		return &baseline, &movement
+	}
+	return &baseline, nil
+}
+
+// reportedSubmissions prefers the listing-level count because it is refreshed
+// on every scan, then falls back to a detail-only count.
+func reportedSubmissions(program domain.Program) (int, bool) {
+	if program.Listing.SubmissionCountKnown {
+		return program.Listing.SubmissionCount, true
+	}
+	if program.SubmittedReportsKnown && program.SubmittedReports != nil {
+		return *program.SubmittedReports, true
+	}
+	return 0, false
+}
+
+func sortedUnique(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	sort.Strings(values)
+	out := values[:0]
+	for _, value := range values {
+		if len(out) == 0 || out[len(out)-1] != value {
+			out = append(out, value)
+		}
+	}
+	return out
+}
+
 // competitionScore rewards a low observed submission count.
 //
 // The observed count is reported as-is. Submission count is a weak proxy for
@@ -288,13 +530,14 @@ func changeMagnitude(in input) (int, string) {
 // researchers who left long ago - so the basis line always names the number
 // rather than asserting a level of competition.
 func competitionScore(in input) (int, string) {
-	if !in.program.SubmittedReportsKnown || in.program.SubmittedReports == nil {
+	n, known := reportedSubmissions(in.program)
+	if !known {
 		// Absence is not evidence of low competition, so an unknown count is
 		// treated as neutral rather than favourable.
 		return 50, "submission count is not published"
 	}
-	n := *in.program.SubmittedReports
-	score := competitionScoreFor(n, in.program.StartedAt, in.freshness.FirstSeenAge)
+	age, _ := in.program.Age(in.now)
+	score := competitionScoreFor(n, age)
 	return score, fmt.Sprintf("%d submissions reported by the platform", n)
 }
 
@@ -304,7 +547,7 @@ func competitionScore(in input) (int, string) {
 // running program with thousands is the worst. The curve is logarithmic because
 // the difference between zero and ten submissions matters far more than the
 // difference between one thousand and one thousand one hundred.
-func competitionScoreFor(submissions int, startedAt *time.Time, age time.Duration) int {
+func competitionScoreFor(submissions int, age time.Duration) int {
 	if submissions < 0 {
 		return 50
 	}
@@ -319,14 +562,8 @@ func competitionScoreFor(submissions int, startedAt *time.Time, age time.Duratio
 
 	// A very young program has not had time to accumulate reports, so a modest
 	// count there is less discouraging than the same count on an old program.
-	if startedAt != nil || age > 0 {
-		programAge := age
-		if startedAt != nil {
-			programAge = time.Since(*startedAt)
-		}
-		if programAge < 24*time.Hour && score < 85 {
-			score += 10
-		}
+	if age > 0 && age < 24*time.Hour && score < 85 {
+		score += 10
 	}
 	if score > 100 {
 		score = 100
@@ -359,27 +596,40 @@ func bountyScore(in input) (int, string) {
 }
 
 // rawInputs assembles the visible fact set behind the score.
-func rawInputs(p domain.Program, f domain.Freshness, cs domain.ChangeSet) domain.TriageInputs {
+func rawInputs(in input) domain.TriageInputs {
+	p, f, cs := in.program, in.freshness, in.changes
 	material := 0
 	for _, c := range cs {
 		if c.Severity.AtLeast(domain.SeverityMedium) {
 			material++
 		}
 	}
+	count, countKnown := reportedSubmissions(p)
+	baseline, movement := postChangeSubmissionObservation(in)
 	inputs := domain.TriageInputs{
-		SubmissionCountKnown: p.SubmittedReportsKnown,
-		ProgramAgeBasis:      f.ProgramAgeBasis,
-		ScopeChange:          f.ScopeChange,
-		RequirementChange:    f.RequirementChange,
-		MetadataChange:       f.MetadataChange,
-		LifecycleChange:      f.LifecycleChange,
-		ScopeSize:            len(p.InScopeTargets()),
-		ChangeCount:          material,
-		MaxBountyUSD:         p.MaxBountyUSD,
+		SubmissionCountKnown:            countKnown,
+		AccessDeltas:                    accessDeltas(in),
+		PostChangeSubmissionDeltaKnown:   movement != nil,
+		ProgramAgeBasis:                 f.ProgramAgeBasis,
+		ScopeChange:                     f.ScopeChange,
+		RequirementChange:               f.RequirementChange,
+		MetadataChange:                  f.MetadataChange,
+		LifecycleChange:                 f.LifecycleChange,
+		ScopeSize:                       len(p.InScopeTargets()),
+		ChangeCount:                     material,
+		MaxBountyUSD:                    p.MaxBountyUSD,
 	}
-	if p.SubmittedReports != nil {
-		v := *p.SubmittedReports
+	if countKnown {
+		v := count
 		inputs.SubmittedReports = &v
+	}
+	if baseline != nil {
+		v := *baseline
+		inputs.PostChangeBaselineSubmissions = &v
+	}
+	if movement != nil {
+		v := *movement
+		inputs.PostChangeSubmissionDelta = &v
 	}
 	if f.ProgramAge > 0 {
 		inputs.ProgramAge = f.ProgramAge
