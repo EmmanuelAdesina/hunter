@@ -218,10 +218,42 @@ type Program struct {
 	// by exactly the same pair of observations, so it carries the same evidence.
 	LifecycleChanged ObservationInterval `json:"lifecycle_changed"`
 
+	// AbsentScans counts consecutive sweeps in which this program was NOT
+	// discovered, capped so that it stops incrementing once the departure is
+	// settled.
+	//
+	// This is the only way the system can tell "the platform is quiet" from "the
+	// platform stopped telling us about this program". A scope change on a
+	// program that discovery has silently dropped is invisible forever, and
+	// without this counter that blindness is indistinguishable from no news.
+	//
+	// It is deliberately excluded from every fingerprint. It describes the
+	// relationship between this program and the sweep, not the program itself, so
+	// folding it in would mark every program changed on a sweep that missed it.
+	AbsentScans int `json:"absent_scans,omitempty"`
+
 	// ParseIssues lists human-readable descriptions of anything the adapter
 	// could not interpret. Order is normalized for stable diffs, but the text
 	// itself is preserved verbatim: these are messages for a person, not tags.
 	ParseIssues []string `json:"parse_issues,omitempty"`
+}
+
+// Absent reports whether the program was missing from the most recent sweep.
+func (p Program) Absent() bool { return p.AbsentScans > 0 }
+
+// Terminal reports whether the program has said it is finished.
+//
+// A terminal program is allowed to disappear from the listing without that being
+// a coverage failure. A live one is not: a program that accepts reports and is no
+// longer published is either a platform fault or a discovery fault, and both are
+// the kind of silence this system must not mistake for quiet.
+func (p Program) Terminal() bool {
+	switch p.State {
+	case StateEnded, StateUnlisted:
+		return true
+	default:
+		return false
+	}
 }
 
 // Confidence reports how completely an adapter understood a source record.

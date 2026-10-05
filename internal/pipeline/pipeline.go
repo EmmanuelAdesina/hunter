@@ -69,6 +69,11 @@ type Result struct {
 	// Alerts holds the alerts generated, whether or not they were sent.
 	Alerts []domain.Alert
 
+	// Coverage reports what this sweep saw against what it was obliged to see.
+	// It is carried on the result rather than only in metrics so the CLI can name
+	// the programs whose absence matters.
+	Coverage CoverageReport
+
 	// Errors collects every non-fatal problem encountered.
 	Errors []error
 }
@@ -149,6 +154,22 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 		return res, fmt.Errorf("load state: %w", err)
 	}
 
+	// The coverage obligation is fixed here, before anything is written. It is the
+	// set of programs this system already knew about, and therefore the set it had
+	// a duty to observe on this sweep. Capturing it at load time is what keeps a
+	// sweep that discovers many new programs from inflating its own coverage.
+	expectedIDs := make([]string, 0, len(snap.Programs))
+	for id := range snap.Programs {
+		expectedIDs = append(expectedIDs, id)
+	}
+
+	// The discovery set is what the sweep actually saw. It is collected from the
+	// references each source returned rather than from the evaluated programs, so
+	// that a program which was discovered but could not be evaluated still counts
+	// as seen. It failed loudly through Attempted and Evaluated; whether the
+	// sweep reached it is a separate question with a separate answer.
+	seen := make(map[string]struct{}, 256)
+
 	var (
 		mu            sync.Mutex
 		evaluated     []Evaluated
@@ -159,7 +180,7 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 	// that a single broken integration degrades coverage rather than ending the
 	// scan.
 	for _, src := range s.cfg.Sources {
-		metrics, srcEvaluated, srcFresh, srcErrs := s.runSource(ctx, src, snap, log)
+		metrics, srcEvaluated, srcFresh, srcErrs := s.runSource(ctx, src, snap, log, seen)
 		mu.Lock()
 		res.Metrics.Discovered += metrics.Discovered
 		res.Metrics.Evaluated += metrics.Evaluated
@@ -210,6 +231,26 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 		if e.Program.ParseConfidence == domain.ConfidenceLow {
 			res.Metrics.Quarantined++
 		}
+	}
+
+	// Coverage accounting runs before alerting so that a sweep which has lost
+	// sight of part of the platform is marked degraded before anything it does
+	// produce is reported as trustworthy.
+	coverage := applyCoverage(snap, expectedIDs, seen,
+		s.cfg.Profile.CoverageGraceSweeps(), s.cfg.Profile.EvictDeparted())
+	res.Metrics.MinCoverageRatio = s.cfg.Profile.CoverageMinRatio()
+	res.Metrics.Expected = coverage.Expected
+	res.Metrics.Observed = coverage.Observed
+	res.Metrics.Missing = coverage.Missing
+	res.Metrics.Absent = len(coverage.Absent)
+	res.Metrics.Departed = len(coverage.Departed)
+	res.Metrics.CoverageRatio = coverage.Ratio
+	res.Coverage = coverage
+
+	if len(coverage.Absent) > 0 {
+		log.Error("known programs stopped being published while still accepting reports; "+
+			"changes to them can no longer be detected",
+			"phase", obs.PhaseDiscover, "absent", coverage.Absent)
 	}
 
 	// Alert generation.
@@ -267,7 +308,7 @@ type sourceMetrics struct {
 }
 
 // runSource discovers and evaluates every program from one adapter.
-func (s *Scanner) runSource(ctx context.Context, src domain.ProgramSource, snap *state.Snapshot, log *obs.Logger) (sourceMetrics, []Evaluated, map[string]domain.Freshness, []error) {
+func (s *Scanner) runSource(ctx context.Context, src domain.ProgramSource, snap *state.Snapshot, log *obs.Logger, seen map[string]struct{}) (sourceMetrics, []Evaluated, map[string]domain.Freshness, []error) {
 	var (
 		m    sourceMetrics
 		errs []error
@@ -358,6 +399,15 @@ func (s *Scanner) runSource(ctx context.Context, src domain.ProgramSource, snap 
 				return
 			}
 			m.Evaluated++
+
+			// Record reachability for coverage accounting. This is deliberately
+			// independent of evaluation success: the question is whether the sweep
+			// saw the program, not whether it could act on it.
+			//
+			// No additional lock is taken: rmu is already held for the remainder of
+			// this goroutine, and sync.Mutex is not reentrant.
+			seen[outcome.Evaluated.Program.ID] = struct{}{}
+
 			if outcome.DetailFetched {
 				m.Fetched++
 			} else {

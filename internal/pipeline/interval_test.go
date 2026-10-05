@@ -37,10 +37,23 @@ func scanAt(t *testing.T, src domain.ProgramSource, dir string, now time.Time) p
 		c.Now = func() time.Time { return clock }
 		c.Profile.Scan.DetailsRefreshInterval = 1
 	})
-	if err != nil {
-		t.Fatalf("Scan at %s: %v", now, now)
+	if err != nil && !isDegradedOnly(err) {
+		t.Fatalf("Scan at %s: %v", now, err)
 	}
 	return res
+}
+
+// isDegradedOnly reports whether a scan error is purely the degraded-scan signal.
+//
+// A degraded sweep returns an error by design - it is how exit code 3 is reached
+// - so tests that deliberately induce coverage loss must not treat it as a
+// harness failure. Any other error is a genuine fault and still fails the test.
+func isDegradedOnly(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "degraded scan:")
 }
 
 // scanListingOnly runs one scan that never reads a detail page, so the change

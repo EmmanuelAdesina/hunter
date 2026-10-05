@@ -501,5 +501,9 @@ func cmdValidateConfig(env *Env, args []string) int {
 	fmt.Fprintf(env.Stdout, "  accept unknown gates: %v\n", profile.Access.AcceptUnknownAccessGates)
 	fmt.Fprintf(env.Stdout, "  min alert severity:   %s\n", profile.MinSeverity())
 	fmt.Fprintf(env.Stdout, "  notifications:        %v\n", profile.Notifications.Enabled)
+	// The coverage floor is printed here so that a degraded exit code can always be
+	// traced to the threshold it failed, without reading the profile.
+	fmt.Fprintf(env.Stdout, "  coverage floor:       %.0f%% (grace %d sweeps)\n",
+		profile.CoverageMinRatio()*100, profile.CoverageGraceSweeps())
 	return exitOK
 }

@@ -7,8 +7,10 @@ package obs
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -132,7 +134,44 @@ type ScanMetrics struct {
 	AlertsSent       int `json:"alerts_sent"`
 	AlertsFailed     int `json:"alerts_failed"`
 	AlertsSkipped    int `json:"alerts_skipped"`
-	Errors           int `json:"errors"`
+
+	// MinCoverageRatio is the floor this scan was judged against, carried on the
+	// metrics so that a degraded report states the standard it failed rather than
+	// making the reader reconstruct it from the configuration.
+	MinCoverageRatio float64 `json:"min_coverage_ratio"`
+
+	// Coverage accounting. These are the counters that distinguish "the platform
+	// had nothing to report" from "the sweep did not see most of the platform",
+	// which are otherwise identical in every other field of this struct.
+	//
+	// Expected is how many programs the system already knew about and therefore
+	// had an obligation to observe. Observed is how many of those the sweep
+	// actually saw. Missing is the difference, and it is the number that should
+	// worry an operator.
+	//
+	// Absent counts programs missing beyond the configured grace period, meaning
+	// their departure is a fact rather than a transient.
+	Expected int `json:"expected"`
+
+	// Observed counts previously-known programs this sweep actually saw.
+	Observed int `json:"observed"`
+
+	// Missing counts previously-known programs this sweep did not see.
+	Missing int `json:"missing"`
+
+	// Absent counts programs missing beyond the grace period.
+	Absent int `json:"absent"`
+
+	// Departed counts programs removed from state because the platform no longer
+	// publishes them. It is a legitimate outcome and is reported separately so it
+	// is never confused with coverage loss.
+	Departed int `json:"departed"`
+
+	// CoverageRatio is Observed over Expected, as a fraction in [0,1]. It is -1
+	// when there was nothing to expect, which is the first run rather than a
+	// coverage failure.
+	CoverageRatio float64 `json:"coverage_ratio"`
+	Errors        int     `json:"errors"`
 }
 
 // Summary renders the one-line form used in CI logs.
@@ -154,7 +193,21 @@ func (m ScanMetrics) Summary() string {
 		" sent=" + itoa(m.AlertsSent) +
 		" failed=" + itoa(m.AlertsFailed) +
 		" errors=" + itoa(m.Errors) +
+		" coverage=" + coveragePct(m) +
+		" absent=" + itoa(m.Absent) +
 		" duration=" + m.Duration.Round(10*time.Millisecond).String()
+}
+
+// coveragePct renders the coverage ratio for the summary line.
+//
+// It prints the percentage whenever there was something to expect, and nothing at
+// all on a first run. Printing "0%" on a cold start would read as total failure
+// when it is the system working correctly with no history yet.
+func coveragePct(m ScanMetrics) string {
+	if m.CoverageRatio < 0 {
+		return "n/a"
+	}
+	return strconv.FormatFloat(m.CoverageRatio*100, 'f', 1, 64) + "%"
 }
 
 // Degraded reports whether the run shows signs of a problem worth a human look.
@@ -177,12 +230,60 @@ func (m ScanMetrics) Degraded() (bool, string) {
 		return true, "no programs were examined by either tier"
 	case m.Attempted > 0 && m.Evaluated == 0:
 		return true, "every evaluation attempt failed"
+	case m.Absent > 0:
+		// A program the system knew about, still accepting reports, and no longer
+		// published. Any change to it is now invisible, so the sweep's silence says
+		// nothing about the platform.
+		return true, absentReason(m.Absent)
+	case m.Expected > 0 && m.Missing > 0 && m.CoverageRatio >= 0 && m.CoverageRatio < m.MinCoverageRatio:
+		return true, coverageReason(m)
 	default:
 		return false, ""
 	}
 }
 
+// absentReason renders the absence warning with enough specificity to act on.
+func absentReason(n int) string {
+	return fmt.Sprintf("%d known program(s) stopped being published while still accepting reports; "+
+		"changes to them can no longer be detected", n)
+}
+
+func coverageReason(m ScanMetrics) string {
+	return fmt.Sprintf("only %d of %d known programs were observed (%.1f%%, floor %.1f%%); "+
+		"a change on an unobserved program cannot be reported",
+		m.Observed, m.Expected, m.CoverageRatio*100, m.MinCoverageRatio*100)
+}
+
 // attrs renders the metrics as log attributes.
+// CoverageReport renders the coverage accounting for a human, including the
+// programs whose absence matters most.
+//
+// It is printed by the CLI rather than left in the metrics because a count alone
+// does not tell an operator what to do; naming the programs does.
+func CoverageReport(m ScanMetrics, absent []string) []string {
+	if m.Expected == 0 && len(absent) == 0 {
+		return nil
+	}
+	out := []string{
+		fmt.Sprintf("Coverage: %d of %d known programs observed (%s, floor %s)",
+			m.Observed, m.Expected, coveragePct(m),
+			strconv.FormatFloat(m.MinCoverageRatio*100, 'f', 1, 64)+"%"),
+	}
+	if m.Missing > 0 {
+		out = append(out, fmt.Sprintf("  %d missing this sweep", m.Missing))
+	}
+	if len(absent) > 0 {
+		out = append(out, "  no longer published while still accepting reports:")
+		for _, name := range absent {
+			out = append(out, "    - "+name)
+		}
+	}
+	if m.Departed > 0 {
+		out = append(out, fmt.Sprintf("  %d departed program(s) removed from state", m.Departed))
+	}
+	return out
+}
+
 func (m ScanMetrics) attrs() []any {
 	return []any{
 		"scan_id", m.ScanID,
@@ -205,6 +306,12 @@ func (m ScanMetrics) attrs() []any {
 		"alerts_failed", m.AlertsFailed,
 		"alerts_skipped", m.AlertsSkipped,
 		"errors", m.Errors,
+		"expected", m.Expected,
+		"observed", m.Observed,
+		"missing", m.Missing,
+		"absent", m.Absent,
+		"departed", m.Departed,
+		"coverage_ratio", coveragePct(m),
 		"duration", m.Duration.Round(time.Millisecond).String(),
 	}
 }

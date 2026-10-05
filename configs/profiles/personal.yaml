@@ -81,6 +81,21 @@ profile:
       - live
       - new
 
+  # Coverage accounting. A sweep that stops seeing programs the system already
+  # knew about is the failure mode that matters most: any change to an unobserved
+  # program is undetectable, and without this the scan would report success while
+  # watching nothing.
+  coverage:
+    # Fraction of known programs that must be observed for a sweep to be trusted.
+    # 0.9 absorbs one dropped listing page of a roughly thirty-page sweep while
+    # still catching the order-of-magnitude losses that mean the sweep is broken.
+    min_ratio: 0.9
+    # Consecutive sweeps a program may be missing before its absence is a fact
+    # rather than a transient. One is the minimum that separates a network failure
+    # from a departure.
+    grace_sweeps: 2
+    evict_departed: true
+
   freshness:
     # Below this age a newly seen program is treated as brand new.
     fresh_program_window: 168h

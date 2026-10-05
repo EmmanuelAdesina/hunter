@@ -282,6 +282,7 @@ type Profile struct {
 	TargetDomains TargetDomainConfig      `yaml:"target_domains"`
 	ProgramStates ProgramStateConfig      `yaml:"program_states"`
 	Freshness     FreshnessConfig         `yaml:"freshness"`
+	Coverage      CoverageConfig          `yaml:"coverage"`
 	Notifications NotificationConfig      `yaml:"notifications"`
 	Scan          ScanConfig              `yaml:"scan"`
 	Platforms     Platforms               `yaml:"platforms"`
@@ -548,6 +549,16 @@ func (p *Profile) applyDefaultsAndValidate() error {
 	if !p.Notifications.AlertOnNewPrograms && !p.Notifications.AlertOnMaterialChange &&
 		!p.Notifications.AlertOnNewlyEligible && !p.Notifications.AlertOnScopeExpansion {
 		fail("notifications: at least one alert_on_* trigger must be enabled")
+	}
+
+	// Coverage. A ratio outside [0,1] is rejected rather than clamped: a
+	// misconfigured alarm that silently widens or narrows the trust threshold is
+	// worse than one that refuses to load.
+	if p.Coverage.MinRatio < 0 || p.Coverage.MinRatio > 1 {
+		fail("coverage.min_ratio must be between 0 and 1")
+	}
+	if p.Coverage.GraceSweeps < 0 {
+		fail("coverage.grace_sweeps must be >= 0")
 	}
 
 	// Change windows are resolved here so that a bad key or a missing default is

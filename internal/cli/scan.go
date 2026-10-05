@@ -197,26 +197,28 @@ type scanReport struct {
 
 // scanMetrics is the JSON view of the counters.
 type scanMetrics struct {
-	ScanID           string `json:"scan_id"`
-	Source           string `json:"source"`
-	Discovered       int    `json:"discovered"`
-	Fetched          int    `json:"fetched"`
-	FetchFailed      int    `json:"fetch_failed"`
-	New              int    `json:"new"`
-	Changed          int    `json:"changed"`
-	Eligible         int    `json:"eligible"`
-	Rejected         int    `json:"rejected"`
-	Quarantined      int    `json:"quarantined"`
-	AlertsGenerated  int    `json:"alerts_generated"`
-	AlertsSuppressed int    `json:"alerts_suppressed"`
-	AlertsSent       int    `json:"alerts_sent"`
-	AlertsFailed     int    `json:"alerts_failed"`
-	AlertsSkipped    int    `json:"alerts_skipped"`
-	Errors           int    `json:"errors"`
-	DurationMS       int64  `json:"duration_ms"`
+	ScanID           string        `json:"scan_id"`
+	Source           string        `json:"source"`
+	Discovered       int           `json:"discovered"`
+	Fetched          int           `json:"fetched"`
+	FetchFailed      int           `json:"fetch_failed"`
+	New              int           `json:"new"`
+	Changed          int           `json:"changed"`
+	Eligible         int           `json:"eligible"`
+	Rejected         int           `json:"rejected"`
+	Quarantined      int           `json:"quarantined"`
+	AlertsGenerated  int           `json:"alerts_generated"`
+	AlertsSuppressed int           `json:"alerts_suppressed"`
+	AlertsSent       int           `json:"alerts_sent"`
+	AlertsFailed     int           `json:"alerts_failed"`
+	AlertsSkipped    int           `json:"alerts_skipped"`
+	Errors           int           `json:"errors"`
+	Coverage         *CoverageJSON `json:"coverage,omitempty"`
+	DurationMS       int64         `json:"duration_ms"`
 }
 
-func metricsView(m obs.ScanMetrics) scanMetrics {
+func metricsView(res pipeline.Result) scanMetrics {
+	m := res.Metrics
 	return scanMetrics{
 		ScanID: m.ScanID, Source: m.Source,
 		Discovered: m.Discovered, Fetched: m.Fetched, FetchFailed: m.FetchFailed,
@@ -225,12 +227,22 @@ func metricsView(m obs.ScanMetrics) scanMetrics {
 		AlertsSuppressed: m.AlertsSuppressed, AlertsSent: m.AlertsSent,
 		AlertsFailed: m.AlertsFailed, AlertsSkipped: m.AlertsSkipped,
 		Errors: m.Errors, DurationMS: m.Duration.Milliseconds(),
+		Coverage: &CoverageJSON{
+			Expected:        m.Expected,
+			Observed:        m.Observed,
+			Missing:         m.Missing,
+			Absent:          m.Absent,
+			Departed:        m.Departed,
+			Ratio:           m.CoverageRatio,
+			MinRatio:        m.MinCoverageRatio,
+			MissingPrograms: res.Coverage.MissingReport(),
+		},
 	}
 }
 
 func buildScanReport(res pipeline.Result) scanReport {
 	rep := scanReport{
-		Metrics:  metricsView(res.Metrics),
+		Metrics:  metricsView(res),
 		Alerts:   buildAlertSummaries(res.Alerts),
 		Programs: buildProgramSummaries(res.Programs),
 	}
@@ -253,6 +265,16 @@ func renderScan(w io.Writer, res pipeline.Result) {
 	if degraded, why := m.Degraded(); degraded {
 		fmt.Fprintf(w, "WARNING: %s\n", why)
 		fmt.Fprintln(w, "         Silence from a degraded scan does not mean absence of opportunities.")
+		fmt.Fprintln(w)
+	}
+
+	// Coverage is printed on every run, not only when it is bad. A number that
+	// appears only once it has already failed is a number nobody learns to read,
+	// and it turns a gradual regression into an apparently sudden one.
+	for _, line := range obs.CoverageReport(m, res.Coverage.MissingReport()) {
+		fmt.Fprintln(w, line)
+	}
+	if len(res.Coverage.MissingReport()) > 0 {
 		fmt.Fprintln(w)
 	}
 
@@ -421,4 +443,31 @@ var _ = errors.Is
 // the command outright.
 func newNotifier(env *Env) notifierFactory {
 	return func() notify.Notifier { return notifierFromEnv(env) }
+}
+
+// CoverageJSON is the machine-readable coverage accounting for one scan.
+//
+// It is a first-class part of the report rather than a log line because the
+// question "did this sweep actually see the platform" has to be answerable by a
+// scheduler or a dashboard without parsing prose.
+type CoverageJSON struct {
+	Expected int `json:"expected"`
+	Observed int `json:"observed"`
+	Missing  int `json:"missing"`
+	Absent   int `json:"absent"`
+
+	// Departed counts programs removed from state because the platform finished
+	// with them. It is a legitimate outcome and is never counted as a failure.
+	Departed int `json:"departed"`
+
+	// Ratio is observed over expected, or -1 when there was nothing to expect.
+	Ratio float64 `json:"ratio"`
+
+	// MinRatio is the floor this scan was judged against, carried so that a
+	// degraded report states the standard it failed rather than making the reader
+	// reconstruct it from configuration.
+	MinRatio float64 `json:"min_ratio"`
+
+	// MissingPrograms names the programs behind Missing.
+	MissingPrograms []string `json:"missing_programs,omitempty"`
 }
