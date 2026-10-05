@@ -38,6 +38,10 @@ type input struct {
 	freshness domain.Freshness
 	changes   domain.ChangeSet
 	profile   *config.Profile
+	// now is the clock every age is measured against. It is supplied by the
+	// caller so that a score is reproducible and so that an interval cannot be
+	// rendered against a different moment than it was scored against.
+	now time.Time
 }
 
 // components is the ordered component set.
@@ -57,14 +61,24 @@ var components = []component{
 // Scorer computes triage for programs against a profile.
 type Scorer struct {
 	profile *config.Profile
+	now     func() time.Time
 }
 
 // New builds a scorer.
-func New(profile *config.Profile) *Scorer { return &Scorer{profile: profile} }
+//
+// The clock is injectable so that an interval's age range is identical between
+// a score and the alert that reports it.
+func New(profile *config.Profile, now ...func() time.Time) *Scorer {
+	clock := time.Now
+	if len(now) > 0 && now[0] != nil {
+		clock = now[0]
+	}
+	return &Scorer{profile: profile, now: clock}
+}
 
 // Score produces a triage result for one program.
 func (s *Scorer) Score(p domain.Program, d domain.EligibilityDecision, f domain.Freshness, cs domain.ChangeSet) domain.Triage {
-	in := input{program: p, decision: d, freshness: f, changes: cs, profile: s.profile}
+	in := input{program: p, decision: d, freshness: f, changes: cs, profile: s.profile, now: s.now()}
 
 	comps := make([]domain.TriageComponent, 0, len(components))
 	total := 0.0
@@ -116,40 +130,62 @@ func eligibilityFit(in input) (int, string) {
 	return score, basis
 }
 
+// freshCandidate is one recency signal considered by freshnessScore.
+type freshCandidate struct {
+	label string
+	age   time.Duration
+	// interval is set when the signal came from a change interval, and is used
+	// to render the basis as a bounded range rather than a point.
+	interval domain.ObservationInterval
+}
+
+// basis renders the candidate's evidence for the component line.
+//
+// A change-derived candidate prints its whole age range, so the published number
+// is never more precise than the observation behind it.
+func (c freshCandidate) basis() string {
+	if c.interval.Known() {
+		return c.interval.Humanize(time.Now())
+	}
+	return domain.HumanizeDuration(c.age)
+}
+
 // freshnessScore rewards recency, using the newest available signal.
 //
 // A program launched three years ago whose API scope was expanded six minutes
 // ago must score as fresh. The newest signal wins because that is the change
 // that actually creates an opportunity.
+//
+// Change signals arrive as intervals, so "how old is the change" is a range. The
+// score uses the OLDEST admissible age, which is the conservative end: an
+// opportunity that might already be stale is not scored as though it were hours
+// old. The basis line prints the whole range, so the number is never presented
+// as more precise than the evidence behind it.
 func freshnessScore(in input) (int, string) {
 	f := in.freshness
+	now := in.now
 
-	candidates := make([]struct {
+	candidates := make([]freshCandidate, 0, 4)
+	for _, c := range []struct {
 		label string
-		age   time.Duration
-		known bool
-	}, 0, 3)
-
-	if f.ScopeChangeAge > 0 {
-		candidates = append(candidates, struct {
-			label string
-			age   time.Duration
-			known bool
-		}{"scope changed", f.ScopeChangeAge, true})
-	}
-	if f.RequirementChangeAge > 0 {
-		candidates = append(candidates, struct {
-			label string
-			age   time.Duration
-			known bool
-		}{"requirements changed", f.RequirementChangeAge, true})
+		iv    domain.ObservationInterval
+	}{
+		{"scope changed", f.ScopeChange},
+		{"requirements changed", f.RequirementChange},
+		{"metadata changed", f.MetadataChange},
+		{"lifecycle changed", f.LifecycleChange},
+	} {
+		if !c.iv.Known() {
+			continue
+		}
+		candidates = append(candidates, freshCandidate{
+			label:    c.label,
+			age:      c.iv.OldestAge(now),
+			interval: c.iv,
+		})
 	}
 	if f.FirstSeenAge > 0 {
-		candidates = append(candidates, struct {
-			label string
-			age   time.Duration
-			known bool
-		}{"first seen", f.FirstSeenAge, true})
+		candidates = append(candidates, freshCandidate{label: "first seen", age: f.FirstSeenAge})
 	}
 	if len(candidates) == 0 {
 		return 50, "no age information is available"
@@ -170,14 +206,14 @@ func freshnessScore(in input) (int, string) {
 		window = 7 * 24 * time.Hour
 	}
 	if best.age <= window {
-		return 100, best.label + " " + domain.HumanizeDuration(best.age)
+		return 100, best.label + " " + best.basis()
 	}
 	over := float64(best.age-window) / float64(10*window)
 	score := 100 - int(over*100)
 	if score < 0 {
 		score = 0
 	}
-	return score, best.label + " " + domain.HumanizeDuration(best.age)
+	return score, best.label + " " + best.basis()
 }
 
 // surfaceScore rewards the surfaces the researcher actually specializes in.
@@ -333,8 +369,10 @@ func rawInputs(p domain.Program, f domain.Freshness, cs domain.ChangeSet) domain
 	inputs := domain.TriageInputs{
 		SubmissionCountKnown: p.SubmittedReportsKnown,
 		ProgramAgeBasis:      f.ProgramAgeBasis,
-		ScopeChangeAge:       f.ScopeChangeAge,
-		RequirementChangeAge: f.RequirementChangeAge,
+		ScopeChange:          f.ScopeChange,
+		RequirementChange:    f.RequirementChange,
+		MetadataChange:       f.MetadataChange,
+		LifecycleChange:      f.LifecycleChange,
 		ScopeSize:            len(p.InScopeTargets()),
 		ChangeCount:          material,
 		MaxBountyUSD:         p.MaxBountyUSD,

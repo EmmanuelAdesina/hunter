@@ -5,6 +5,7 @@ import (
 	"html"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/eadeshina/hunter/internal/config"
 	"github.com/eadeshina/hunter/internal/domain"
@@ -27,7 +28,7 @@ import (
 //     often as in daylight.
 //
 // The output is deterministic for a given candidate.
-func RenderHTML(c Candidate, profile *config.Profile) string {
+func RenderHTML(c Candidate, profile *config.Profile, now time.Time) string {
 	var b strings.Builder
 	p := c.Program
 

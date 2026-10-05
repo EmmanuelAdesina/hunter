@@ -103,16 +103,26 @@ profile:
     new_program_window: 24h
 
     # A program the monitor could not assess, and now can, is still a fresh
-    # launch worth reporting. This trigger is also window-gated, so it can only
-    # ever fire for something newly launched.
+    # launch worth reporting. This trigger is window-gated, so it can only ever
+    # fire for something newly launched.
     alert_on_newly_eligible: true
 
-    # Off. These fire for programs that already existed, which is exactly the
-    # noise this channel exists to exclude. They remain available.
-    alert_on_material_change: false
-    alert_on_scope_expansion: false
+    # Changes to programs that already existed. These are gated on the recency of
+    # the CHANGE, not on the age of the program: a five-year-old program that
+    # added an API nine minutes ago is the most valuable event this system can
+    # report, and a launch-age gate could never express it.
+    alert_on_material_change: true
+    alert_on_scope_expansion: true
 
-    # Guard the channel if several programs launch at once. 0 means no cap.
+    # Recency windows for each class of change, resolved as
+    # per-kind -> class -> default.
+    change_windows:
+      default: 72h
+      scope_expansion: 72h
+      access_improved: 168h
+      reactivated: 72h
+
+    # Guard the channel if several programs change at once. 0 means no cap.
     max_per_scan: 10
     subject_prefix: "[HUNTER]"
 

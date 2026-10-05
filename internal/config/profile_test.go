@@ -22,6 +22,8 @@ profile:
   notifications:
     alert_on_new_programs: true
     new_program_window: 24h
+    change_windows:
+      default: 72h
 `
 
 // TestTheShippedProfileIsValid verifies the profile that ships with the
@@ -173,6 +175,8 @@ access:
 notifications:
   alert_on_new_programs: true
   new_program_window: 24h
+  change_windows:
+    default: 72h
 `
 	p, err := config.Parse([]byte(flat))
 	if err != nil {

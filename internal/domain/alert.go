@@ -189,6 +189,10 @@ type Observation struct {
 // API scope was expanded six minutes ago is a very different opportunity from a
 // program launched six minutes ago, and collapsing both into a single "age"
 // number would hide the second one.
+//
+// Change signals are intervals, not durations. The system observes that two
+// scans disagreed, not when the disagreement happened, so every change age here
+// is a range and every renderer shows it as one.
 type Freshness struct {
 	// ProgramAge is the time since launch, when the source states a launch date.
 	ProgramAge time.Duration `json:"program_age,omitempty"`
@@ -202,11 +206,14 @@ type Freshness struct {
 	// SourceUpdateAge is the time since the source's own last-modified marker.
 	SourceUpdateAge time.Duration `json:"source_update_age,omitempty"`
 
-	// ScopeChangeAge is the time since the in-scope asset set last changed.
-	ScopeChangeAge time.Duration `json:"scope_change_age,omitempty"`
-
-	// RequirementChangeAge is the time since access requirements last changed.
-	RequirementChangeAge time.Duration `json:"requirement_change_age,omitempty"`
+	// ScopeChange, RequirementChange, and MetadataChange bound when each
+	// fingerprint group last moved. An unknown interval is a real state and is
+	// rendered as unknown rather than omitted, because an omitted change signal
+	// is indistinguishable from a program whose scope has never changed.
+	ScopeChange       ObservationInterval `json:"scope_change"`
+	RequirementChange ObservationInterval `json:"requirement_change"`
+	MetadataChange    ObservationInterval `json:"metadata_change"`
+	LifecycleChange   ObservationInterval `json:"lifecycle_change"`
 }
 
 // AgeStrings renders each signal for display, omitting signals that are not
@@ -221,8 +228,51 @@ func (f Freshness) AgeStrings() []string {
 	add("program age", f.ProgramAge, f.ProgramAgeBasis != AgeUnknown && f.ProgramAge > 0)
 	add("first seen", f.FirstSeenAge, f.FirstSeenAge > 0)
 	add("source updated", f.SourceUpdateAge, f.SourceUpdateAge > 0)
-	add("scope changed", f.ScopeChangeAge, f.ScopeChangeAge > 0)
-	add("requirements changed", f.RequirementChangeAge, f.RequirementChangeAge > 0)
+
+	now := time.Now()
+	if f.ScopeChange.Known() {
+		out = append(out, "scope changed: "+f.ScopeChange.Humanize(now))
+	}
+	if f.RequirementChange.Known() {
+		out = append(out, "requirements changed: "+f.RequirementChange.Humanize(now))
+	}
+	if f.MetadataChange.Known() {
+		out = append(out, "metadata changed: "+f.MetadataChange.Humanize(now))
+	}
+	if f.LifecycleChange.Known() {
+		out = append(out, "lifecycle changed: "+f.LifecycleChange.Humanize(now))
+	}
+	return out
+}
+
+// AgeStringsAt renders the change signals against a supplied clock.
+//
+// AgeStrings exists for callers with no clock of their own; anything that is
+// already holding one must use this, so that the same program cannot render two
+// different ages in two places.
+func (f Freshness) AgeStringsAt(now time.Time) []string {
+	out := make([]string, 0, 6)
+	add := func(label string, d time.Duration, known bool) {
+		if known {
+			out = append(out, label+": "+HumanizeDuration(d))
+		}
+	}
+	add("program age", f.ProgramAge, f.ProgramAgeBasis != AgeUnknown && f.ProgramAge > 0)
+	add("first seen", f.FirstSeenAge, f.FirstSeenAge > 0)
+	add("source updated", f.SourceUpdateAge, f.SourceUpdateAge > 0)
+
+	if f.ScopeChange.Known() {
+		out = append(out, "scope changed: "+f.ScopeChange.Humanize(now))
+	}
+	if f.RequirementChange.Known() {
+		out = append(out, "requirements changed: "+f.RequirementChange.Humanize(now))
+	}
+	if f.MetadataChange.Known() {
+		out = append(out, "metadata changed: "+f.MetadataChange.Humanize(now))
+	}
+	if f.LifecycleChange.Known() {
+		out = append(out, "lifecycle changed: "+f.LifecycleChange.Humanize(now))
+	}
 	return out
 }
 
@@ -259,6 +309,16 @@ func HumanizeDuration(d time.Duration) string {
 		}
 		return fmt.Sprintf("%dy ago", years)
 	}
+}
+
+// HumanizeQuantity renders a duration as a bare magnitude with no "ago".
+//
+// It exists because a bounded range needs two magnitudes side by side, and
+// appending "ago" to each would render as "6m ago-20m ago".
+func HumanizeQuantity(d time.Duration) string {
+	s := HumanizeDuration(d)
+	s = strings.TrimSuffix(s, " ago")
+	return s
 }
 
 // JoinNonEmpty joins non-empty strings with sep.

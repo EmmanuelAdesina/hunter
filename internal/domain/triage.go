@@ -52,9 +52,13 @@ type TriageInputs struct {
 	ProgramAge      time.Duration `json:"program_age,omitempty"`
 	ProgramAgeBasis AgeBasis      `json:"program_age_basis,omitempty"`
 
-	// ScopeChangeAge and RequirementChangeAge.
-	ScopeChangeAge       time.Duration `json:"scope_change_age,omitempty"`
-	RequirementChangeAge time.Duration `json:"requirement_change_age,omitempty"`
+	// ScopeChange and RequirementChange bound when those fingerprint groups last
+	// moved. They are stored as intervals rather than durations so that a score
+	// can never be traced back to a change time the system did not observe.
+	ScopeChange       ObservationInterval `json:"scope_change"`
+	RequirementChange ObservationInterval `json:"requirement_change"`
+	MetadataChange    ObservationInterval `json:"metadata_change"`
+	LifecycleChange   ObservationInterval `json:"lifecycle_change"`
 
 	// ScopeSize is the number of in-scope assets.
 	ScopeSize int `json:"scope_size"`

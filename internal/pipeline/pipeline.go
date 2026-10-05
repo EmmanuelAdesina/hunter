@@ -125,7 +125,7 @@ func New(cfg Config) (*Scanner, error) {
 		policy:    policy.New(cfg.Profile, cfg.Now),
 		detector:  diff.NewDetector(cfg.Now),
 		generator: alerts.NewGenerator(cfg.Profile, cfg.Now),
-		scorer:    scoring.New(cfg.Profile),
+		scorer:    scoring.New(cfg.Profile, cfg.Now),
 		normalize: normalize.Options{Now: cfg.Now},
 	}, nil
 }
@@ -435,6 +435,11 @@ func (s *Scanner) evaluateOne(ctx context.Context, src domain.ProgramSource, ref
 		program.FirstSeenAt = prev.FirstSeenAt
 	}
 
+	// Change intervals are advanced before the diff is interpreted, because the
+	// comparison itself is what establishes that a fingerprint moved.
+	carryChangeIntervals(&prev, &program, fetchedAt, hadPrev)
+	program.Finalize()
+
 	d := s.detector.Compare(prev, program)
 	decision := s.policy.Evaluate(program)
 	fresh := s.computeFreshness(prev, program, d, hadPrev)
@@ -511,6 +516,13 @@ func (s *Scanner) evaluateListingOnly(ref domain.ProgramRef, prev domain.Program
 	program.LastSeenAt = s.cfg.Now().UTC()
 	program.Listing = listingSignalFrom(ref)
 
+	// A cheap listing sweep does not read scope or requirements, so it cannot
+	// move a fingerprint and therefore cannot move a change interval. Carrying
+	// them across unchanged is what keeps a reported change attributable to the
+	// window of time it actually happened in.
+	carryChangeIntervals(&prev, &program, program.LastSeenAt, true)
+	program.Finalize()
+
 	d := domain.Diff{
 		ProgramID:          program.ID,
 		PreviousLastSeenAt: prev.LastSeenAt,
@@ -534,9 +546,10 @@ func (s *Scanner) evaluateListingOnly(ref domain.ProgramRef, prev domain.Program
 
 	decision := s.policy.Evaluate(program)
 
-	// Scope and requirement change ages are unavailable when the detail page was
-	// not read. Reporting zero would assert that the scope changed at the last
-	// observation, which is not something this scan observed.
+	// Change intervals are unavailable when the detail page was not read. They
+	// are carried forward unchanged rather than recomputed, because a cheap
+	// sweep observed nothing about scope or requirements and therefore observed
+	// nothing about when they last moved.
 	fresh := domain.Freshness{}
 	age, basis := program.Age(s.cfg.Now())
 	fresh.ProgramAge = age
@@ -547,6 +560,10 @@ func (s *Scanner) evaluateListingOnly(ref domain.ProgramRef, prev domain.Program
 	if program.SourceUpdatedAt != nil {
 		fresh.SourceUpdateAge = s.cfg.Now().Sub(*program.SourceUpdatedAt)
 	}
+	fresh.ScopeChange = program.ScopeChanged
+	fresh.RequirementChange = program.RequirementsChanged
+	fresh.MetadataChange = program.MetadataChanged
+	fresh.LifecycleChange = program.LifecycleChanged
 
 	triageScore := s.scorer.Score(program, decision, fresh, d.Changes)
 
@@ -590,6 +607,11 @@ func listingSignalFrom(ref domain.ProgramRef) domain.ListingSignal {
 var errNotEvaluated = errors.New("program was not evaluated this scan")
 
 // computeFreshness derives the independent age signals.
+//
+// It also advances the program's change intervals, which are stored on the record
+// rather than derived per scan. That is the whole point: a change detected on one
+// scan must still be attributable to a bounded window of time on every later
+// scan, or the alert that reported it loses the evidence for its own claim.
 func (s *Scanner) computeFreshness(prev, cur domain.Program, d domain.Diff, hadPrev bool) domain.Freshness {
 	now := s.cfg.Now()
 	f := domain.Freshness{}
@@ -605,16 +627,191 @@ func (s *Scanner) computeFreshness(prev, cur domain.Program, d domain.Diff, hadP
 		f.SourceUpdateAge = now.Sub(*cur.SourceUpdatedAt)
 	}
 
-	// Scope and requirement change ages come from when this system first saw the
-	// current fingerprint, which is the only trustworthy signal on a platform
-	// whose own update marker has day resolution.
-	if hadPrev && prev.ScopeFingerprint != cur.ScopeFingerprint {
-		f.ScopeChangeAge = now.Sub(prev.LastSeenAt)
-	}
-	if hadPrev && prev.RequirementFingerprint != cur.RequirementFingerprint {
-		f.RequirementChangeAge = now.Sub(prev.LastSeenAt)
-	}
+	f.ScopeChange = cur.ScopeChanged
+	f.RequirementChange = cur.RequirementsChanged
+	f.MetadataChange = cur.MetadataChanged
+	f.LifecycleChange = cur.LifecycleChanged
 	return f
+}
+
+// carryChangeIntervals moves the stored change bounds onto the new observation.
+//
+// A program's change intervals describe when its fingerprints last moved, which
+// is a property of the program rather than of the scan. They are therefore
+// carried forward verbatim and only replaced when the current scan actually
+// observed a transition. Recomputing them from the current comparison would
+// reproduce the original defect: the interval would exist only for the one scan
+// that detected the change and would read as unknown on every scan afterwards.
+func carryChangeIntervals(prev, cur *domain.Program, now time.Time, hadPrev bool) {
+	cur.ScopeChanged = prev.ScopeChanged
+	cur.RequirementsChanged = prev.RequirementsChanged
+	cur.MetadataChanged = prev.MetadataChanged
+	cur.LifecycleChanged = prev.LifecycleChanged
+
+	if !hadPrev {
+		// Nothing was observed before, so nothing can be said about when the
+		// fingerprints moved. A first observation is not a change: it is the
+		// start of the record.
+		cur.ScopeChanged = domain.ObservationInterval{}
+		cur.RequirementsChanged = domain.ObservationInterval{}
+		cur.MetadataChanged = domain.ObservationInterval{}
+		cur.LifecycleChanged = domain.ObservationInterval{}
+		return
+	}
+
+	// The lower bound is the last time a detail page was actually read, not the
+	// last time the program was seen. A cheap listing sweep advances LastSeenAt
+	// without advancing any fingerprint, so using it would claim the scope was
+	// observed minutes ago when it was last observed hours ago.
+	observed := prev.DetailsFetchedAt
+	if observed == nil || observed.IsZero() {
+		observed = &prev.LastSeenAt
+	}
+
+	if prev.ScopeFingerprint != cur.ScopeFingerprint {
+		cur.ScopeChanged = domain.NewObservationInterval(*observed, now)
+	}
+	if prev.RequirementFingerprint != cur.RequirementFingerprint {
+		cur.RequirementsChanged = domain.NewObservationInterval(*observed, now)
+	}
+	if prev.MetadataFingerprint != cur.MetadataFingerprint {
+		cur.MetadataChanged = domain.NewObservationInterval(*observed, now)
+	}
+	// Lifecycle is compared directly rather than through the metadata fingerprint,
+	// because the fingerprint also covers name, slug, and bounty: a rename would
+	// move the fingerprint without any lifecycle transition having happened.
+	if prev.State != cur.State {
+		cur.LifecycleChanged = domain.NewObservationInterval(*observed, now)
+	}
+}
+
+// openWindows derives and records the opportunity windows a scan's changes open.
+//
+// A window is opened only by an ALERTABLE change - something that made the
+// program more reachable, more testable, or better compensated. A scope reduction
+// is recorded in history and opens nothing, because losing access is not an
+// opening.
+//
+// The submission count is captured here rather than left to a later scan, so the
+// baseline is the count as it stood when the transition was detected. Taking it
+// later would measure from a moment the opportunity had already been visible to
+// everyone else.
+func (s *Scanner) openWindows(snap *state.Snapshot, evaluated []Evaluated, scanID string, now time.Time) {
+	opts := domain.OpportunityWindowOptions{
+		Now:                      now,
+		BundleWindow:             s.cfg.Profile.BundleWindow(),
+		MaxAge:                   s.cfg.Profile.ChangeWindowMaxAge(),
+		MaxPostChangeSubmissions: s.cfg.Profile.MaxPostChangeSubmissions(),
+		ScanID:                   scanID,
+	}
+
+	for _, e := range evaluated {
+		if e.Diff.IsNew || e.Diff.Changes.Empty() {
+			continue
+		}
+		alertable := e.Diff.Changes.AlertableChanges()
+		if len(alertable) == 0 {
+			continue
+		}
+
+		// The window's interval is the widest of the intervals bounding the
+		// alertable changes. Using one interval for the bundle is what makes it a
+		// bundle rather than several unrelated claims: the set of changes is bounded
+		// by the span across which all of them could have happened.
+		observed := widestInterval(e.Fresh, alertable)
+		if !observed.Known() {
+			// Nothing was bounded, so nothing is claimed. The changes are still in
+			// history, and the trigger gate has already declined to alert on them.
+			continue
+		}
+
+		deltas := make(domain.Deltas, 0, len(alertable))
+		assets := make([]string, 0, 8)
+		seenAsset := map[string]struct{}{}
+		for _, ch := range alertable {
+			deltas = append(deltas, e.Diff.Changes.Deltas()[indexOfChange(e.Diff.Changes, ch)])
+			for _, a := range ch.Assets {
+				if _, dup := seenAsset[a]; dup {
+					continue
+				}
+				seenAsset[a] = struct{}{}
+				assets = append(assets, a)
+			}
+		}
+
+		w := domain.NewOpportunityWindow(e.Program.ID, e.Program.Name, observed, deltas, opts)
+		w.AssetsAdded = assets
+		if e.Program.SubmittedReportsKnown && e.Program.SubmittedReports != nil {
+			w.Observe(e.Program.SubmittedReports, true)
+		}
+		snap.RecordWindow(w)
+	}
+}
+
+// indexOfChange locates a change by identity so the delta projection can be
+// indexed in step with the changes being iterated.
+func indexOfChange(cs domain.ChangeSet, want domain.Change) int {
+	for i, c := range cs {
+		if c.Kind == want.Kind && c.Field == want.Field &&
+			c.Before == want.Before && c.After == want.After {
+			return i
+		}
+	}
+	return -1
+}
+
+// widestInterval returns the interval spanning every interval in the set.
+//
+// The lower bound is the earliest and the upper bound the latest, so the result
+// bounds all of the changes rather than any one of them. The basis is downgraded
+// to observed_between_observations because a span assembled from several bounds is
+// no better evidenced than the weakest of them.
+func widestInterval(f domain.Freshness, cs domain.ChangeSet) domain.ObservationInterval {
+	var out domain.ObservationInterval
+	for _, ch := range cs {
+		iv, ok := domain.ChangeInterval(ch.Kind, f)
+		if !ok {
+			continue
+		}
+		if !out.Known() {
+			out = iv
+			continue
+		}
+		if iv.NotBefore.Before(out.NotBefore) {
+			out.NotBefore = iv.NotBefore
+		}
+		if iv.NotAfter.After(out.NotAfter) {
+			out.NotAfter = iv.NotAfter
+		}
+	}
+	return out
+}
+
+// refreshWindows updates the competition signals on every stored window.
+//
+// This runs on every scan, not only on the one that opened the window, because
+// "how crowded has this become" is only answerable by re-reading the count. The
+// baseline is never rewritten, so the movement stays measured from the moment the
+// opportunity opened.
+func (s *Scanner) refreshWindows(snap *state.Snapshot, evaluated []Evaluated) {
+	byID := make(map[string]domain.Program, len(evaluated))
+	for _, e := range evaluated {
+		byID[e.Program.ID] = e.Program
+	}
+	for _, w := range snap.Windows {
+		p, ok := byID[w.ProgramID]
+		if !ok || !p.SubmittedReportsKnown || p.SubmittedReports == nil {
+			continue
+		}
+		snap.RecordWindow(func() domain.OpportunityWindow {
+			c := w
+			c.Notified = w.Notified
+			c.NotifiedAt = w.NotifiedAt
+			c.BaselineSubmissions = w.BaselineSubmissions
+			c.Observe(p.SubmittedReports, true)
+			return c
+		}())
+	}
 }
 
 // buildAlerts selects and renders alerts, returning generated and suppressed
@@ -674,6 +871,13 @@ func shouldHaveAlerted(e Evaluated) bool {
 // means a snapshot either contains the alert or the scan never decided to
 // create it.
 func (s *Scanner) persist(ctx context.Context, snap *state.Snapshot, evaluated []Evaluated, metrics obs.ScanMetrics, generated []domain.Alert) error {
+	now := s.cfg.Now().UTC()
+
+	// Windows are derived before anything is written so that they land in the same
+	// atomic save as the programs and the history that justify them.
+	s.openWindows(snap, evaluated, metrics.ScanID, now)
+	s.refreshWindows(snap, evaluated)
+
 	for _, a := range generated {
 		snap.RecordAlert(domain.AlertRecord{
 			Fingerprint:   a.Fingerprint,

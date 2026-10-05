@@ -259,9 +259,10 @@ func TestShippedProfileHoldsNoCredentials(t *testing.T) {
 	}
 }
 
-// TestShippedProfileOnlyAlertsOnNewLaunches pins the profile to the intended
-// posture: new launches only, with the access gates as a hard filter.
-func TestShippedProfileOnlyAlertsOnNewLaunches(t *testing.T) {
+// TestShippedProfileAlertsOnFreshOpportunities pins the profile to the intended
+// posture: new launches, plus changes to existing programs that are themselves
+// recent, with the access gates as a hard filter.
+func TestShippedProfileAlertsOnFreshOpportunities(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join("..", "..", "configs", "profiles", "personal.yaml"))
 	if err != nil {
 		t.Fatal(err)
@@ -296,12 +297,24 @@ func TestShippedProfileOnlyAlertsOnNewLaunches(t *testing.T) {
 			"could not be read could be announced")
 	}
 
-	// Triggers that fire for already-running programs must be off.
-	if p.Notifications.AlertOnMaterialChange {
-		t.Error("material-change alerts are on; an existing program would be reported")
+	// Triggers for already-running programs must be on, and must be gated on the
+	// recency of the CHANGE rather than on the age of the program. A five-year-old
+	// program that added an API nine minutes ago is the most valuable event this
+	// system can report.
+	if !p.Notifications.AlertOnMaterialChange {
+		t.Error("material-change alerts are off; a fresh change to an existing program would be missed")
 	}
-	if p.Notifications.AlertOnScopeExpansion {
-		t.Error("scope-expansion alerts are on; an existing program would be reported")
+	if !p.Notifications.AlertOnScopeExpansion {
+		t.Error("scope-expansion alerts are off; a new API on an existing program would be missed")
+	}
+	if w := p.ChangeWindowFor(domain.ChangeAPIAdded); w <= 0 {
+		t.Error("no change window governs API additions; a change trigger would be un-gated")
+	}
+	if w := p.ChangeWindowFor(domain.ChangeReputationLowered); w <= 0 {
+		t.Error("no change window governs a lowered reputation requirement")
+	}
+	if w := p.ChangeWindowFor(domain.ChangeProgramReactivated); w <= 0 {
+		t.Error("no change window governs a reactivation")
 	}
 }
 

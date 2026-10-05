@@ -60,20 +60,26 @@ type Candidate struct {
 
 // Decide returns the alert to raise for a candidate, or nil if none is due.
 //
-// The trigger is launch recency, not novelty. Every alert this system raises is
-// for a program the source reports as having launched within the configured
-// window. A program that has been live for a year is not an opportunity however
-// well it matches the profile, and it never reaches a channel.
+// Each trigger is gated by its OWN recency window, measured from the evidence for
+// that trigger rather than from the program's age. A newly launched program is
+// recent by its launch date; a scope expansion is recent by the interval in which
+// the scope was observed to change. Those are different clocks and conflating
+// them is what previously made a five-year-old program with a brand-new API
+// unreportable: the launch-age gate ran first and suppressed everything behind it.
+//
+// A trigger whose evidence cannot be bounded raises nothing. "This changed at
+// some point we cannot place" is not evidence of freshness, and treating it as
+// such would re-admit every program whose launch date the source omits.
 func (g *Generator) Decide(c Candidate) *domain.Alert {
 	cfg := g.profile.Notifications
 	if !cfg.Enabled {
 		return nil
 	}
 
-	launchAge, launchKnown := launchAge(c.Program, g.now())
-	window := g.profile.NewProgramWindow()
+	now := g.now().UTC()
+	launchAge, launchKnown := launchAge(c.Program, now)
 
-	kind, trigger := g.selectKind(c, launchAge, launchKnown, window)
+	kind, trigger := g.selectKind(c, launchAge, launchKnown, now)
 	if kind == "" {
 		return nil
 	}
@@ -91,7 +97,6 @@ func (g *Generator) Decide(c Candidate) *domain.Alert {
 		return nil
 	}
 
-	now := g.now().UTC()
 	alert := domain.Alert{
 		Kind:        kind,
 		ProgramID:   c.Program.ID,
@@ -104,7 +109,17 @@ func (g *Generator) Decide(c Candidate) *domain.Alert {
 		LaunchAge:   launchAge,
 		LaunchKnown: launchKnown,
 	}
-	alert.Fingerprint = domain.ComputeFingerprint(kind, c.Program.ID, c.Diff.Changes, c.Decision, trigger)
+	// A change alert's identity includes the transition it came from, not just the
+	// change content.
+	//
+	// Without it, a program that adds an API, loses it, and adds it again produces
+	// two byte-identical change sets and therefore one fingerprint - so the second
+	// opportunity, which is a genuinely new opening that other researchers have
+	// not seen, would be suppressed as a duplicate. The interval's lower bound is
+	// the observation that preceded the change, so it identifies the transition
+	// exactly while staying identical across scans that observe the same one.
+	alert.Fingerprint = domain.ComputeFingerprint(kind, c.Program.ID, c.Diff.Changes, c.Decision,
+		trigger, evidenceKey(c, kind, now))
 
 	alert.Subject, alert.Body, alert.HTMLBody = Render(c, g.profile, now)
 	return &alert
@@ -137,80 +152,111 @@ func withinLaunchWindow(age time.Duration, known bool, window time.Duration) boo
 
 // selectKind picks the single most significant trigger for a candidate.
 //
-// The launch window is checked first and gates everything. Only one alert is
-// raised per program per scan, so a program that is both newly launched and
-// newly eligible is reported once, as the stronger claim.
-func (g *Generator) selectKind(c Candidate, age time.Duration, known bool, window time.Duration) (domain.AlertKind, string) {
+// Each branch carries its own recency evidence. The launch window governs only
+// the two triggers that are genuinely about a program's age; the change triggers
+// are governed by the interval in which the change was observed to happen. One
+// alert is raised per program per scan, and the strongest claim wins, so a
+// program that is both newly launched and newly eligible is reported once.
+func (g *Generator) selectKind(c Candidate, launchAge time.Duration, launchKnown bool, now time.Time) (domain.AlertKind, string) {
 	cfg := g.profile.Notifications
-
-	// The launch window is the master gate. Nothing outside it reaches a
-	// channel, whatever else changed, because the purpose of the channel is
-	// opportunities that just opened rather than a survey of what already
-	// exists.
-	if !withinLaunchWindow(age, known, window) {
-		return "", ""
-	}
+	launchWindow := g.profile.NewProgramWindow()
 
 	// A program seen for the first time is the primary event.
 	if c.Diff.IsNew {
-		if cfg.AlertOnNewPrograms {
+		if cfg.AlertOnNewPrograms && withinLaunchWindow(launchAge, launchKnown, launchWindow) {
 			return domain.AlertNewQualifying, "new_program"
 		}
-		return "", ""
+		// The program is new to the catalogue but not to the world. A new program
+		// whose launch date the source does not publish is still an opportunity,
+		// just not one that can be shown to be recent; it falls through to the
+		// change triggers below, which have their own evidence.
 	}
 
-	// A program that was seen but could not be assessed, and can now, is still a
-	// freshly launched program worth reporting. This is window-gated above, so it
-	// can only ever apply to something new.
-	if cfg.AlertOnNewlyEligible && c.Prior.Known && !c.Prior.Eligible && c.Decision.Eligible {
+	// A program that was seen but could not be assessed, and can now, is still
+	// worth reporting. The launch window still applies: "newly eligible" is most
+	// actionable when the program is also new.
+	if cfg.AlertOnNewlyEligible && c.Prior.Known && !c.Prior.Eligible && c.Decision.Eligible &&
+		withinLaunchWindow(launchAge, launchKnown, launchWindow) {
 		return domain.AlertNewlyEligible, "newly_eligible"
 	}
 
-	// The remaining triggers concern programs that already existed. They are off
-	// by default because an existing program is not the signal being bought,
-	// but they remain available for a profile that wants them.
-	if cfg.AlertOnScopeExpansion && hasSurfaceExpansion(c) {
+	// The remaining triggers concern programs that already existed. They are
+	// gated on the recency of the CHANGE, established from the interval in which
+	// the change was observed, not on how old the program is.
+	if cfg.AlertOnScopeExpansion && g.changeWithinWindow(c, domain.AlertScopeExpansion, now) &&
+		hasSurfaceExpansion(c) {
 		return domain.AlertScopeExpansion, "scope_expansion"
 	}
-	if cfg.AlertOnMaterialChange && c.Diff.Material() {
+	if cfg.AlertOnMaterialChange && g.changeWithinWindow(c, domain.AlertMaterialChange, now) &&
+		c.Diff.Changes.AlertableMaterial() {
 		return domain.AlertMaterialChange, "material_change"
 	}
 	return "", ""
 }
 
-// hasSurfaceExpansion reports whether the change set added attack surface.
+// evidenceKey returns a deterministic discriminator for a change-triggered alert.
 //
-// Additions count; removals do not. Losing scope is a change but not an opening.
-func hasSurfaceExpansion(c Candidate) bool {
+// It is empty for launch-triggered alerts, which are already identified by program
+// and kind. For a change it is the lower bound of the interval that bounds the
+// change, which distinguishes two separate transitions that happen to produce
+// identical change content.
+func evidenceKey(c Candidate, kind domain.AlertKind, now time.Time) string {
+	if kind != domain.AlertScopeExpansion && kind != domain.AlertMaterialChange {
+		return ""
+	}
+	var best domain.ObservationInterval
 	for _, ch := range c.Diff.Changes {
-		switch ch.Kind {
-		case domain.ChangeTargetAdded, domain.ChangeAPIAdded,
-			domain.ChangeRepositoryAdded, domain.ChangeMobileAdded,
-			domain.ChangeSurfaceChanged:
-			// A surface change that removes more than it adds is not an
-			// expansion, so the counts are compared before reporting.
-			if countKinds(c.Diff.Changes, domain.ChangeTargetAdded, domain.ChangeAPIAdded,
-				domain.ChangeRepositoryAdded, domain.ChangeMobileAdded) >
-				countKinds(c.Diff.Changes, domain.ChangeTargetRemoved, domain.ChangeAPIRemoved,
-					domain.ChangeRepositoryRemoved) {
-				return true
-			}
+		if !ch.Alertable() {
+			continue
+		}
+		iv, ok := changeInterval(c.Fresh, ch.Kind)
+		if !ok {
+			continue
+		}
+		// The earliest bounding observation identifies the transition as a whole.
+		if !best.Known() || iv.NotBefore.Before(best.NotBefore) {
+			best = iv
+		}
+	}
+	if !best.Known() {
+		return ""
+	}
+	return best.NotBefore.UTC().Format(time.RFC3339)
+}
+
+// changeWithinWindow reports whether the program's changes are recent enough to
+// alert on.
+//
+// The evidence is whichever fingerprint group actually moved, because a scope
+// expansion and a requirement relaxation are different events with different
+// intervals, and each must be judged against the window configured for it. The
+// gate is permissive at the boundary: a change that may still be inside the
+// window alerts, and the rendered age range discloses the ambiguity.
+//
+// A change with no bounded interval never alerts. This is the single most
+// important rule in the trigger, and it is the mirror image of the launch rule:
+// "recently changed" cannot be established, so nothing is claimed.
+func (g *Generator) changeWithinWindow(c Candidate, kind domain.AlertKind, now time.Time) bool {
+	for _, ch := range c.Diff.Changes {
+		if !ch.Alertable() {
+			continue
+		}
+		iv, ok := changeInterval(c.Fresh, ch.Kind)
+		if !ok {
+			continue
+		}
+		window := g.profile.ChangeWindowFor(ch.Kind)
+		if iv.PossiblyWithin(now, window) {
+			return true
 		}
 	}
 	return false
 }
 
-func countKinds(cs domain.ChangeSet, kinds ...domain.ChangeKind) int {
-	n := 0
-	for _, c := range cs {
-		for _, k := range kinds {
-			if c.Kind == k {
-				n++
-				break
-			}
-		}
-	}
-	return n
+// changeInterval returns the observation interval that bounds a change of the
+// given kind.
+func changeInterval(f domain.Freshness, kind domain.ChangeKind) (domain.ObservationInterval, bool) {
+	return domain.ChangeInterval(kind, f)
 }
 
 // severityGate verifies the change set clears the configured severity floor.
@@ -273,4 +319,11 @@ func (g *Generator) cap(alerts []domain.Alert) ([]domain.Alert, int) {
 // dropped so a caller can state that rather than silently truncating.
 func (g *Generator) CapAlerts(alerts []domain.Alert) ([]domain.Alert, int) {
 	return g.cap(alerts)
+}
+
+// hasSurfaceExpansion reports whether the change set added attack surface.
+//
+// Additions count; removals do not. Losing scope is a change but not an opening.
+func hasSurfaceExpansion(c Candidate) bool {
+	return c.Diff.Changes.AlertableMaterial()
 }

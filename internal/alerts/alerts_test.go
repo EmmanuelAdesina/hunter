@@ -36,6 +36,8 @@ profile:
     require_eligible: true
     alert_on_new_programs: true
     new_program_window: 24h
+    change_windows:
+      default: 72h
     alert_on_material_change: true
     alert_on_newly_eligible: true
     alert_on_scope_expansion: true
@@ -137,6 +139,19 @@ func candidate(mutators ...func(*alerts.Candidate)) alerts.Candidate {
 
 func intPtr(n int) *int { return &n }
 
+// genNow is the clock the generator under test runs on.
+var genNow = fixedNow
+
+// freshScopeChange builds a scope-change interval that is unambiguously recent
+// relative to the generator's clock, for tests that need a change trigger to be
+// eligible to fire.
+func freshScopeChange() domain.ObservationInterval {
+	return domain.NewObservationInterval(fixedNow.Add(-11*time.Minute), fixedNow.Add(-9*time.Minute))
+}
+
+// freshLifecycleChange is freshScopeChange for a lifecycle transition.
+func freshLifecycleChange() domain.ObservationInterval { return freshScopeChange() }
+
 // TestNewQualifyingProgramAlerts verifies a newly discovered qualifying program
 // produces an alert.
 func TestNewQualifyingProgramAlerts(t *testing.T) {
@@ -183,9 +198,11 @@ func TestFingerprintDiffersByCondition(t *testing.T) {
 			ProgramID: "hackenproof:example",
 			Changes: domain.ChangeSet{{
 				Kind: domain.ChangeAPIAdded, Severity: domain.SeverityMedium,
-				Field: "api", Assets: []string{"https://api-v2.example.com"},
+				Direction: domain.DirectionImproved,
+				Field:     "api", Assets: []string{"https://api-v2.example.com"},
 			}},
 		}
+		c.Fresh.ScopeChange = freshScopeChange()
 		c.Prior = alerts.PriorDecision{Known: true, Eligible: true}
 	}))
 	if apiAdded == nil {
@@ -285,13 +302,61 @@ func TestReactivationAlerts(t *testing.T) {
 			ProgramID: "hackenproof:example",
 			Changes: domain.ChangeSet{
 				{Kind: domain.ChangeProgramReactivated, Severity: domain.SeverityHigh,
-					Before: "paused", After: "live"},
+					Direction: domain.DirectionImproved,
+					Before:    "paused", After: "live"},
 			},
 		}
+		c.Fresh.LifecycleChange = freshLifecycleChange()
 		c.Prior = alerts.PriorDecision{Known: true, Eligible: true}
 	}))
 	if got == nil {
 		t.Fatal("no alert for a reactivated program")
+	}
+}
+
+// A change trigger must decline when the recency of the change cannot be
+// bounded. This is the mirror of the launch rule: "recently changed" that cannot
+// be established is not evidence of anything, and treating it as fresh would
+// re-admit every program the source is vague about.
+func TestChangeWithoutABoundedIntervalDoesNotAlert(t *testing.T) {
+	got := generator(profile(t)).Decide(candidate(func(c *alerts.Candidate) {
+		c.Diff = domain.Diff{
+			ProgramID: "hackenproof:example",
+			Changes: domain.ChangeSet{{
+				Kind: domain.ChangeAPIAdded, Severity: domain.SeverityMedium,
+				Direction: domain.DirectionImproved,
+				Field:     "api",
+				Assets:    []string{"https://api-v2.example.com"},
+			}},
+		}
+		// ScopeChange deliberately left unknown.
+		c.Prior = alerts.PriorDecision{Known: true, Eligible: true}
+	}))
+	if got != nil {
+		t.Fatalf("an unbounded change alerted: %q", got.Subject)
+	}
+}
+
+// A change older than its window must not alert, however recent the program is.
+// This is the other half of the gate: an unbounded interval is silent, and a
+// bounded but stale one is silent too.
+func TestStaleChangeDoesNotAlert(t *testing.T) {
+	got := generator(profile(t)).Decide(candidate(func(c *alerts.Candidate) {
+		c.Diff = domain.Diff{
+			ProgramID: "hackenproof:example",
+			Changes: domain.ChangeSet{{
+				Kind: domain.ChangeAPIAdded, Severity: domain.SeverityMedium,
+				Direction: domain.DirectionImproved,
+				Field:     "api",
+				Assets:    []string{"https://api-v2.example.com"},
+			}},
+		}
+		c.Fresh.ScopeChange = domain.NewObservationInterval(
+			fixedNow.Add(-200*time.Hour), fixedNow.Add(-190*time.Hour))
+		c.Prior = alerts.PriorDecision{Known: true, Eligible: true}
+	}))
+	if got != nil {
+		t.Fatalf("a change well outside its window alerted: %q", got.Subject)
 	}
 }
 

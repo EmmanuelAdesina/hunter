@@ -143,3 +143,27 @@ func (p *Profile) NewProgramWindow() time.Duration {
 // Setting the window to the interval would lose every program that appeared
 // while the monitor was briefly unavailable.
 const defaultNewProgramWindow = 24 * time.Hour
+
+// BundleWindow returns how far apart two changes may fall and still be bundled
+// into one opportunity window.
+func (p *Profile) BundleWindow() time.Duration {
+	return p.changeWindows().BundleWindowDuration()
+}
+
+// ChangeWindowMaxAge returns how old a window may be before it expires.
+//
+// It defaults to the widest configured change window rather than to a fixed
+// duration, because a window older than the longest window its own triggers could
+// satisfy is stale by definition. Deriving it keeps the two settings from
+// disagreeing.
+func (p *Profile) ChangeWindowMaxAge() time.Duration {
+	if p.Notifications.ChangeWindows.MaxAge > 0 {
+		return time.Duration(p.Notifications.ChangeWindows.MaxAge)
+	}
+	return p.changeWindows().WidestWindow()
+}
+
+// MaxPostChangeSubmissions returns the crowding threshold, zero when disabled.
+func (p *Profile) MaxPostChangeSubmissions() int {
+	return p.Notifications.ChangeWindows.MaxPostChangeSubmissions
+}

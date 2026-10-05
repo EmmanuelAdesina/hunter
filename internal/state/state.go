@@ -60,6 +60,17 @@ type Snapshot struct {
 	// History holds per-program change history, oldest first, keyed by program
 	// ID.
 	History map[string][]HistoryEntry `json:"history,omitempty"`
+
+	// Windows holds open and expired opportunity windows, keyed by window ID.
+	//
+	// Windows live in this snapshot rather than in a file of their own so that a
+	// program's record, its history, and the opportunity it created are written in
+	// one atomic transition. A separate file would introduce a consistency
+	// boundary this design exists to remove: the repository could end up asserting
+	// a program changed while the opportunity it produced went missing, or the
+	// reverse. The state file is the long-term evidence store, and evidence that
+	// can disagree with itself is not evidence.
+	Windows map[string]domain.OpportunityWindow `json:"windows,omitempty"`
 }
 
 // HistoryEntry records one material change to a program.
@@ -130,6 +141,7 @@ func NewSnapshot() *Snapshot {
 		Programs: map[string]domain.Program{},
 		Alerts:   map[string]domain.AlertRecord{},
 		History:  map[string][]HistoryEntry{},
+		Windows:  map[string]domain.OpportunityWindow{},
 	}
 }
 
@@ -144,6 +156,12 @@ func (s *Snapshot) EnsureMaps() {
 	}
 	if s.History == nil {
 		s.History = map[string][]HistoryEntry{}
+	}
+	// A snapshot written before windows existed deserializes with a nil map. It is
+	// repaired here rather than migrated: an absent key and an empty set mean the
+	// same thing, so no version bump is warranted for an additive field.
+	if s.Windows == nil {
+		s.Windows = map[string]domain.OpportunityWindow{}
 	}
 }
 
@@ -239,7 +257,118 @@ func (s *Snapshot) MaterialDigest() string {
 		}
 	}
 
+	windows := make([]string, 0, len(s.Windows))
+	for id := range s.Windows {
+		windows = append(windows, id)
+	}
+	sort.Strings(windows)
+	for _, id := range windows {
+		w := s.Windows[id]
+		// Only the fields that can change a decision are hashed. Notified and
+		// NotifiedAt are excluded because they change when a mail is sent rather
+		// than when anything was learned, and including them would make delivery
+		// state look like new evidence.
+		fmt.Fprintf(h, "window=%s program=%s not_before=%s deltas=%s baseline=%s current=%s\n",
+			id, w.ProgramID,
+			w.Observed.NotBefore.UTC().Format(time.RFC3339),
+			w.Deltas.Identity(),
+			intPtrString(w.BaselineSubmissions),
+			intPtrString(w.CurrentSubmissions),
+		)
+	}
+
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func intPtrString(v *int) string {
+	if v == nil {
+		return "unknown"
+	}
+	return fmt.Sprintf("%d", *v)
+}
+
+// RecordWindow stores a window, keeping the earliest creation evidence.
+//
+// Re-observing a window that already exists refreshes its competition signals
+// but never its observed interval: the interval records when the transition was
+// seen, and rewriting it would silently move the origin of the measurement.
+func (s *Snapshot) RecordWindow(w domain.OpportunityWindow) {
+	if w.ID == "" {
+		return
+	}
+	if s.Windows == nil {
+		s.Windows = map[string]domain.OpportunityWindow{}
+	}
+	existing, known := s.Windows[w.ID]
+	if !known {
+		s.Windows[w.ID] = w
+		return
+	}
+	existing.Deltas = w.Deltas
+	existing.Triggers = w.Triggers
+	existing.AssetsAdded = w.AssetsAdded
+	existing.CurrentSubmissions = w.CurrentSubmissions
+	existing.SubmissionsSinceOpen = w.SubmissionsSinceOpen
+	if existing.BaselineSubmissions == nil {
+		existing.BaselineSubmissions = w.BaselineSubmissions
+	}
+	// Notified is sticky: once an alert has been raised for this window, a later
+	// scan must not raise a second one.
+	if w.Notified {
+		existing.Notified = true
+		existing.NotifiedAt = w.NotifiedAt
+	}
+	s.Windows[w.ID] = existing
+}
+
+// WindowsFor returns a program's windows, newest first.
+func (s *Snapshot) WindowsFor(programID string) []domain.OpportunityWindow {
+	out := make([]domain.OpportunityWindow, 0, 4)
+	for _, w := range s.Windows {
+		if w.ProgramID == programID {
+			out = append(out, w)
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if !out[i].Observed.NotAfter.Equal(out[j].Observed.NotAfter) {
+			return out[i].Observed.NotAfter.After(out[j].Observed.NotAfter)
+		}
+		return out[i].ID < out[j].ID
+	})
+	return out
+}
+
+// MaxWindowsPerProgram bounds retained windows.
+//
+// Windows are evidence, but unbounded growth would make the state file
+// expensive to rewrite on every run and expensive to review. The cap drops the
+// oldest windows, which are the ones whose intervals have expired and which
+// therefore have the least left to act on.
+const MaxWindowsPerProgram = 50
+
+// pruneWindows drops the oldest windows beyond the per-program cap.
+func (s *Snapshot) pruneWindows() int {
+	if len(s.Windows) == 0 {
+		return 0
+	}
+	counts := map[string]int{}
+	for _, w := range s.Windows {
+		counts[w.ProgramID]++
+	}
+	drop := map[string]struct{}{}
+	for programID, n := range counts {
+		if n <= MaxWindowsPerProgram {
+			continue
+		}
+		ordered := s.WindowsFor(programID)
+		for i := MaxWindowsPerProgram; i < len(ordered); i++ {
+			drop[ordered[i].ID] = struct{}{}
+		}
+	}
+	for id := range drop {
+		delete(s.Windows, id)
+	}
+	return len(drop)
 }
 
 // Delivered records are retained in newest-first order and pruned from the end,

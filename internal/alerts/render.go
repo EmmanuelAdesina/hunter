@@ -28,7 +28,7 @@ func Render(c Candidate, profile *config.Profile, now time.Time) (subject, body,
 	c.LaunchAge, c.LaunchKnown = launchAge(c.Program, now)
 
 	subject = renderSubject(c, profile)
-	return subject, renderBody(c, profile), RenderHTML(c, profile)
+	return subject, renderBody(c, profile, now), RenderHTML(c, profile, now)
 }
 
 // renderSubject builds the one-line summary.
@@ -67,7 +67,7 @@ func subjectKind(c Candidate) string {
 }
 
 // renderBody builds the message body.
-func renderBody(c Candidate, profile *config.Profile) string {
+func renderBody(c Candidate, profile *config.Profile, now time.Time) string {
 	var b strings.Builder
 
 	headline := "MATERIAL CHANGE"
@@ -104,7 +104,7 @@ func renderBody(c Candidate, profile *config.Profile) string {
 	writeChanges(&b, c)
 	writeReasons(&b, c.Decision)
 	writeTriage(&b, c.Triage)
-	writeFreshness(&b, c.Fresh)
+	writeFreshness(&b, c.Fresh, now)
 
 	if c.Program.URL != "" {
 		b.WriteString("\nOpen:\n")
@@ -359,8 +359,13 @@ func writeTriage(b *strings.Builder, t domain.Triage) {
 
 // writeFreshness renders the independent age signals, omitting any that are
 // unavailable rather than printing zero.
-func writeFreshness(b *strings.Builder, f domain.Freshness) {
-	lines := f.AgeStrings()
+//
+// Change signals render as bounded ranges because that is the width of the
+// evidence. "scope changed: within the last 9m-14m" tells the reader both that
+// the change is recent and that the exact moment is not known, which is the
+// claim the system can actually support.
+func writeFreshness(b *strings.Builder, f domain.Freshness, now time.Time) {
+	lines := f.AgeStringsAt(now)
 	if len(lines) == 0 {
 		return
 	}

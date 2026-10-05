@@ -192,7 +192,31 @@ type Program struct {
 	// DetailsFetchedAt is when the detail record behind this program was last
 	// read. It is reported rather than hidden, so that a stale access gate is
 	// visible to whoever reads the decision.
+	//
+	// It is also the lower bound of every change interval on this program,
+	// because the scope and requirement fingerprints only advance when a detail
+	// page is actually read. A cheap listing sweep updates LastSeenAt without
+	// advancing them, so LastSeenAt would overstate how recently the scope was
+	// observed.
 	DetailsFetchedAt *time.Time `json:"details_fetched_at,omitempty"`
+
+	// ScopeChanged, RequirementsChanged, and MetadataChanged bound when each of
+	// those fingerprint groups last moved.
+	//
+	// They are intervals rather than timestamps because the system compares two
+	// observations and never observes the instant between them. They are stored
+	// on the program rather than derived per scan so that they survive: a
+	// change detected on one scan would otherwise vanish on the next, and the
+	// alert that reported it would have no evidence left to justify its own
+	// freshness claim.
+	ScopeChanged        ObservationInterval `json:"scope_changed"`
+	RequirementsChanged ObservationInterval `json:"requirements_changed"`
+	MetadataChanged     ObservationInterval `json:"metadata_changed"`
+
+	// LifecycleChanged bounds when the program's state last moved. A reactivation
+	// is observed directly rather than through a fingerprint, but it is bounded
+	// by exactly the same pair of observations, so it carries the same evidence.
+	LifecycleChanged ObservationInterval `json:"lifecycle_changed"`
 
 	// ParseIssues lists human-readable descriptions of anything the adapter
 	// could not interpret. Order is normalized for stable diffs, but the text

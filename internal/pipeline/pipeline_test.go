@@ -48,6 +48,8 @@ profile:
     require_eligible: true
     alert_on_new_programs: true
     new_program_window: 24h
+    change_windows:
+      default: 72h
     alert_on_material_change: true
     alert_on_newly_eligible: true
     alert_on_scope_expansion: true

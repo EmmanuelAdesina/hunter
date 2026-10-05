@@ -186,6 +186,14 @@ type NotificationConfig struct {
 
 	// SubjectPrefix is prepended to every subject line.
 	SubjectPrefix string `yaml:"subject_prefix"`
+
+	// ChangeWindows sizes the recency window of each class of change.
+	//
+	// The launch window governs only whether a PROGRAM is new. These govern
+	// whether a CHANGE is recent, which is a separate question with a separate
+	// answer: a five-year-old program whose API scope grew nine minutes ago is a
+	// fresh opportunity, and a launch-age gate cannot express that.
+	ChangeWindows ChangeWindowsConfig `yaml:"change_windows"`
 }
 
 // ScanConfig tunes discovery and fetching.
@@ -540,6 +548,23 @@ func (p *Profile) applyDefaultsAndValidate() error {
 	if !p.Notifications.AlertOnNewPrograms && !p.Notifications.AlertOnMaterialChange &&
 		!p.Notifications.AlertOnNewlyEligible && !p.Notifications.AlertOnScopeExpansion {
 		fail("notifications: at least one alert_on_* trigger must be enabled")
+	}
+
+	// Change windows are resolved here so that a bad key or a missing default is
+	// reported at load time rather than at the moment a change fires.
+	var windowErrs []string
+	p.Notifications.ChangeWindows.resolve(&windowErrs)
+	for _, e := range windowErrs {
+		fail("%s", e)
+	}
+	if p.Notifications.ChangeWindows.BundleWindow < 0 {
+		fail("notifications.change_windows.bundle_window must be >= 0")
+	}
+	if p.Notifications.ChangeWindows.MaxAge < 0 {
+		fail("notifications.change_windows.max_age must be >= 0")
+	}
+	if p.Notifications.ChangeWindows.MaxPostChangeSubmissions < 0 {
+		fail("notifications.change_windows.max_post_change_submissions must be >= 0")
 	}
 
 	// Scan.

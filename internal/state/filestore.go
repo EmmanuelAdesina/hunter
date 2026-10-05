@@ -30,6 +30,7 @@ type FileStore struct {
 	// programsPath and alertsPath are resolved once so that path handling does
 	// not drift between methods.
 	programsPath string
+	windowsPath  string
 	alertsPath   string
 	historyDir   string
 	digestPath   string
@@ -42,6 +43,7 @@ func NewFileStore(dir string) *FileStore {
 		programsPath: filepath.Join(dir, "programs.json"),
 		alertsPath:   filepath.Join(dir, "alerts.json"),
 		historyDir:   filepath.Join(dir, "history"),
+		windowsPath:  filepath.Join(dir, "windows.json"),
 		digestPath:   filepath.Join(dir, "material.sha256"),
 	}
 }
@@ -63,6 +65,19 @@ type programsFile struct {
 type alertsFile struct {
 	Version int                           `json:"version"`
 	Alerts  map[string]domain.AlertRecord `json:"alerts"`
+}
+
+// windowsFile is the on-disk shape of the window set.
+//
+// Windows are written as their own file for reviewability, not for durability:
+// the snapshot is saved through one atomic sequence and the digest is written
+// last, so a partially written run leaves the previous digest in place and the
+// next run refuses to treat the new bytes as a clean state transition. What
+// matters is that programs, history, alerts, and windows all move together, and
+// they do because they move inside one Save.
+type windowsFile struct {
+	Version int                                 `json:"version"`
+	Windows map[string]domain.OpportunityWindow `json:"windows"`
 }
 
 // Load implements StateStore.
@@ -92,6 +107,14 @@ func (s *FileStore) Load(ctx context.Context) (*Snapshot, error) {
 		snap.Alerts = af.Alerts
 	}
 
+	wf, err := s.readWindows()
+	if err != nil {
+		return nil, err
+	}
+	if wf != nil {
+		snap.Windows = wf.Windows
+	}
+
 	snap.EnsureMaps()
 	if snap.Version == 0 {
 		snap.Version = CurrentVersion
@@ -101,6 +124,25 @@ func (s *FileStore) Load(ctx context.Context) (*Snapshot, error) {
 	// loading every program's history on every five-minute run would read
 	// files it does not use.
 	return snap, nil
+}
+
+func (s *FileStore) readWindows() (*windowsFile, error) {
+	raw, err := os.ReadFile(s.windowsPath)
+	if err != nil {
+		if err2 := classifyLoadError(err); err2 != nil {
+			return nil, err2
+		}
+		return nil, nil
+	}
+	var wf windowsFile
+	if err := json.Unmarshal(raw, &wf); err != nil {
+		return nil, fmt.Errorf("%w: %s: %v", ErrCorrupt, filepath.Base(s.windowsPath), err)
+	}
+	if wf.Version > CurrentVersion {
+		return nil, fmt.Errorf("%w: %s has version %d, this build understands %d",
+			ErrCorrupt, filepath.Base(s.windowsPath), wf.Version, CurrentVersion)
+	}
+	return &wf, nil
 }
 
 func (s *FileStore) readPrograms() (*programsFile, error) {
@@ -159,6 +201,7 @@ func (s *FileStore) Save(ctx context.Context, snap *Snapshot) error {
 	// past the cap are dropped, so an alert still owed to the researcher is
 	// never the one discarded.
 	pruneAlerts(snap.Alerts)
+	snap.pruneWindows()
 
 	pf := programsFile{
 		Version:    CurrentVersion,
@@ -173,6 +216,11 @@ func (s *FileStore) Save(ctx context.Context, snap *Snapshot) error {
 	af := alertsFile{Version: CurrentVersion, Alerts: snap.Alerts}
 	if err := writeCanonicalFile(s.alertsPath, af); err != nil {
 		return fmt.Errorf("write alerts: %w", err)
+	}
+
+	wf := windowsFile{Version: CurrentVersion, Windows: snap.Windows}
+	if err := writeCanonicalFile(s.windowsPath, wf); err != nil {
+		return fmt.Errorf("write windows: %w", err)
 	}
 
 	// The material digest is written last and is the only file the scheduled

@@ -37,7 +37,7 @@ func NewQuery(profile *config.Profile, store state.StateStore, now func() time.T
 		profile: profile,
 		store:   store,
 		policy:  policy.New(profile, now),
-		scorer:  scoring.New(profile),
+		scorer:  scoring.New(profile, now),
 		now:     now,
 	}
 }
@@ -198,10 +198,11 @@ func withinLaunchWindow(p domain.Program, now time.Time, window time.Duration) b
 
 // FreshnessFor derives the age signals for a stored record.
 //
-// At query time there is no previous observation to compare against, so the
-// scope and requirement change ages are unavailable rather than zero. Reporting
-// zero would imply the scope changed at the last observation, which is a claim
-// that cannot be supported after the fact.
+// At query time there is no previous observation to compare against, so nothing
+// is recomputed: the change intervals stored on the program are read back as
+// they were. That is the entire reason they are stored rather than derived.
+// A query must be able to answer "how long ago did the scope change?" long after
+// the scan that detected it, which a per-scan derivation cannot do.
 func FreshnessFor(p domain.Program, snap *state.Snapshot, now time.Time) domain.Freshness {
 	f := domain.Freshness{}
 	age, basis := p.Age(now)
@@ -213,6 +214,10 @@ func FreshnessFor(p domain.Program, snap *state.Snapshot, now time.Time) domain.
 	if p.SourceUpdatedAt != nil {
 		f.SourceUpdateAge = now.Sub(*p.SourceUpdatedAt)
 	}
+	f.ScopeChange = p.ScopeChanged
+	f.RequirementChange = p.RequirementsChanged
+	f.MetadataChange = p.MetadataChanged
+	f.LifecycleChange = p.LifecycleChanged
 	return f
 }
 
