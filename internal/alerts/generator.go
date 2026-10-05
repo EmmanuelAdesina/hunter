@@ -324,7 +324,7 @@ func (g *Generator) CapAlerts(alerts []domain.Alert) ([]domain.Alert, int) {
 // selectedTrigger returns the trigger the generator would choose for rendering.
 func selectedTrigger(c Candidate, profile *config.Profile, now time.Time) domain.AlertKind {
 	age, known := launchAge(c.Program, now)
-	generator := Generator{profile: profile}
+	generator := NewGenerator(profile, func() time.Time { return now })
 	kind, _ := generator.selectKind(c, age, known, now)
 	return kind
 }

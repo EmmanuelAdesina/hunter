@@ -76,6 +76,22 @@ func writeWindow(w io.Writer, row pipeline.WindowView, now time.Time) {
 	} else {
 		fmt.Fprintf(w, "Program: %s\n", window.ProgramID)
 	}
+
+	// Eligibility is evaluated at query time, so it reflects the current profile.
+	// An open window on an ineligible program is still a valid window - it just
+	// isn't actionable for this researcher.
+	if row.Eligible {
+		fmt.Fprintln(w, "Eligibility: eligible")
+	} else {
+		fmt.Fprintln(w, "Eligibility: not eligible")
+		if len(row.EligReas) > 0 {
+			fmt.Fprintln(w, "  Reasons:")
+			for _, r := range row.EligReas {
+				fmt.Fprintf(w, "    - %s\n", r)
+			}
+		}
+	}
+
 	if window.Observed.Known() {
 		fmt.Fprintf(w, "Observed: %s\n", window.Observed.Humanize(now))
 	} else {

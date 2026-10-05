@@ -180,6 +180,12 @@ profile:
     # than a profile does.
     listing_concurrency: 0
 
+    # Cap on catch-up detail reads per scan. Applies to initial bootstrap reads
+    # and stale-interval refreshes. Does not throttle listing changes, incomplete
+    # records, or parse retries. Zero means unlimited. 75 spreads a 324-program
+    # catch-up across roughly five sweeps.
+    max_catch_up_detail_fetches_per_scan: 75
+
   sources:
     hackenproof:
       enabled: true

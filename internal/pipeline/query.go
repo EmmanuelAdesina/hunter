@@ -82,9 +82,16 @@ type WindowsRequest struct {
 // WindowView pairs a stored opportunity window with its status under the
 // current profile. Status is derived at query time, never persisted as a
 // lifecycle state that could drift from the evidence.
+//
+// Eligibility is evaluated at query time against the current profile, so that a
+// window's actionability is always current. An open window on an ineligible
+// program is still a valid window - it just isn't actionable for this
+// researcher.
 type WindowView struct {
-	Window domain.OpportunityWindow `json:"window"`
-	Status domain.WindowStatus      `json:"status"`
+	Window   domain.OpportunityWindow `json:"window"`
+	Status   domain.WindowStatus      `json:"status"`
+	Eligible bool                     `json:"eligible"`
+	EligReas []string                 `json:"eligibility_reasons,omitempty"`
 }
 
 // ReplayEvent combines history and opportunity-window records from one recorded
@@ -305,7 +312,23 @@ func (q *Query) Windows(ctx context.Context, req WindowsRequest) ([]WindowView, 
 		if req.OpenOnly && status != domain.WindowOpen {
 			continue
 		}
-		out = append(out, WindowView{Window: window, Status: status})
+
+		// Evaluate eligibility for this window's program.
+		p, ok := snap.Program(window.ProgramID)
+		elig := true
+		var reasons []string
+		if ok {
+			dec := q.policy.Evaluate(p)
+			elig = dec.Eligible
+			reasons = dec.Reasons
+		}
+
+		out = append(out, WindowView{
+			Window:   window,
+			Status:   status,
+			Eligible: elig,
+			EligReas: reasons,
+		})
 	}
 
 	sort.SliceStable(out, func(i, j int) bool {

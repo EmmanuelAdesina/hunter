@@ -93,12 +93,13 @@ func (e Evaluated) Eligible() bool { return e.Decision.Eligible }
 
 // Scanner runs scans.
 type Scanner struct {
-	cfg       Config
-	policy    *policy.Engine
-	detector  *diff.Detector
-	generator *alerts.Generator
-	scorer    *scoring.Scorer
-	normalize normalize.Options
+	cfg           Config
+	policy        *policy.Engine
+	detector      *diff.Detector
+	generator     *alerts.Generator
+	scorer        *scoring.Scorer
+	normalize     normalize.Options
+	catchUpBudget int
 }
 
 // New builds a scanner.
@@ -126,12 +127,13 @@ func New(cfg Config) (*Scanner, error) {
 	}
 
 	return &Scanner{
-		cfg:       cfg,
-		policy:    policy.New(cfg.Profile, cfg.Now),
-		detector:  diff.NewDetector(cfg.Now),
-		generator: alerts.NewGenerator(cfg.Profile, cfg.Now),
-		scorer:    scoring.New(cfg.Profile, cfg.Now),
-		normalize: normalize.Options{Now: cfg.Now},
+		cfg:           cfg,
+		policy:        policy.New(cfg.Profile, cfg.Now),
+		detector:      diff.NewDetector(cfg.Now),
+		generator:     alerts.NewGenerator(cfg.Profile, cfg.Now),
+		scorer:        scoring.New(cfg.Profile, cfg.Now),
+		normalize:     normalize.Options{Now: cfg.Now},
+		catchUpBudget: cfg.Profile.MaxCatchUpDetailFetchesPerScan(),
 	}, nil
 }
 
@@ -146,6 +148,9 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 
 	res := Result{Metrics: obs.ScanMetrics{ScanID: scanID, Started: started}}
 	log := s.cfg.Logger.With("scan_id", scanID)
+
+	// Reset the catch-up budget at the start of each scan.
+	s.catchUpBudget = s.cfg.Profile.MaxCatchUpDetailFetchesPerScan()
 
 	snap, err := s.cfg.Store.Load(ctx)
 	if err != nil {
@@ -519,50 +524,53 @@ func (s *Scanner) evaluateOne(ctx context.Context, src domain.ProgramSource, ref
 }
 
 // needsDetail decides whether the expensive detail read is warranted.
+//
+// The budget limits catch-up detail reads (bootstrap and stale refreshes) per scan.
+// It does NOT limit event-driven reads (listing changes) or retries (incomplete records).
 func (s *Scanner) needsDetail(ref domain.ProgramRef, prev domain.Program, hadPrev bool) bool {
-	if !hadPrev {
-		// A newly discovered program has no record at all, so its access gates
-		// are unknown and it cannot be judged.
-		return true
-	}
-	if prev.DetailsFetchedAt == nil {
-		// The record was never completed, so it cannot be trusted yet.
-		return true
-	}
+	// Event-driven reads are never budget-limited.
 	if s.cfg.Profile.FetchDetailsOnListingChange() && prev.ListingChangedSince(ref) {
-		// The listing reports something different. Whether that touches scope
-		// or requirements is precisely what the detail page is for.
 		return true
 	}
 	if prev.ParseConfidence == domain.ConfidenceLow {
-		// A previous read was incomplete. Retrying on the next sweep is how a
-		// transient parsing failure clears without operator involvement.
 		return true
 	}
-	// A periodic refresh keeps access gates from going stale and bounds the cost
-	// of any change the listing does not expose at all. A recently observed
-	// fingerprint movement shortens that bound to one quarter of the configured
-	// interval, but only while its entire observation interval is still inside the
-	// configured opportunity horizon. This is a bounded follow-up cadence for
-	// targets already showing movement, not a second scheduler; stable programs
-	// retain the profile's normal interval.
-	interval := s.cfg.Profile.DetailsRefreshInterval()
-	now := s.cfg.Now().UTC()
-	if interval > 0 && interval >= 4*time.Hour {
-		horizon := s.cfg.Profile.ChangeWindowMaxAge()
-		for _, observed := range []domain.ObservationInterval{
-			prev.ScopeChanged,
-			prev.RequirementsChanged,
-			prev.MetadataChanged,
-			prev.LifecycleChanged,
-		} {
-			if observed.DefinitelyWithin(now, horizon) {
-				interval /= 4
-				break
+
+	// Catch-up reads are budget-limited.
+	catchUp := false
+	if !hadPrev {
+		catchUp = true
+	} else if prev.DetailsFetchedAt == nil {
+		catchUp = true
+	} else {
+		interval := s.cfg.Profile.DetailsRefreshInterval()
+		now := s.cfg.Now().UTC()
+		if interval > 0 && interval >= 4*time.Hour {
+			horizon := s.cfg.Profile.ChangeWindowMaxAge()
+			for _, observed := range []domain.ObservationInterval{
+				prev.ScopeChanged,
+				prev.RequirementsChanged,
+				prev.MetadataChanged,
+				prev.LifecycleChanged,
+			} {
+				if observed.DefinitelyWithin(now, horizon) {
+					interval /= 4
+					break
+				}
 			}
 		}
+		if interval > 0 && now.Sub(prev.DetailsFetchedAt.UTC()) >= interval {
+			catchUp = true
+		}
 	}
-	if interval > 0 && now.Sub(prev.DetailsFetchedAt.UTC()) >= interval {
+
+	if catchUp {
+		if s.catchUpBudget > 0 {
+			if s.catchUpBudget <= 0 {
+				return false
+			}
+			s.catchUpBudget--
+		}
 		return true
 	}
 	return false

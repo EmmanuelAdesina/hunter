@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "last_scan_id": "20261003T192529Z",
-  "last_scan_at": "2026-10-03T19:25:58.128176847Z",
+  "last_scan_id": "20261005T203415Z",
+  "last_scan_at": "2026-10-05T20:34:15.9934029Z",
   "programs": {
     "hackenproof:0g-labs-smart-contracts": {
       "id": "hackenproof:0g-labs-smart-contracts",
@@ -172,7 +172,12 @@
         "submission_count": 108,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:29.0017273Z"
+      "details_fetched_at": "2026-10-02T21:47:29.0017273Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:1inch-aqua": {
       "id": "hackenproof:1inch-aqua",
@@ -289,7 +294,12 @@
         "submission_count": 606,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:53.3884037Z"
+      "details_fetched_at": "2026-10-02T21:44:53.3884037Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:1inch-business": {
       "id": "hackenproof:1inch-business",
@@ -393,7 +403,12 @@
         "submission_count": 163,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:09.9238275Z"
+      "details_fetched_at": "2026-10-02T21:45:09.9238275Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:1inch-infrastructure": {
       "id": "hackenproof:1inch-infrastructure",
@@ -521,7 +536,12 @@
         "submission_count": 106,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:09.66052Z"
+      "details_fetched_at": "2026-10-02T21:45:09.66052Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:1inch-smart-contract": {
       "id": "hackenproof:1inch-smart-contract",
@@ -653,7 +673,12 @@
         "submission_count": 468,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:34.5811742Z"
+      "details_fetched_at": "2026-10-02T21:45:34.5811742Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:1inch-wallet": {
       "id": "hackenproof:1inch-wallet",
@@ -738,7 +763,12 @@
         "submission_count": 129,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:10.7424081Z"
+      "details_fetched_at": "2026-10-02T21:45:10.7424081Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:1inch-web": {
       "id": "hackenproof:1inch-web",
@@ -829,7 +859,12 @@
         "submission_count": 123,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:10.3116586Z"
+      "details_fetched_at": "2026-10-02T21:45:10.3116586Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:aax": {
       "id": "hackenproof:aax",
@@ -933,7 +968,12 @@
         "submission_count": 69,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:40.5621131Z"
+      "details_fetched_at": "2026-10-02T21:48:40.5621131Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:account-abstraction-bugs": {
       "id": "hackenproof:account-abstraction-bugs",
@@ -1020,7 +1060,12 @@
         "submission_count": 350,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:22.7435996Z"
+      "details_fetched_at": "2026-10-02T21:45:22.7435996Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:adi-foundation-smart-contracts": {
       "id": "hackenproof:adi-foundation-smart-contracts",
@@ -1120,7 +1165,12 @@
         "submission_count": 110,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:52.2460741Z"
+      "details_fetched_at": "2026-10-02T21:44:52.2460741Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:adi-foundation-zkvm-verification": {
       "id": "hackenproof:adi-foundation-zkvm-verification",
@@ -1230,7 +1280,12 @@
         "submission_count": 96,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:51.8597028Z"
+      "details_fetched_at": "2026-10-02T21:44:51.8597028Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:adi-predictstreet-smart-contracts": {
       "id": "hackenproof:adi-predictstreet-smart-contracts",
@@ -1308,7 +1363,12 @@
         "submission_count": 39,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:40.2958203Z"
+      "details_fetched_at": "2026-10-02T21:44:40.2958203Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:aex": {
       "id": "hackenproof:aex",
@@ -1411,7 +1471,12 @@
         "submission_count": 91,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:38.7727201Z"
+      "details_fetched_at": "2026-10-02T21:48:38.7727201Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:alfred-telegram-trading-bot": {
       "id": "hackenproof:alfred-telegram-trading-bot",
@@ -1490,7 +1555,12 @@
         "submission_count": 3,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:22.9303701Z"
+      "details_fetched_at": "2026-10-02T21:47:22.9303701Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:allbridge": {
       "id": "hackenproof:allbridge",
@@ -1584,7 +1654,12 @@
         "submission_count": 205,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:26.8178156Z"
+      "details_fetched_at": "2026-10-02T21:46:26.8178156Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:alphasec-web-and-smart-contracts": {
       "id": "hackenproof:alphasec-web-and-smart-contracts",
@@ -1719,7 +1794,12 @@
         "submission_count": 174,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:29.7959492Z"
+      "details_fetched_at": "2026-10-02T21:46:29.7959492Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:alphax-exchange": {
       "id": "hackenproof:alphax-exchange",
@@ -1815,7 +1895,12 @@
         "submission_count": 42,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:03.3628654Z"
+      "details_fetched_at": "2026-10-02T21:48:03.3628654Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:amlbot-kyt-web": {
       "id": "hackenproof:amlbot-kyt-web",
@@ -1907,7 +1992,12 @@
         "submission_count": 117,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:44.5048831Z"
+      "details_fetched_at": "2026-10-02T21:44:44.5048831Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:amlbot-web": {
       "id": "hackenproof:amlbot-web",
@@ -1987,7 +2077,12 @@
         "submission_count": 157,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:51.383727Z"
+      "details_fetched_at": "2026-10-02T21:44:51.383727Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ample-smart-contracts": {
       "id": "hackenproof:ample-smart-contracts",
@@ -2152,7 +2247,12 @@
         "submission_count": 183,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:43.0769587Z"
+      "details_fetched_at": "2026-10-02T21:44:43.0769587Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:aptos-function-values": {
       "id": "hackenproof:aptos-function-values",
@@ -2236,7 +2336,12 @@
         "submission_count": 40,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:50.4106981Z"
+      "details_fetched_at": "2026-10-02T21:46:50.4106981Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:aptos-network": {
       "id": "hackenproof:aptos-network",
@@ -2353,7 +2458,12 @@
         "submission_count": 483,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:27.6885876Z"
+      "details_fetched_at": "2026-10-02T21:45:27.6885876Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:arcadia-finance-company-smart-contracts": {
       "id": "hackenproof:arcadia-finance-company-smart-contracts",
@@ -2454,7 +2564,12 @@
         "submission_count": 137,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:41.8765926Z"
+      "details_fetched_at": "2026-10-02T21:44:41.8765926Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:arcadia-finance-hack-recovery-program": {
       "id": "hackenproof:arcadia-finance-hack-recovery-program",
@@ -2515,7 +2630,12 @@
         "submission_count": 13,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:54.5192367Z"
+      "details_fetched_at": "2026-10-02T21:46:54.5192367Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ascendex-web-and-mobile": {
       "id": "hackenproof:ascendex-web-and-mobile",
@@ -2622,7 +2742,12 @@
         "submission_count": 94,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:11.9649924Z"
+      "details_fetched_at": "2026-10-02T21:47:11.9649924Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:asphere-web": {
       "id": "hackenproof:asphere-web",
@@ -2709,7 +2834,12 @@
         "submission_count": 156,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:21.693937Z"
+      "details_fetched_at": "2026-10-02T21:45:21.693937Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:assetmantle": {
       "id": "hackenproof:assetmantle",
@@ -2800,7 +2930,12 @@
         "submission_count": 22,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:57.5138871Z"
+      "details_fetched_at": "2026-10-02T21:47:57.5138871Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:astros-smart-contracts": {
       "id": "hackenproof:astros-smart-contracts",
@@ -2884,7 +3019,12 @@
         "submission_count": 432,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:58.6836928Z"
+      "details_fetched_at": "2026-10-02T21:44:58.6836928Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:astros-web": {
       "id": "hackenproof:astros-web",
@@ -2967,7 +3107,12 @@
         "submission_count": 58,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:58.5519415Z"
+      "details_fetched_at": "2026-10-02T21:44:58.5519415Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:asymetrix-protocol": {
       "id": "hackenproof:asymetrix-protocol",
@@ -3048,7 +3193,12 @@
         "submission_count": 52,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:17.7402072Z"
+      "details_fetched_at": "2026-10-02T21:48:17.7402072Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:asymetrix-web": {
       "id": "hackenproof:asymetrix-web",
@@ -3139,7 +3289,12 @@
         "submission_count": 14,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:18.303549Z"
+      "details_fetched_at": "2026-10-02T21:48:18.303549Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:atomone": {
       "id": "hackenproof:atomone",
@@ -3208,7 +3363,12 @@
         "submission_count": 309,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:20.0906862Z"
+      "details_fetched_at": "2026-10-02T21:45:20.0906862Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:aurora-smart-contract": {
       "id": "hackenproof:aurora-smart-contract",
@@ -3401,7 +3561,12 @@
         "submission_count": 596,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:53.8933285Z"
+      "details_fetched_at": "2026-10-02T21:45:53.8933285Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:aurora-web": {
       "id": "hackenproof:aurora-web",
@@ -3476,7 +3641,12 @@
         "submission_count": 124,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:51.3158731Z"
+      "details_fetched_at": "2026-10-02T21:45:51.3158731Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:avalanche-bridge": {
       "id": "hackenproof:avalanche-bridge",
@@ -3902,7 +4072,12 @@
         "submission_count": 32,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:24.8740082Z"
+      "details_fetched_at": "2026-10-02T21:48:24.8740082Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:avalanche-protocol": {
       "id": "hackenproof:avalanche-protocol",
@@ -3986,7 +4161,12 @@
         "submission_count": 63,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:30.8452269Z"
+      "details_fetched_at": "2026-10-02T21:48:30.8452269Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:avalanche-websites-and-apis": {
       "id": "hackenproof:avalanche-websites-and-apis",
@@ -4209,7 +4389,12 @@
         "submission_count": 261,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:30.4802775Z"
+      "details_fetched_at": "2026-10-02T21:48:30.4802775Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:backpack-web-and-api": {
       "id": "hackenproof:backpack-web-and-api",
@@ -4335,7 +4520,12 @@
         "submission_count": 332,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:23.5845406Z"
+      "details_fetched_at": "2026-10-02T21:45:23.5845406Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bag-labs-web": {
       "id": "hackenproof:bag-labs-web",
@@ -4416,7 +4606,12 @@
         "submission_count": 87,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:46.8620733Z"
+      "details_fetched_at": "2026-10-02T21:46:46.8620733Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:biconomy-web-and-mobile": {
       "id": "hackenproof:biconomy-web-and-mobile",
@@ -4525,7 +4720,12 @@
         "submission_count": 127,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:23.917835Z"
+      "details_fetched_at": "2026-10-02T21:45:23.917835Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bigone-global-exchange": {
       "id": "hackenproof:bigone-global-exchange",
@@ -4641,7 +4841,12 @@
         "submission_count": 293,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:00.5527315Z"
+      "details_fetched_at": "2026-10-02T21:46:00.5527315Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bigone-hack-bounty-program": {
       "id": "hackenproof:bigone-hack-bounty-program",
@@ -4698,7 +4903,12 @@
         "submission_count": 124,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:53.3617069Z"
+      "details_fetched_at": "2026-10-02T21:46:53.3617069Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bingx-exchange": {
       "id": "hackenproof:bingx-exchange",
@@ -4875,7 +5085,12 @@
         "submission_count": 568,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:01.2238198Z"
+      "details_fetched_at": "2026-10-02T21:46:01.2238198Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bit-dot-com": {
       "id": "hackenproof:bit-dot-com",
@@ -4967,7 +5182,12 @@
         "submission_count": 52,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:23.2015343Z"
+      "details_fetched_at": "2026-10-02T21:48:23.2015343Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitcastle-web": {
       "id": "hackenproof:bitcastle-web",
@@ -5049,7 +5269,12 @@
         "submission_count": 198,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:15.442738Z"
+      "details_fetched_at": "2026-10-02T21:48:15.442738Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitdelta": {
       "id": "hackenproof:bitdelta",
@@ -5149,7 +5374,12 @@
         "submission_count": 199,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:42.7525033Z"
+      "details_fetched_at": "2026-10-02T21:45:42.7525033Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitexen-smart-contracts": {
       "id": "hackenproof:bitexen-smart-contracts",
@@ -5225,7 +5455,12 @@
         "submission_count": 102,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:24.5408271Z"
+      "details_fetched_at": "2026-10-02T21:46:24.5408271Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitexen-web-and-app": {
       "id": "hackenproof:bitexen-web-and-app",
@@ -5345,7 +5580,12 @@
         "submission_count": 86,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:24.8718002Z"
+      "details_fetched_at": "2026-10-02T21:46:24.8718002Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitforex": {
       "id": "hackenproof:bitforex",
@@ -5433,7 +5673,12 @@
         "submission_count": 147,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:27.026793Z"
+      "details_fetched_at": "2026-10-02T21:48:27.026793Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitkan-web-and-mobile": {
       "id": "hackenproof:bitkan-web-and-mobile",
@@ -5541,7 +5786,12 @@
         "submission_count": 116,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:51.1228029Z"
+      "details_fetched_at": "2026-10-02T21:44:51.1228029Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitkub": {
       "id": "hackenproof:bitkub",
@@ -5642,7 +5892,12 @@
         "submission_count": 312,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:02.670693Z"
+      "details_fetched_at": "2026-10-02T21:46:02.670693Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitkub-blockchain-technology": {
       "id": "hackenproof:bitkub-blockchain-technology",
@@ -5766,7 +6021,12 @@
         "submission_count": 119,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:06.9216148Z"
+      "details_fetched_at": "2026-10-02T21:45:06.9216148Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitkub-capital-group-holdings": {
       "id": "hackenproof:bitkub-capital-group-holdings",
@@ -5890,7 +6150,12 @@
         "submission_count": 126,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:55.7201262Z"
+      "details_fetched_at": "2026-10-02T21:44:55.7201262Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitmart-exchange": {
       "id": "hackenproof:bitmart-exchange",
@@ -6004,7 +6269,12 @@
         "submission_count": 237,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:27.5028002Z"
+      "details_fetched_at": "2026-10-02T21:46:27.5028002Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitmart-post-incident-forensics-bounty-hunt": {
       "id": "hackenproof:bitmart-post-incident-forensics-bounty-hunt",
@@ -6056,7 +6326,12 @@
         "submission_count": 126,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:17.5699713Z"
+      "details_fetched_at": "2026-10-02T21:46:17.5699713Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitrue": {
       "id": "hackenproof:bitrue",
@@ -6167,7 +6442,12 @@
         "submission_count": 339,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:40.962582Z"
+      "details_fetched_at": "2026-10-02T21:45:40.962582Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitstorage-web-and-api": {
       "id": "hackenproof:bitstorage-web-and-api",
@@ -6259,7 +6539,12 @@
         "submission_count": 115,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:08.7699236Z"
+      "details_fetched_at": "2026-10-02T21:48:08.7699236Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bittrex": {
       "id": "hackenproof:bittrex",
@@ -6402,7 +6687,12 @@
         "submission_count": 41,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:12.8650126Z"
+      "details_fetched_at": "2026-10-02T21:48:12.8650126Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bitunix-web": {
       "id": "hackenproof:bitunix-web",
@@ -6572,7 +6862,12 @@
         "submission_count": 232,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:18.9784693Z"
+      "details_fetched_at": "2026-10-02T21:45:18.9784693Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bkex": {
       "id": "hackenproof:bkex",
@@ -6701,7 +6996,12 @@
         "submission_count": 99,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:24.4040831Z"
+      "details_fetched_at": "2026-10-02T21:48:24.4040831Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:blockchain-dot-com": {
       "id": "hackenproof:blockchain-dot-com",
@@ -6853,7 +7153,12 @@
         "submission_count": 143,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:14.7808335Z"
+      "details_fetched_at": "2026-10-02T21:45:14.7808335Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:blofin-web-and-mobile": {
       "id": "hackenproof:blofin-web-and-mobile",
@@ -6973,7 +7278,12 @@
         "submission_count": 190,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:33.8980417Z"
+      "details_fetched_at": "2026-10-02T21:45:33.8980417Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bluefin-coin-contracts": {
       "id": "hackenproof:bluefin-coin-contracts",
@@ -7050,7 +7360,12 @@
         "submission_count": 47,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:11.9803205Z"
+      "details_fetched_at": "2026-10-02T21:45:11.9803205Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bluefin-dex-contracts": {
       "id": "hackenproof:bluefin-dex-contracts",
@@ -7129,7 +7444,12 @@
         "submission_count": 278,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:04.2404361Z"
+      "details_fetched_at": "2026-10-02T21:45:04.2404361Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bluefin-spot-contracts": {
       "id": "hackenproof:bluefin-spot-contracts",
@@ -7206,7 +7526,12 @@
         "submission_count": 58,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:19.6428016Z"
+      "details_fetched_at": "2026-10-02T21:45:19.6428016Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bluefin-web": {
       "id": "hackenproof:bluefin-web",
@@ -7293,7 +7618,12 @@
         "submission_count": 90,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:24.6933128Z"
+      "details_fetched_at": "2026-10-02T21:45:24.6933128Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:btcturk-hack-recovery-program": {
       "id": "hackenproof:btcturk-hack-recovery-program",
@@ -7350,7 +7680,12 @@
         "submission_count": 65,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:45.4034568Z"
+      "details_fetched_at": "2026-10-02T21:46:45.4034568Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:btse-bug-bounty-program": {
       "id": "hackenproof:btse-bug-bounty-program",
@@ -7471,7 +7806,12 @@
         "submission_count": 324,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:03.2917561Z"
+      "details_fetched_at": "2026-10-02T21:46:03.2917561Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bucket-protocol-smart-contracts": {
       "id": "hackenproof:bucket-protocol-smart-contracts",
@@ -7551,7 +7891,12 @@
         "submission_count": 358,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:04.4543121Z"
+      "details_fetched_at": "2026-10-02T21:45:04.4543121Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bullbit-qa-testing": {
       "id": "hackenproof:bullbit-qa-testing",
@@ -7628,7 +7973,12 @@
         "submission_count": 414,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:07.6524714Z"
+      "details_fetched_at": "2026-10-02T21:46:07.6524714Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:bunicorn-1": {
       "id": "hackenproof:bunicorn-1",
@@ -7718,7 +8068,12 @@
         "submission_count": 35,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:37.5978645Z"
+      "details_fetched_at": "2026-10-02T21:48:37.5978645Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:calyx-smart-contract": {
       "id": "hackenproof:calyx-smart-contract",
@@ -7796,7 +8151,12 @@
         "submission_count": 307,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:14.8106273Z"
+      "details_fetched_at": "2026-10-02T21:46:14.8106273Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:camino-network-protocol": {
       "id": "hackenproof:camino-network-protocol",
@@ -7880,7 +8240,12 @@
         "submission_count": 20,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:26.1255292Z"
+      "details_fetched_at": "2026-10-02T21:47:26.1255292Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:celestia": {
       "id": "hackenproof:celestia",
@@ -8040,7 +8405,12 @@
         "submission_count": 262,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:15.4047662Z"
+      "details_fetched_at": "2026-10-02T21:45:15.4047662Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:cetus-smart-contracts": {
       "id": "hackenproof:cetus-smart-contracts",
@@ -8130,7 +8500,12 @@
         "submission_count": 428,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:07.9677928Z"
+      "details_fetched_at": "2026-10-02T21:45:07.9677928Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:cetus-web": {
       "id": "hackenproof:cetus-web",
@@ -8229,7 +8604,12 @@
         "submission_count": 167,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:42.7183719Z"
+      "details_fetched_at": "2026-10-02T21:44:42.7183719Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:cex-dot-io-web-and-mobile": {
       "id": "hackenproof:cex-dot-io-web-and-mobile",
@@ -8400,7 +8780,12 @@
         "submission_count": 238,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:49.1932398Z"
+      "details_fetched_at": "2026-10-02T21:44:49.1932398Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:chainstack": {
       "id": "hackenproof:chainstack",
@@ -8584,7 +8969,12 @@
         "submission_count": 531,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:55.3737072Z"
+      "details_fetched_at": "2026-10-02T21:45:55.3737072Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:citex-web-and-api": {
       "id": "hackenproof:citex-web-and-api",
@@ -8707,7 +9097,12 @@
         "submission_count": 58,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:13.8499086Z"
+      "details_fetched_at": "2026-10-02T21:48:13.8499086Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:citrea-protocol-and-smart-contracts": {
       "id": "hackenproof:citrea-protocol-and-smart-contracts",
@@ -9123,7 +9518,12 @@
         "submission_count": 676,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:48.6398291Z"
+      "details_fetched_at": "2026-10-02T21:44:48.6398291Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:citrea-web-and-apps": {
       "id": "hackenproof:citrea-web-and-apps",
@@ -9245,7 +9645,12 @@
         "submission_count": 44,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:48.5409651Z"
+      "details_fetched_at": "2026-10-02T21:44:48.5409651Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:civic-smart-contracts": {
       "id": "hackenproof:civic-smart-contracts",
@@ -9361,7 +9766,12 @@
         "submission_count": 36,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:01.9456744Z"
+      "details_fetched_at": "2026-10-02T21:48:01.9456744Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:codex-exchange": {
       "id": "hackenproof:codex-exchange",
@@ -9438,7 +9848,12 @@
         "submission_count": 61,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:35.9937295Z"
+      "details_fetched_at": "2026-10-02T21:48:35.9937295Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:coin98": {
       "id": "hackenproof:coin98",
@@ -9564,7 +9979,12 @@
         "submission_count": 295,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:59.3081994Z"
+      "details_fetched_at": "2026-10-02T21:45:59.3081994Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:coindcx-recovery-bounty-program": {
       "id": "hackenproof:coindcx-recovery-bounty-program",
@@ -9621,7 +10041,12 @@
         "submission_count": 48,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:49.3051433Z"
+      "details_fetched_at": "2026-10-02T21:46:49.3051433Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:coinex-web-and-mobile": {
       "id": "hackenproof:coinex-web-and-mobile",
@@ -9721,7 +10146,12 @@
         "submission_count": 179,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:23.2587558Z"
+      "details_fetched_at": "2026-10-02T21:46:23.2587558Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:coingecko": {
       "id": "hackenproof:coingecko",
@@ -9938,7 +10368,12 @@
         "submission_count": 433,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:05.2018329Z"
+      "details_fetched_at": "2026-10-02T21:46:05.2018329Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:coinmetro-exchange": {
       "id": "hackenproof:coinmetro-exchange",
@@ -10020,7 +10455,12 @@
         "submission_count": 358,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:05.6991211Z"
+      "details_fetched_at": "2026-10-02T21:47:05.6991211Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:coinsbit": {
       "id": "hackenproof:coinsbit",
@@ -10133,7 +10573,12 @@
         "submission_count": 209,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:22.4155839Z"
+      "details_fetched_at": "2026-10-02T21:48:22.4155839Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:coinstore": {
       "id": "hackenproof:coinstore",
@@ -10284,7 +10729,12 @@
         "submission_count": 321,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:28.1914733Z"
+      "details_fetched_at": "2026-10-02T21:46:28.1914733Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:coinw-web-and-mobile": {
       "id": "hackenproof:coinw-web-and-mobile",
@@ -10400,7 +10850,12 @@
         "submission_count": 290,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:38.4451796Z"
+      "details_fetched_at": "2026-10-02T21:45:38.4451796Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:core": {
       "id": "hackenproof:core",
@@ -10498,7 +10953,12 @@
         "submission_count": 45,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:25.5175997Z"
+      "details_fetched_at": "2026-10-02T21:48:25.5175997Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:cronos-blockchain-protocols": {
       "id": "hackenproof:cronos-blockchain-protocols",
@@ -10595,7 +11055,12 @@
         "submission_count": 374,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:29.55066Z"
+      "details_fetched_at": "2026-10-02T21:45:29.55066Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:cronos-smart-contracts": {
       "id": "hackenproof:cronos-smart-contracts",
@@ -11149,7 +11614,12 @@
         "submission_count": 215,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:32.3721522Z"
+      "details_fetched_at": "2026-10-02T21:45:32.3721522Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:cronos-web": {
       "id": "hackenproof:cronos-web",
@@ -11316,7 +11786,12 @@
         "submission_count": 77,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:29.1811574Z"
+      "details_fetched_at": "2026-10-02T21:45:29.1811574Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:cronos-zkevm-smart-contracts": {
       "id": "hackenproof:cronos-zkevm-smart-contracts",
@@ -12216,7 +12691,12 @@
         "submission_count": 240,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:21.1438391Z"
+      "details_fetched_at": "2026-10-02T21:45:21.1438391Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:cryptology": {
       "id": "hackenproof:cryptology",
@@ -12380,7 +12860,12 @@
         "submission_count": 251,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:25.7827031Z"
+      "details_fetched_at": "2026-10-02T21:47:25.7827031Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:crypviser-network": {
       "id": "hackenproof:crypviser-network",
@@ -12452,7 +12937,12 @@
         "submission_count": 0,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:34.8486316Z"
+      "details_fetched_at": "2026-10-02T21:48:34.8486316Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:crypviser-secure-messenger": {
       "id": "hackenproof:crypviser-secure-messenger",
@@ -12525,7 +13015,12 @@
         "submission_count": 2,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:34.8925107Z"
+      "details_fetched_at": "2026-10-02T21:48:34.8925107Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:cube-exchange-web": {
       "id": "hackenproof:cube-exchange-web",
@@ -12620,7 +13115,12 @@
         "submission_count": 196,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:19.600047Z"
+      "details_fetched_at": "2026-10-02T21:46:19.600047Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:deepcoin-web-and-mobile": {
       "id": "hackenproof:deepcoin-web-and-mobile",
@@ -12722,7 +13222,12 @@
         "submission_count": 100,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:24.0453796Z"
+      "details_fetched_at": "2026-10-02T21:46:24.0453796Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:deepfi-games": {
       "id": "hackenproof:deepfi-games",
@@ -12807,7 +13312,12 @@
         "submission_count": 22,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:36.8321971Z"
+      "details_fetched_at": "2026-10-02T21:46:36.8321971Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:deepfi-trade": {
       "id": "hackenproof:deepfi-trade",
@@ -12889,7 +13399,12 @@
         "submission_count": 24,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:39.4075231Z"
+      "details_fetched_at": "2026-10-02T21:46:39.4075231Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:deltaprime-smart-contracts": {
       "id": "hackenproof:deltaprime-smart-contracts",
@@ -12986,7 +13501,12 @@
         "submission_count": 550,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:28.5692817Z"
+      "details_fetched_at": "2026-10-02T21:46:28.5692817Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:detee-hackers-challenge": {
       "id": "hackenproof:detee-hackers-challenge",
@@ -13044,7 +13564,12 @@
         "submission_count": 5,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:11.5811533Z"
+      "details_fetched_at": "2026-10-02T21:47:11.5811533Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dex-trade": {
       "id": "hackenproof:dex-trade",
@@ -13143,7 +13668,12 @@
         "submission_count": 134,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:28.3140666Z"
+      "details_fetched_at": "2026-10-02T21:48:28.3140666Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dexalot-smart-contracts-2": {
       "id": "hackenproof:dexalot-smart-contracts-2",
@@ -13228,7 +13758,12 @@
         "submission_count": 669,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:43.5276618Z"
+      "details_fetched_at": "2026-10-02T21:44:43.5276618Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dexalot-smart-contracts-archived": {
       "id": "hackenproof:dexalot-smart-contracts-archived",
@@ -13306,7 +13841,12 @@
         "submission_count": 183,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:20.2181565Z"
+      "details_fetched_at": "2026-10-02T21:48:20.2181565Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dexalot-web-and-mobile": {
       "id": "hackenproof:dexalot-web-and-mobile",
@@ -13405,7 +13945,12 @@
         "submission_count": 88,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:46.4076711Z"
+      "details_fetched_at": "2026-10-02T21:45:46.4076711Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dexe-protocol-smart-contracts": {
       "id": "hackenproof:dexe-protocol-smart-contracts",
@@ -13486,7 +14031,12 @@
         "submission_count": 337,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:28.8329872Z"
+      "details_fetched_at": "2026-10-02T21:45:28.8329872Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dexx-web-and-mobile": {
       "id": "hackenproof:dexx-web-and-mobile",
@@ -13586,7 +14136,12 @@
         "submission_count": 99,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:19.6597592Z"
+      "details_fetched_at": "2026-10-02T21:47:19.6597592Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dione-protocol": {
       "id": "hackenproof:dione-protocol",
@@ -13717,7 +14272,12 @@
         "submission_count": 17,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:32.6007443Z"
+      "details_fetched_at": "2026-10-02T21:47:32.6007443Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dodo-v3": {
       "id": "hackenproof:dodo-v3",
@@ -13789,7 +14349,12 @@
         "submission_count": 11,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:19.0804682Z"
+      "details_fetched_at": "2026-10-02T21:48:19.0804682Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dodofeerouteproxy-smart-contract": {
       "id": "hackenproof:dodofeerouteproxy-smart-contract",
@@ -13867,7 +14432,12 @@
         "submission_count": 101,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:51.9815291Z"
+      "details_fetched_at": "2026-10-02T21:45:51.9815291Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dodolimitorder-smart-contract": {
       "id": "hackenproof:dodolimitorder-smart-contract",
@@ -13945,7 +14515,12 @@
         "submission_count": 166,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:52.7314335Z"
+      "details_fetched_at": "2026-10-02T21:45:52.7314335Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dop-protocol": {
       "id": "hackenproof:dop-protocol",
@@ -14044,7 +14619,12 @@
         "submission_count": 52,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:29.3860508Z"
+      "details_fetched_at": "2026-10-02T21:47:29.3860508Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:doubleup-smart-contracts": {
       "id": "hackenproof:doubleup-smart-contracts",
@@ -14123,7 +14703,12 @@
         "submission_count": 70,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:34.4397349Z"
+      "details_fetched_at": "2026-10-02T21:46:34.4397349Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:doubleup-web": {
       "id": "hackenproof:doubleup-web",
@@ -14211,7 +14796,12 @@
         "submission_count": 82,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:35.8815463Z"
+      "details_fetched_at": "2026-10-02T21:46:35.8815463Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:dragon-king": {
       "id": "hackenproof:dragon-king",
@@ -14264,7 +14854,12 @@
         "submission_count": 22,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:32.3578944Z"
+      "details_fetched_at": "2026-10-02T21:48:32.3578944Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ember-evm-smart-contracts": {
       "id": "hackenproof:ember-evm-smart-contracts",
@@ -14343,7 +14938,12 @@
         "submission_count": 366,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:45.6418417Z"
+      "details_fetched_at": "2026-10-02T21:44:45.6418417Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ember-vaults-smart-contracts": {
       "id": "hackenproof:ember-vaults-smart-contracts",
@@ -14424,7 +15024,12 @@
         "submission_count": 312,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:01.7916842Z"
+      "details_fetched_at": "2026-10-02T21:45:01.7916842Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:emojicoin-dot-fun-frontend": {
       "id": "hackenproof:emojicoin-dot-fun-frontend",
@@ -14505,7 +15110,12 @@
         "submission_count": 14,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:16.1667501Z"
+      "details_fetched_at": "2026-10-02T21:47:16.1667501Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:enkrypt-wallet": {
       "id": "hackenproof:enkrypt-wallet",
@@ -14602,7 +15212,12 @@
         "submission_count": 357,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:44.6397346Z"
+      "details_fetched_at": "2026-10-02T21:45:44.6397346Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:envelop-smart-contracts": {
       "id": "hackenproof:envelop-smart-contracts",
@@ -14692,7 +15307,12 @@
         "submission_count": 13,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:12.4825727Z"
+      "details_fetched_at": "2026-10-02T21:48:12.4825727Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:evaa-smart-contracts": {
       "id": "hackenproof:evaa-smart-contracts",
@@ -14765,7 +15385,12 @@
         "submission_count": 3,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:25.7061962Z"
+      "details_fetched_at": "2026-10-02T21:46:25.7061962Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:evaa-web": {
       "id": "hackenproof:evaa-web",
@@ -14846,7 +15471,12 @@
         "submission_count": 119,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:45.4019373Z"
+      "details_fetched_at": "2026-10-02T21:45:45.4019373Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:exmo": {
       "id": "hackenproof:exmo",
@@ -14985,7 +15615,12 @@
         "submission_count": 177,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:29.3993942Z"
+      "details_fetched_at": "2026-10-02T21:48:29.3993942Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:exzo-network-protocol": {
       "id": "hackenproof:exzo-network-protocol",
@@ -15070,7 +15705,12 @@
         "submission_count": 6,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:16.3177069Z"
+      "details_fetched_at": "2026-10-02T21:48:16.3177069Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:exzo-network-wallet": {
       "id": "hackenproof:exzo-network-wallet",
@@ -15147,7 +15787,12 @@
         "submission_count": 7,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:16.9127736Z"
+      "details_fetched_at": "2026-10-02T21:48:16.9127736Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:exzo-network-web-and-api": {
       "id": "hackenproof:exzo-network-web-and-api",
@@ -15246,7 +15891,12 @@
         "submission_count": 22,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:16.1586736Z"
+      "details_fetched_at": "2026-10-02T21:48:16.1586736Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:fastex-web": {
       "id": "hackenproof:fastex-web",
@@ -15328,7 +15978,12 @@
         "submission_count": 85,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:10.4211433Z"
+      "details_fetched_at": "2026-10-02T21:48:10.4211433Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:filmio-smart-contracts": {
       "id": "hackenproof:filmio-smart-contracts",
@@ -15405,7 +16060,12 @@
         "submission_count": 56,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:12.0852316Z"
+      "details_fetched_at": "2026-10-02T21:48:12.0852316Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:filmio-web-and-api": {
       "id": "hackenproof:filmio-web-and-api",
@@ -15500,7 +16160,12 @@
         "submission_count": 158,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:11.7129102Z"
+      "details_fetched_at": "2026-10-02T21:48:11.7129102Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:fitburn-smart-contracts": {
       "id": "hackenproof:fitburn-smart-contracts",
@@ -15593,7 +16258,12 @@
         "submission_count": 42,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:17.5145085Z"
+      "details_fetched_at": "2026-10-02T21:48:17.5145085Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:fitburn-web-and-mobile": {
       "id": "hackenproof:fitburn-web-and-mobile",
@@ -15686,7 +16356,12 @@
         "submission_count": 49,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:04.2757311Z"
+      "details_fetched_at": "2026-10-02T21:48:04.2757311Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:flipster-web-and-mobile": {
       "id": "hackenproof:flipster-web-and-mobile",
@@ -15809,7 +16484,12 @@
         "submission_count": 106,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:13.3398577Z"
+      "details_fetched_at": "2026-10-02T21:45:13.3398577Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:flow-protocol": {
       "id": "hackenproof:flow-protocol",
@@ -15933,7 +16613,12 @@
         "submission_count": 409,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:13.772705Z"
+      "details_fetched_at": "2026-10-02T21:45:13.772705Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:flow-wallet": {
       "id": "hackenproof:flow-wallet",
@@ -16032,7 +16717,12 @@
         "submission_count": 88,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:15.5401021Z"
+      "details_fetched_at": "2026-10-02T21:46:15.5401021Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:flow-web": {
       "id": "hackenproof:flow-web",
@@ -16136,7 +16826,12 @@
         "submission_count": 193,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:12.7127258Z"
+      "details_fetched_at": "2026-10-02T21:45:12.7127258Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:flowx-clmm-smart-contracts": {
       "id": "hackenproof:flowx-clmm-smart-contracts",
@@ -16218,7 +16913,12 @@
         "submission_count": 213,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:02.1092496Z"
+      "details_fetched_at": "2026-10-02T21:45:02.1092496Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:fmcpay-web-and-mobile": {
       "id": "hackenproof:fmcpay-web-and-mobile",
@@ -16319,7 +17019,12 @@
         "submission_count": 67,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:05.5068393Z"
+      "details_fetched_at": "2026-10-02T21:47:05.5068393Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:gate": {
       "id": "hackenproof:gate",
@@ -16463,7 +17168,12 @@
         "submission_count": 524,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:03.9635353Z"
+      "details_fetched_at": "2026-10-02T21:46:03.9635353Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:gate-us": {
       "id": "hackenproof:gate-us",
@@ -16544,7 +17254,12 @@
         "submission_count": 71,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:50.0070388Z"
+      "details_fetched_at": "2026-10-02T21:44:50.0070388Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:gear-protocol": {
       "id": "hackenproof:gear-protocol",
@@ -16695,7 +17410,12 @@
         "submission_count": 105,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:16.5173982Z"
+      "details_fetched_at": "2026-10-02T21:47:16.5173982Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:gmgn-web-and-mobile": {
       "id": "hackenproof:gmgn-web-and-mobile",
@@ -16796,7 +17516,12 @@
         "submission_count": 169,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:16.7652582Z"
+      "details_fetched_at": "2026-10-02T21:45:16.7652582Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:goby-wallet": {
       "id": "hackenproof:goby-wallet",
@@ -16878,7 +17603,12 @@
         "submission_count": 27,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:42.0133891Z"
+      "details_fetched_at": "2026-10-02T21:47:42.0133891Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:govgen-governance-dapp": {
       "id": "hackenproof:govgen-governance-dapp",
@@ -16949,7 +17679,12 @@
         "submission_count": 3,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:49.6615231Z"
+      "details_fetched_at": "2026-10-02T21:47:49.6615231Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:gridex-protocol-hacker-house-2023": {
       "id": "hackenproof:gridex-protocol-hacker-house-2023",
@@ -17041,7 +17776,12 @@
         "submission_count": 5,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:18.5950319Z"
+      "details_fetched_at": "2026-10-02T21:48:18.5950319Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:grovex-web-and-mobile": {
       "id": "hackenproof:grovex-web-and-mobile",
@@ -17148,7 +17888,12 @@
         "submission_count": 100,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:16.6727468Z"
+      "details_fetched_at": "2026-10-02T21:46:16.6727468Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:hack-to-the-future-2024-icp-dot-hub-ae-hackathon": {
       "id": "hackenproof:hack-to-the-future-2024-icp-dot-hub-ae-hackathon",
@@ -17199,7 +17944,12 @@
         "submission_count": 1,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:53.7268055Z"
+      "details_fetched_at": "2026-10-02T21:47:53.7268055Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:hacken-web-and-apps": {
       "id": "hackenproof:hacken-web-and-apps",
@@ -17316,7 +18066,12 @@
         "submission_count": 213,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:21.443905Z"
+      "details_fetched_at": "2026-10-02T21:46:21.443905Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:hackenproof": {
       "id": "hackenproof:hackenproof",
@@ -17407,7 +18162,12 @@
         "submission_count": 1299,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:06.2861764Z"
+      "details_fetched_at": "2026-10-02T21:46:06.2861764Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:haedal-smart-contracts": {
       "id": "hackenproof:haedal-smart-contracts",
@@ -17495,7 +18255,12 @@
         "submission_count": 299,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:04.978596Z"
+      "details_fetched_at": "2026-10-02T21:45:04.978596Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:hinkal-bug-bounty": {
       "id": "hackenproof:hinkal-bug-bounty",
@@ -17579,7 +18344,12 @@
         "submission_count": 77,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:39.9682862Z"
+      "details_fetched_at": "2026-10-02T21:44:39.9682862Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:horizon-protocol-smart-contracts": {
       "id": "hackenproof:horizon-protocol-smart-contracts",
@@ -17658,7 +18428,12 @@
         "submission_count": 22,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:05.4410587Z"
+      "details_fetched_at": "2026-10-02T21:48:05.4410587Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:hotbit": {
       "id": "hackenproof:hotbit",
@@ -17764,7 +18539,12 @@
         "submission_count": 142,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:31.4621439Z"
+      "details_fetched_at": "2026-10-02T21:48:31.4621439Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:hotcoin-web-and-mobile": {
       "id": "hackenproof:hotcoin-web-and-mobile",
@@ -17865,7 +18645,12 @@
         "submission_count": 26,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:39.1665222Z"
+      "details_fetched_at": "2026-10-02T21:44:39.1665222Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:htx": {
       "id": "hackenproof:htx",
@@ -18033,7 +18818,12 @@
         "submission_count": 532,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:30.1653892Z"
+      "details_fetched_at": "2026-10-02T21:48:30.1653892Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:humanode-competitive-developer-initiative-program": {
       "id": "hackenproof:humanode-competitive-developer-initiative-program",
@@ -18081,7 +18871,12 @@
         "submission_count": 0,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:07.8557221Z"
+      "details_fetched_at": "2026-10-02T21:48:07.8557221Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:hyperbridge-protocol": {
       "id": "hackenproof:hyperbridge-protocol",
@@ -18167,7 +18962,12 @@
         "submission_count": 2404,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:42.3437394Z"
+      "details_fetched_at": "2026-10-02T21:44:42.3437394Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:idos-apps-and-sc-1": {
       "id": "hackenproof:idos-apps-and-sc-1",
@@ -18333,7 +19133,12 @@
         "submission_count": 308,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:44.6814764Z"
+      "details_fetched_at": "2026-10-02T21:44:44.6814764Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:impermax-finance-smart-contracts": {
       "id": "hackenproof:impermax-finance-smart-contracts",
@@ -18418,7 +19223,12 @@
         "submission_count": 92,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:03.5253857Z"
+      "details_fetched_at": "2026-10-02T21:48:03.5253857Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:inceptionlrt-smart-contracts": {
       "id": "hackenproof:inceptionlrt-smart-contracts",
@@ -19046,7 +19856,12 @@
         "submission_count": 24,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:22.6672852Z"
+      "details_fetched_at": "2026-10-02T21:47:22.6672852Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:inheriti-r-app": {
       "id": "hackenproof:inheriti-r-app",
@@ -19127,7 +19942,12 @@
         "submission_count": 68,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:22.0306146Z"
+      "details_fetched_at": "2026-10-02T21:46:22.0306146Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:init-capital-smart-contracts": {
       "id": "hackenproof:init-capital-smart-contracts",
@@ -19623,7 +20443,12 @@
         "submission_count": 270,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:33.0850815Z"
+      "details_fetched_at": "2026-10-02T21:47:33.0850815Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:init-capital-web": {
       "id": "hackenproof:init-capital-web",
@@ -19707,7 +20532,12 @@
         "submission_count": 34,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:37.577702Z"
+      "details_fetched_at": "2026-10-02T21:47:37.577702Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:internet-computer-protocol-icp": {
       "id": "hackenproof:internet-computer-protocol-icp",
@@ -20008,7 +20838,12 @@
         "submission_count": 598,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:24.3906985Z"
+      "details_fetched_at": "2026-10-02T21:45:24.3906985Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:jojo-smart-contracts": {
       "id": "hackenproof:jojo-smart-contracts",
@@ -20089,7 +20924,12 @@
         "submission_count": 77,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:21.2508692Z"
+      "details_fetched_at": "2026-10-02T21:48:21.2508692Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:jojo-web": {
       "id": "hackenproof:jojo-web",
@@ -20172,7 +21012,12 @@
         "submission_count": 29,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:20.5732026Z"
+      "details_fetched_at": "2026-10-02T21:48:20.5732026Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:kai-finance-yield-protocol": {
       "id": "hackenproof:kai-finance-yield-protocol",
@@ -20258,7 +21103,12 @@
         "submission_count": 462,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:42.9026504Z"
+      "details_fetched_at": "2026-10-02T21:46:42.9026504Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:kaia-protocol": {
       "id": "hackenproof:kaia-protocol",
@@ -20337,7 +21187,12 @@
         "submission_count": 765,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:53.155566Z"
+      "details_fetched_at": "2026-10-02T21:44:53.155566Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:kaia-web": {
       "id": "hackenproof:kaia-web",
@@ -20425,7 +21280,12 @@
         "submission_count": 198,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:33.6935883Z"
+      "details_fetched_at": "2026-10-02T21:46:33.6935883Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:kalmar": {
       "id": "hackenproof:kalmar",
@@ -20499,7 +21359,12 @@
         "submission_count": 3,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:37.195489Z"
+      "details_fetched_at": "2026-10-02T21:48:37.195489Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:kcex": {
       "id": "hackenproof:kcex",
@@ -20606,7 +21471,12 @@
         "submission_count": 128,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:12.8959699Z"
+      "details_fetched_at": "2026-10-02T21:45:12.8959699Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:kinza-smart-contracts": {
       "id": "hackenproof:kinza-smart-contracts",
@@ -20717,7 +21587,12 @@
         "submission_count": 123,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:06.3266185Z"
+      "details_fetched_at": "2026-10-02T21:48:06.3266185Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:kub-chain-and-ecosystem": {
       "id": "hackenproof:kub-chain-and-ecosystem",
@@ -20826,7 +21701,12 @@
         "submission_count": 281,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:05.6782009Z"
+      "details_fetched_at": "2026-10-02T21:45:05.6782009Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:kucoin": {
       "id": "hackenproof:kucoin",
@@ -20998,7 +21878,12 @@
         "submission_count": 299,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:48.8474504Z"
+      "details_fetched_at": "2026-10-02T21:47:48.8474504Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:kuna-crypto-exchange": {
       "id": "hackenproof:kuna-crypto-exchange",
@@ -21168,7 +22053,12 @@
         "submission_count": 479,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:31.7772469Z"
+      "details_fetched_at": "2026-10-02T21:48:31.7772469Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:lachain-dot-io": {
       "id": "hackenproof:lachain-dot-io",
@@ -21270,7 +22160,12 @@
         "submission_count": 92,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:26.6971079Z"
+      "details_fetched_at": "2026-10-02T21:48:26.6971079Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:latoken-exchange": {
       "id": "hackenproof:latoken-exchange",
@@ -21386,7 +22281,12 @@
         "submission_count": 768,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:14.6137732Z"
+      "details_fetched_at": "2026-10-02T21:48:14.6137732Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:layer3-smart-contracts": {
       "id": "hackenproof:layer3-smart-contracts",
@@ -21476,7 +22376,12 @@
         "submission_count": 538,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:23.1129595Z"
+      "details_fetched_at": "2026-10-02T21:45:23.1129595Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:layer3-web": {
       "id": "hackenproof:layer3-web",
@@ -21556,7 +22461,12 @@
         "submission_count": 180,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:07.2790851Z"
+      "details_fetched_at": "2026-10-02T21:45:07.2790851Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:lcx": {
       "id": "hackenproof:lcx",
@@ -21658,7 +22568,12 @@
         "submission_count": 331,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:03.6793703Z"
+      "details_fetched_at": "2026-10-02T21:46:03.6793703Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:lendvest-smart-contracts": {
       "id": "hackenproof:lendvest-smart-contracts",
@@ -21742,7 +22657,12 @@
         "submission_count": 355,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:29.0375839Z"
+      "details_fetched_at": "2026-10-02T21:46:29.0375839Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:letsexchange-web-and-api-and-widget-swap-bridge-dex": {
       "id": "hackenproof:letsexchange-web-and-api-and-widget-swap-bridge-dex",
@@ -21853,7 +22773,12 @@
         "submission_count": 144,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:25.7095636Z"
+      "details_fetched_at": "2026-10-02T21:46:25.7095636Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:levex-web-and-mobile": {
       "id": "hackenproof:levex-web-and-mobile",
@@ -21960,7 +22885,12 @@
         "submission_count": 178,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:14.9268691Z"
+      "details_fetched_at": "2026-10-02T21:45:14.9268691Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:linear-protocol": {
       "id": "hackenproof:linear-protocol",
@@ -22041,7 +22971,12 @@
         "submission_count": 468,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:22.6814327Z"
+      "details_fetched_at": "2026-10-02T21:46:22.6814327Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:linen-api-and-mobile": {
       "id": "hackenproof:linen-api-and-mobile",
@@ -22153,7 +23088,12 @@
         "submission_count": 19,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:10.8940884Z"
+      "details_fetched_at": "2026-10-02T21:48:10.8940884Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:local-traders-smart-contracts": {
       "id": "hackenproof:local-traders-smart-contracts",
@@ -22229,7 +23169,12 @@
         "submission_count": 23,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:13.9495254Z"
+      "details_fetched_at": "2026-10-02T21:48:13.9495254Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:logos": {
       "id": "hackenproof:logos",
@@ -22341,7 +23286,12 @@
         "submission_count": 157,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:01.5005232Z"
+      "details_fetched_at": "2026-10-02T21:46:01.5005232Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:meest-poshta-mobile": {
       "id": "hackenproof:meest-poshta-mobile",
@@ -22422,7 +23372,12 @@
         "submission_count": 16,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:10.6540243Z"
+      "details_fetched_at": "2026-10-02T21:46:10.6540243Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:metamask-validator-staking-smart-contracts": {
       "id": "hackenproof:metamask-validator-staking-smart-contracts",
@@ -22522,7 +23477,12 @@
         "submission_count": 262,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:58.2268388Z"
+      "details_fetched_at": "2026-10-02T21:47:58.2268388Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:momentum-smart-contracts": {
       "id": "hackenproof:momentum-smart-contracts",
@@ -22602,7 +23562,12 @@
         "submission_count": 312,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:01.1010126Z"
+      "details_fetched_at": "2026-10-02T21:45:01.1010126Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:monday-trade-web": {
       "id": "hackenproof:monday-trade-web",
@@ -22684,7 +23649,12 @@
         "submission_count": 257,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:50.1804005Z"
+      "details_fetched_at": "2026-10-02T21:44:50.1804005Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:multipli-smart-contracts": {
       "id": "hackenproof:multipli-smart-contracts",
@@ -22810,7 +23780,12 @@
         "submission_count": 470,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:46.3006316Z"
+      "details_fetched_at": "2026-10-02T21:44:46.3006316Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:multipli-web": {
       "id": "hackenproof:multipli-web",
@@ -22927,7 +23902,12 @@
         "submission_count": 55,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:46.7048734Z"
+      "details_fetched_at": "2026-10-02T21:44:46.7048734Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:mybucks-dot-online-wallet-cracking-challenge": {
       "id": "hackenproof:mybucks-dot-online-wallet-cracking-challenge",
@@ -23007,7 +23987,12 @@
         "submission_count": 28,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:30.5595853Z"
+      "details_fetched_at": "2026-10-02T21:46:30.5595853Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:myetherwallet": {
       "id": "hackenproof:myetherwallet",
@@ -23131,7 +24116,12 @@
         "submission_count": 285,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:45.7249156Z"
+      "details_fetched_at": "2026-10-02T21:45:45.7249156Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:nado-smart-contracts": {
       "id": "hackenproof:nado-smart-contracts",
@@ -23207,7 +24197,12 @@
         "submission_count": 1322,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:54.5235124Z"
+      "details_fetched_at": "2026-10-02T21:44:54.5235124Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:nado-web": {
       "id": "hackenproof:nado-web",
@@ -23296,7 +24291,12 @@
         "submission_count": 93,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:54.0428748Z"
+      "details_fetched_at": "2026-10-02T21:44:54.0428748Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:navi-protocol": {
       "id": "hackenproof:navi-protocol",
@@ -23397,7 +24397,12 @@
         "submission_count": 420,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:01.0754783Z"
+      "details_fetched_at": "2026-10-02T21:45:01.0754783Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:navi-protocol-web": {
       "id": "hackenproof:navi-protocol-web",
@@ -23480,7 +24485,12 @@
         "submission_count": 93,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:00.0461294Z"
+      "details_fetched_at": "2026-10-02T21:45:00.0461294Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:near-foundation-web-low": {
       "id": "hackenproof:near-foundation-web-low",
@@ -23561,7 +24571,12 @@
         "submission_count": 86,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:41.6200472Z"
+      "details_fetched_at": "2026-10-02T21:45:41.6200472Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:near-intents-bridges": {
       "id": "hackenproof:near-intents-bridges",
@@ -23680,7 +24695,12 @@
         "submission_count": 669,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:45.9920616Z"
+      "details_fetched_at": "2026-10-02T21:44:45.9920616Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:near-intents-sdk": {
       "id": "hackenproof:near-intents-sdk",
@@ -23780,7 +24800,12 @@
         "submission_count": 220,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:47.9076024Z"
+      "details_fetched_at": "2026-10-02T21:44:47.9076024Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:near-intents-smart-contracts": {
       "id": "hackenproof:near-intents-smart-contracts",
@@ -23876,7 +24901,12 @@
         "submission_count": 339,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:03.3703331Z"
+      "details_fetched_at": "2026-10-02T21:45:03.3703331Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:near-protocol": {
       "id": "hackenproof:near-protocol",
@@ -23952,7 +24982,12 @@
         "submission_count": 1024,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:59.7575537Z"
+      "details_fetched_at": "2026-10-02T21:45:59.7575537Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:near-smart-contracts-1": {
       "id": "hackenproof:near-smart-contracts-1",
@@ -24071,7 +25106,12 @@
         "submission_count": 340,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:58.894464Z"
+      "details_fetched_at": "2026-10-02T21:45:58.894464Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:near-web": {
       "id": "hackenproof:near-web",
@@ -24263,7 +25303,12 @@
         "submission_count": 317,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:46.5669052Z"
+      "details_fetched_at": "2026-10-02T21:45:46.5669052Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:neverdie-smart-contract": {
       "id": "hackenproof:neverdie-smart-contract",
@@ -24316,7 +25361,12 @@
         "submission_count": 2,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:33.0318959Z"
+      "details_fetched_at": "2026-10-02T21:48:33.0318959Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:neverdie-web": {
       "id": "hackenproof:neverdie-web",
@@ -24366,7 +25416,12 @@
         "submission_count": 68,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:32.7283919Z"
+      "details_fetched_at": "2026-10-02T21:48:32.7283919Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:nicehash-mining-platform": {
       "id": "hackenproof:nicehash-mining-platform",
@@ -24501,7 +25556,12 @@
         "submission_count": 159,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:11.1494162Z"
+      "details_fetched_at": "2026-10-02T21:45:11.1494162Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:nimbus": {
       "id": "hackenproof:nimbus",
@@ -24595,7 +25655,12 @@
         "submission_count": 18,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:37.9269667Z"
+      "details_fetched_at": "2026-10-02T21:48:37.9269667Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:nonkyc-dot-io": {
       "id": "hackenproof:nonkyc-dot-io",
@@ -24713,7 +25778,12 @@
         "submission_count": 151,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:07.8536084Z"
+      "details_fetched_at": "2026-10-02T21:45:07.8536084Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:noones-web-and-mobile": {
       "id": "hackenproof:noones-web-and-mobile",
@@ -24828,7 +25898,12 @@
         "submission_count": 238,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:00.7712703Z"
+      "details_fetched_at": "2026-10-02T21:47:00.7712703Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:noya-dot-ai-smart-contracts": {
       "id": "hackenproof:noya-dot-ai-smart-contracts",
@@ -24907,7 +25982,12 @@
         "submission_count": 163,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:01.3336971Z"
+      "details_fetched_at": "2026-10-02T21:47:01.3336971Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:nxt-permission-smart-contract": {
       "id": "hackenproof:nxt-permission-smart-contract",
@@ -24975,7 +26055,12 @@
         "submission_count": 20,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:10.0651153Z"
+      "details_fetched_at": "2026-10-02T21:48:10.0651153Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ofza-web": {
       "id": "hackenproof:ofza-web",
@@ -25063,7 +26148,12 @@
         "submission_count": 257,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:05.3377782Z"
+      "details_fetched_at": "2026-10-02T21:45:05.3377782Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:okx": {
       "id": "hackenproof:okx",
@@ -25256,7 +26346,12 @@
         "submission_count": 577,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:02.5439256Z"
+      "details_fetched_at": "2026-10-02T21:46:02.5439256Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:oort-protocol": {
       "id": "hackenproof:oort-protocol",
@@ -25335,7 +26430,12 @@
         "submission_count": 86,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:59.7928461Z"
+      "details_fetched_at": "2026-10-02T21:47:59.7928461Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:openware": {
       "id": "hackenproof:openware",
@@ -25416,7 +26516,12 @@
         "submission_count": 71,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:29.1870685Z"
+      "details_fetched_at": "2026-10-02T21:48:29.1870685Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:p2b-exchange": {
       "id": "hackenproof:p2b-exchange",
@@ -25515,7 +26620,12 @@
         "submission_count": 188,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:05.0743781Z"
+      "details_fetched_at": "2026-10-02T21:46:05.0743781Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:pallets": {
       "id": "hackenproof:pallets",
@@ -25590,7 +26700,12 @@
         "submission_count": 6,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:06.4530861Z"
+      "details_fetched_at": "2026-10-02T21:48:06.4530861Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:pandora-smart-contract": {
       "id": "hackenproof:pandora-smart-contract",
@@ -25660,7 +26775,12 @@
         "submission_count": 69,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:28.1749882Z"
+      "details_fetched_at": "2026-10-02T21:48:28.1749882Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:pandora-web": {
       "id": "hackenproof:pandora-web",
@@ -25734,7 +26854,12 @@
         "submission_count": 21,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:27.4885377Z"
+      "details_fetched_at": "2026-10-02T21:48:27.4885377Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:parity-polkadot-release-infrastructure": {
       "id": "hackenproof:parity-polkadot-release-infrastructure",
@@ -25818,7 +26943,12 @@
         "submission_count": 59,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:16.8651273Z"
+      "details_fetched_at": "2026-10-02T21:45:16.8651273Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:payhub-web": {
       "id": "hackenproof:payhub-web",
@@ -25895,7 +27025,12 @@
         "submission_count": 55,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:37.6779934Z"
+      "details_fetched_at": "2026-10-02T21:47:37.6779934Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:phemex-web-and-mobile": {
       "id": "hackenproof:phemex-web-and-mobile",
@@ -26002,7 +27137,12 @@
         "submission_count": 452,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:55.0058211Z"
+      "details_fetched_at": "2026-10-02T21:44:55.0058211Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:pionex-app-and-api": {
       "id": "hackenproof:pionex-app-and-api",
@@ -26125,7 +27265,12 @@
         "submission_count": 162,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:35.3332254Z"
+      "details_fetched_at": "2026-10-02T21:45:35.3332254Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:pointpay-web-and-mobile": {
       "id": "hackenproof:pointpay-web-and-mobile",
@@ -26262,7 +27407,12 @@
         "submission_count": 164,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:38.7947855Z"
+      "details_fetched_at": "2026-10-02T21:45:38.7947855Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:polkadot-bridge": {
       "id": "hackenproof:polkadot-bridge",
@@ -26360,7 +27510,12 @@
         "submission_count": 190,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:21.1501643Z"
+      "details_fetched_at": "2026-10-02T21:46:21.1501643Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:polkadot-sdk-runtime-by-parity": {
       "id": "hackenproof:polkadot-sdk-runtime-by-parity",
@@ -26442,7 +27597,12 @@
         "submission_count": 315,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:17.9356407Z"
+      "details_fetched_at": "2026-10-02T21:45:17.9356407Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:polkalokr": {
       "id": "hackenproof:polkalokr",
@@ -26512,7 +27672,12 @@
         "submission_count": 0,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:38.3920936Z"
+      "details_fetched_at": "2026-10-02T21:48:38.3920936Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:polkalokr-1": {
       "id": "hackenproof:polkalokr-1",
@@ -26592,7 +27757,12 @@
         "submission_count": 19,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:22.7616003Z"
+      "details_fetched_at": "2026-10-02T21:48:22.7616003Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:poloniex-web-and-api": {
       "id": "hackenproof:poloniex-web-and-api",
@@ -26744,7 +27914,12 @@
         "submission_count": 175,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:33.0664619Z"
+      "details_fetched_at": "2026-10-02T21:45:33.0664619Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:pumb-tacsk": {
       "id": "hackenproof:pumb-tacsk",
@@ -26834,7 +28009,12 @@
         "submission_count": 8,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:41.6526899Z"
+      "details_fetched_at": "2026-10-02T21:47:41.6526899Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:pumb-web": {
       "id": "hackenproof:pumb-web",
@@ -26911,7 +28091,12 @@
         "submission_count": 357,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:45.1794458Z"
+      "details_fetched_at": "2026-10-02T21:44:45.1794458Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:raiffeisen-web-and-mobile": {
       "id": "hackenproof:raiffeisen-web-and-mobile",
@@ -27045,7 +28230,12 @@
         "submission_count": 5,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:02.211188Z"
+      "details_fetched_at": "2026-10-02T21:48:02.211188Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:risc-zero-blockchain-verifiers": {
       "id": "hackenproof:risc-zero-blockchain-verifiers",
@@ -27124,7 +28314,12 @@
         "submission_count": 148,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:20.6578961Z"
+      "details_fetched_at": "2026-10-02T21:46:20.6578961Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:risc-zero-zkvm": {
       "id": "hackenproof:risc-zero-zkvm",
@@ -27195,7 +28390,12 @@
         "submission_count": 123,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:23.6631819Z"
+      "details_fetched_at": "2026-10-02T21:46:23.6631819Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:router-smart-contract": {
       "id": "hackenproof:router-smart-contract",
@@ -27365,7 +28565,12 @@
         "submission_count": 67,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:25.93744Z"
+      "details_fetched_at": "2026-10-02T21:48:25.93744Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:router-web": {
       "id": "hackenproof:router-web",
@@ -27449,7 +28654,12 @@
         "submission_count": 67,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:26.1364185Z"
+      "details_fetched_at": "2026-10-02T21:48:26.1364185Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:rtree-finance-web": {
       "id": "hackenproof:rtree-finance-web",
@@ -27538,7 +28748,12 @@
         "submission_count": 196,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:42.3901606Z"
+      "details_fetched_at": "2026-10-02T21:46:42.3901606Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:safeswap-app": {
       "id": "hackenproof:safeswap-app",
@@ -27618,7 +28833,12 @@
         "submission_count": 25,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:22.5313675Z"
+      "details_fetched_at": "2026-10-02T21:46:22.5313675Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:scallop-protocol-smart-contract": {
       "id": "hackenproof:scallop-protocol-smart-contract",
@@ -27701,7 +28921,12 @@
         "submission_count": 422,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:16.26204Z"
+      "details_fetched_at": "2026-10-02T21:45:16.26204Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:serenity-shield-testnet-campain": {
       "id": "hackenproof:serenity-shield-testnet-campain",
@@ -27748,7 +28973,12 @@
         "submission_count": 0,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:08.2624799Z"
+      "details_fetched_at": "2026-10-02T21:48:08.2624799Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:sg-forge-smart-contracts": {
       "id": "hackenproof:sg-forge-smart-contracts",
@@ -27847,7 +29077,12 @@
         "submission_count": 86,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:18.7897171Z"
+      "details_fetched_at": "2026-10-02T21:46:18.7897171Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:shapeshift": {
       "id": "hackenproof:shapeshift",
@@ -28036,7 +29271,12 @@
         "submission_count": 329,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:00.1517871Z"
+      "details_fetched_at": "2026-10-02T21:46:00.1517871Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:shido-network-protocol": {
       "id": "hackenproof:shido-network-protocol",
@@ -28113,7 +29353,12 @@
         "submission_count": 7,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:01.2917208Z"
+      "details_fetched_at": "2026-10-02T21:48:01.2917208Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:slex-web": {
       "id": "hackenproof:slex-web",
@@ -28225,7 +29470,12 @@
         "submission_count": 47,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:53.0358158Z"
+      "details_fetched_at": "2026-10-02T21:47:53.0358158Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:slush-wallet": {
       "id": "hackenproof:slush-wallet",
@@ -28322,7 +29572,12 @@
         "submission_count": 181,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:35.7407159Z"
+      "details_fetched_at": "2026-10-02T21:45:35.7407159Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:smardex-smart-contracts": {
       "id": "hackenproof:smardex-smart-contracts",
@@ -28612,7 +29867,12 @@
         "submission_count": 56,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:07.5617859Z"
+      "details_fetched_at": "2026-10-02T21:48:07.5617859Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:smilee-smart-contracts": {
       "id": "hackenproof:smilee-smart-contracts",
@@ -28721,7 +29981,12 @@
         "submission_count": 31,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:59.5325098Z"
+      "details_fetched_at": "2026-10-02T21:47:59.5325098Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:snowbridge-on-chain-code": {
       "id": "hackenproof:snowbridge-on-chain-code",
@@ -28811,7 +30076,12 @@
         "submission_count": 650,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:02.8981936Z"
+      "details_fetched_at": "2026-10-02T21:45:02.8981936Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:snowbridge-web": {
       "id": "hackenproof:snowbridge-web",
@@ -28911,7 +30181,12 @@
         "submission_count": 142,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:40.1269837Z"
+      "details_fetched_at": "2026-10-02T21:46:40.1269837Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:solv-web-and-infrastructure": {
       "id": "hackenproof:solv-web-and-infrastructure",
@@ -29036,7 +30311,12 @@
         "submission_count": 321,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:11.3633399Z"
+      "details_fetched_at": "2026-10-02T21:46:11.3633399Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:starknet-blockchain-slash-dlt": {
       "id": "hackenproof:starknet-blockchain-slash-dlt",
@@ -29400,7 +30680,12 @@
         "submission_count": 94,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:41.6278393Z"
+      "details_fetched_at": "2026-10-02T21:44:41.6278393Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:starknet-staking": {
       "id": "hackenproof:starknet-staking",
@@ -29605,7 +30890,12 @@
         "submission_count": 51,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:40.7543247Z"
+      "details_fetched_at": "2026-10-02T21:44:40.7543247Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:starknet-web-and-sc": {
       "id": "hackenproof:starknet-web-and-sc",
@@ -29732,7 +31022,12 @@
         "submission_count": 27,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:41.1555136Z"
+      "details_fetched_at": "2026-10-02T21:44:41.1555136Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:status": {
       "id": "hackenproof:status",
@@ -29896,7 +31191,12 @@
         "submission_count": 506,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:50.5965373Z"
+      "details_fetched_at": "2026-10-02T21:45:50.5965373Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:stbl-smart-contracts": {
       "id": "hackenproof:stbl-smart-contracts",
@@ -30117,7 +31417,12 @@
         "submission_count": 394,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:57.6210987Z"
+      "details_fetched_at": "2026-10-02T21:44:57.6210987Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:stbl-web": {
       "id": "hackenproof:stbl-web",
@@ -30211,7 +31516,12 @@
         "submission_count": 110,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:58.0438555Z"
+      "details_fetched_at": "2026-10-02T21:44:58.0438555Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ston-dot-fi-dex-smart-contracts-v2": {
       "id": "hackenproof:ston-dot-fi-dex-smart-contracts-v2",
@@ -30324,7 +31634,12 @@
         "submission_count": 274,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:14.1211293Z"
+      "details_fetched_at": "2026-10-02T21:45:14.1211293Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:sui-protocol": {
       "id": "hackenproof:sui-protocol",
@@ -30518,7 +31833,12 @@
         "submission_count": 1047,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:39.4606831Z"
+      "details_fetched_at": "2026-10-02T21:45:39.4606831Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:superearn-web-and-smart-contracts": {
       "id": "hackenproof:superearn-web-and-smart-contracts",
@@ -30620,7 +31940,12 @@
         "submission_count": 249,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:09.9649816Z"
+      "details_fetched_at": "2026-10-02T21:46:09.9649816Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:superposition-finance-web": {
       "id": "hackenproof:superposition-finance-web",
@@ -30703,7 +32028,12 @@
         "submission_count": 47,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:28.3965493Z"
+      "details_fetched_at": "2026-10-02T21:45:28.3965493Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:swap-dot-io-smart-contracts": {
       "id": "hackenproof:swap-dot-io-smart-contracts",
@@ -31120,7 +32450,12 @@
         "submission_count": 240,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:19.8435115Z"
+      "details_fetched_at": "2026-10-02T21:47:19.8435115Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:sweed-web": {
       "id": "hackenproof:sweed-web",
@@ -31359,7 +32694,12 @@
         "submission_count": 143,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:03.7767608Z"
+      "details_fetched_at": "2026-10-02T21:45:03.7767608Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:swisstronik-blockchain-stability": {
       "id": "hackenproof:swisstronik-blockchain-stability",
@@ -31471,7 +32811,12 @@
         "submission_count": 4,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:09.3329393Z"
+      "details_fetched_at": "2026-10-02T21:48:09.3329393Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:swisstronik-core": {
       "id": "hackenproof:swisstronik-core",
@@ -31551,7 +32896,12 @@
         "submission_count": 3,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:09.5611388Z"
+      "details_fetched_at": "2026-10-02T21:48:09.5611388Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:synfutures-dapp": {
       "id": "hackenproof:synfutures-dapp",
@@ -31630,7 +32980,12 @@
         "submission_count": 133,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:11.4086039Z"
+      "details_fetched_at": "2026-10-02T21:45:11.4086039Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:tapbit-web-and-mobile": {
       "id": "hackenproof:tapbit-web-and-mobile",
@@ -31730,7 +33085,12 @@
         "submission_count": 155,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:09.1990795Z"
+      "details_fetched_at": "2026-10-02T21:45:09.1990795Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:telegram-apps-center": {
       "id": "hackenproof:telegram-apps-center",
@@ -31817,7 +33177,12 @@
         "submission_count": 105,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:45.8564858Z"
+      "details_fetched_at": "2026-10-02T21:47:45.8564858Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ternoa-enclaves": {
       "id": "hackenproof:ternoa-enclaves",
@@ -31892,7 +33257,12 @@
         "submission_count": 7,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:07.1026036Z"
+      "details_fetched_at": "2026-10-02T21:48:07.1026036Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ternoa-smart-contracts": {
       "id": "hackenproof:ternoa-smart-contracts",
@@ -31972,7 +33342,12 @@
         "submission_count": 49,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:23.5921355Z"
+      "details_fetched_at": "2026-10-02T21:48:23.5921355Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ternoa-wallet": {
       "id": "hackenproof:ternoa-wallet",
@@ -32055,7 +33430,12 @@
         "submission_count": 22,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:24.0201211Z"
+      "details_fetched_at": "2026-10-02T21:48:24.0201211Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ternoa-web-and-apps": {
       "id": "hackenproof:ternoa-web-and-apps",
@@ -32207,7 +33587,12 @@
         "submission_count": 68,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:39.2779721Z"
+      "details_fetched_at": "2026-10-02T21:48:39.2779721Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:tetu-smart-contracts": {
       "id": "hackenproof:tetu-smart-contracts",
@@ -32438,7 +33823,12 @@
         "submission_count": 24,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:14.9967139Z"
+      "details_fetched_at": "2026-10-02T21:48:14.9967139Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:the-flipcash-reserve-contract-bug-bounty": {
       "id": "hackenproof:the-flipcash-reserve-contract-bug-bounty",
@@ -32527,7 +33917,12 @@
         "submission_count": 98,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:32.1373874Z"
+      "details_fetched_at": "2026-10-02T21:46:32.1373874Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:tickets-travel-network-slash-mobile": {
       "id": "hackenproof:tickets-travel-network-slash-mobile",
@@ -32657,7 +34052,12 @@
         "submission_count": 112,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:18.0602623Z"
+      "details_fetched_at": "2026-10-02T21:45:18.0602623Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:tickets-travel-network-slash-updated-ui": {
       "id": "hackenproof:tickets-travel-network-slash-updated-ui",
@@ -32797,7 +34197,12 @@
         "submission_count": 498,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:58.5839916Z"
+      "details_fetched_at": "2026-10-02T21:45:58.5839916Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:tidex-exchange": {
       "id": "hackenproof:tidex-exchange",
@@ -32892,7 +34297,12 @@
         "submission_count": 60,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:19.810975Z"
+      "details_fetched_at": "2026-10-02T21:48:19.810975Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:tokenize-xchange-web-and-mobile": {
       "id": "hackenproof:tokenize-xchange-web-and-mobile",
@@ -32975,7 +34385,12 @@
         "submission_count": 27,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:59.060234Z"
+      "details_fetched_at": "2026-10-02T21:47:59.060234Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ton": {
       "id": "hackenproof:ton",
@@ -33123,7 +34538,12 @@
         "submission_count": 161,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:47:45.035295Z"
+      "details_fetched_at": "2026-10-02T21:47:45.035295Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ton-diamonds-web": {
       "id": "hackenproof:ton-diamonds-web",
@@ -33198,7 +34618,12 @@
         "submission_count": 37,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:00.7359859Z"
+      "details_fetched_at": "2026-10-02T21:48:00.7359859Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:toobit-web-and-mobile": {
       "id": "hackenproof:toobit-web-and-mobile",
@@ -33307,7 +34732,12 @@
         "submission_count": 127,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:40.0473311Z"
+      "details_fetched_at": "2026-10-02T21:45:40.0473311Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:tothemoon-web": {
       "id": "hackenproof:tothemoon-web",
@@ -33449,7 +34879,12 @@
         "submission_count": 248,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:20.8149996Z"
+      "details_fetched_at": "2026-10-02T21:45:20.8149996Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:treehouse-smart-contracts": {
       "id": "hackenproof:treehouse-smart-contracts",
@@ -34068,7 +35503,12 @@
         "submission_count": 486,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:21.9934578Z"
+      "details_fetched_at": "2026-10-02T21:45:21.9934578Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:treehouse-web": {
       "id": "hackenproof:treehouse-web",
@@ -34184,7 +35624,12 @@
         "submission_count": 87,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:22.3565879Z"
+      "details_fetched_at": "2026-10-02T21:45:22.3565879Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:trustee-plus-web-and-mobile": {
       "id": "hackenproof:trustee-plus-web-and-mobile",
@@ -34283,7 +35728,12 @@
         "submission_count": 59,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:39.8409875Z"
+      "details_fetched_at": "2026-10-02T21:45:39.8409875Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ttc-mobile": {
       "id": "hackenproof:ttc-mobile",
@@ -34371,7 +35821,12 @@
         "submission_count": 13,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:35.5313793Z"
+      "details_fetched_at": "2026-10-02T21:48:35.5313793Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ttc-protocol": {
       "id": "hackenproof:ttc-protocol",
@@ -34442,7 +35897,12 @@
         "submission_count": 3,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:33.456468Z"
+      "details_fetched_at": "2026-10-02T21:48:33.456468Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ttc-sdk": {
       "id": "hackenproof:ttc-sdk",
@@ -34525,7 +35985,12 @@
         "submission_count": 1,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:33.9637427Z"
+      "details_fetched_at": "2026-10-02T21:48:33.9637427Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:turbos-finance-smart-contracts": {
       "id": "hackenproof:turbos-finance-smart-contracts",
@@ -34607,7 +36072,12 @@
         "submission_count": 319,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:02.6062022Z"
+      "details_fetched_at": "2026-10-02T21:45:02.6062022Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:u2staking-web": {
       "id": "hackenproof:u2staking-web",
@@ -34679,7 +36149,12 @@
         "submission_count": 4,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:00.2979698Z"
+      "details_fetched_at": "2026-10-02T21:48:00.2979698Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:uacatsdivision-smart-contracts": {
       "id": "hackenproof:uacatsdivision-smart-contracts",
@@ -34755,7 +36230,12 @@
         "submission_count": 83,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:54.5801368Z"
+      "details_fetched_at": "2026-10-02T21:45:54.5801368Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:uacatsdivision-web": {
       "id": "hackenproof:uacatsdivision-web",
@@ -34836,7 +36316,12 @@
         "submission_count": 54,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:55.7824744Z"
+      "details_fetched_at": "2026-10-02T21:45:55.7824744Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:ult-trade-stocks-and-crypto": {
       "id": "hackenproof:ult-trade-stocks-and-crypto",
@@ -34927,7 +36412,12 @@
         "submission_count": 74,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:39.5685539Z"
+      "details_fetched_at": "2026-10-02T21:44:39.5685539Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:unistake-smart-contracts": {
       "id": "hackenproof:unistake-smart-contracts",
@@ -35017,7 +36507,12 @@
         "submission_count": 5,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:36.780754Z"
+      "details_fetched_at": "2026-10-02T21:48:36.780754Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:unitus-v2-smart-contracts": {
       "id": "hackenproof:unitus-v2-smart-contracts",
@@ -35097,7 +36592,12 @@
         "submission_count": 251,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:25.5615692Z"
+      "details_fetched_at": "2026-10-02T21:45:25.5615692Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:vechainthor": {
       "id": "hackenproof:vechainthor",
@@ -35175,7 +36675,12 @@
         "submission_count": 570,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:14.7319683Z"
+      "details_fetched_at": "2026-10-02T21:46:14.7319683Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:vechainthor-vip191": {
       "id": "hackenproof:vechainthor-vip191",
@@ -35238,7 +36743,12 @@
         "submission_count": 1,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:36.3787705Z"
+      "details_fetched_at": "2026-10-02T21:48:36.3787705Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:vechainthor-wallet": {
       "id": "hackenproof:vechainthor-wallet",
@@ -35325,7 +36835,12 @@
         "submission_count": 50,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:19.3771505Z"
+      "details_fetched_at": "2026-10-02T21:48:19.3771505Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:virtuswap-dex-app-1": {
       "id": "hackenproof:virtuswap-dex-app-1",
@@ -35400,7 +36915,12 @@
         "submission_count": 21,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:21.6764282Z"
+      "details_fetched_at": "2026-10-02T21:48:21.6764282Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:virtuswap-smart-contract": {
       "id": "hackenproof:virtuswap-smart-contract",
@@ -35470,7 +36990,12 @@
         "submission_count": 43,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:21.9656411Z"
+      "details_fetched_at": "2026-10-02T21:48:21.9656411Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:volo-smart-contracts": {
       "id": "hackenproof:volo-smart-contracts",
@@ -35551,7 +37076,12 @@
         "submission_count": 564,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:59.6679265Z"
+      "details_fetched_at": "2026-10-02T21:44:59.6679265Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:volo-web": {
       "id": "hackenproof:volo-web",
@@ -35633,7 +37163,12 @@
         "submission_count": 77,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:59.2072549Z"
+      "details_fetched_at": "2026-10-02T21:44:59.2072549Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:walrus-protocol": {
       "id": "hackenproof:walrus-protocol",
@@ -35794,7 +37329,12 @@
         "submission_count": 273,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:18.4604484Z"
+      "details_fetched_at": "2026-10-02T21:46:18.4604484Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:weex-web-and-app": {
       "id": "hackenproof:weex-web-and-app",
@@ -35907,7 +37447,12 @@
         "submission_count": 379,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:19.091836Z"
+      "details_fetched_at": "2026-10-02T21:45:19.091836Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:whitebit": {
       "id": "hackenproof:whitebit",
@@ -36019,7 +37564,12 @@
         "submission_count": 297,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:06.1363Z"
+      "details_fetched_at": "2026-10-02T21:46:06.1363Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:whitebit-blog": {
       "id": "hackenproof:whitebit-blog",
@@ -36095,7 +37645,12 @@
         "submission_count": 35,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:49.7226345Z"
+      "details_fetched_at": "2026-10-02T21:45:49.7226345Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:whitechain-bridge": {
       "id": "hackenproof:whitechain-bridge",
@@ -36174,7 +37729,12 @@
         "submission_count": 1543,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:44:50.7019359Z"
+      "details_fetched_at": "2026-10-02T21:44:50.7019359Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:whitechain-network": {
       "id": "hackenproof:whitechain-network",
@@ -36252,7 +37812,12 @@
         "submission_count": 55,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:48:11.2304541Z"
+      "details_fetched_at": "2026-10-02T21:48:11.2304541Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:whitemarket-web": {
       "id": "hackenproof:whitemarket-web",
@@ -36330,7 +37895,12 @@
         "submission_count": 235,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:49.2816575Z"
+      "details_fetched_at": "2026-10-02T21:45:49.2816575Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:xt": {
       "id": "hackenproof:xt",
@@ -36439,7 +38009,12 @@
         "submission_count": 184,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:50.185191Z"
+      "details_fetched_at": "2026-10-02T21:45:50.185191Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:zeko-protocol": {
       "id": "hackenproof:zeko-protocol",
@@ -36537,7 +38112,12 @@
         "submission_count": 198,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:09.0842379Z"
+      "details_fetched_at": "2026-10-02T21:46:09.0842379Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:zest-protocol-smart-contracts": {
       "id": "hackenproof:zest-protocol-smart-contracts",
@@ -36736,7 +38316,12 @@
         "submission_count": 0,
         "submission_count_known": false
       },
-      "details_fetched_at": "2026-10-02T21:45:32.7535274Z"
+      "details_fetched_at": "2026-10-02T21:45:32.7535274Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:zetachain-blockchain-software": {
       "id": "hackenproof:zetachain-blockchain-software",
@@ -36849,7 +38434,12 @@
         "submission_count": 287,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:16.4350415Z"
+      "details_fetched_at": "2026-10-02T21:46:16.4350415Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:zetachain-smart-contracts": {
       "id": "hackenproof:zetachain-smart-contracts",
@@ -36983,7 +38573,12 @@
         "submission_count": 217,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:15.8492483Z"
+      "details_fetched_at": "2026-10-02T21:46:15.8492483Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:zetachain-web-apps": {
       "id": "hackenproof:zetachain-web-apps",
@@ -37120,7 +38715,12 @@
         "submission_count": 44,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:32.2142195Z"
+      "details_fetched_at": "2026-10-02T21:46:32.2142195Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:zo-finance-smart-contracts": {
       "id": "hackenproof:zo-finance-smart-contracts",
@@ -37208,7 +38808,12 @@
         "submission_count": 77,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:12.7687224Z"
+      "details_fetched_at": "2026-10-02T21:46:12.7687224Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:zo-finance-web": {
       "id": "hackenproof:zo-finance-web",
@@ -37306,7 +38911,12 @@
         "submission_count": 31,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:46:12.0565743Z"
+      "details_fetched_at": "2026-10-02T21:46:12.0565743Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:zoomex-web-and-mobile": {
       "id": "hackenproof:zoomex-web-and-mobile",
@@ -37406,7 +39016,12 @@
         "submission_count": 145,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-02T21:45:08.5492038Z"
+      "details_fetched_at": "2026-10-02T21:45:08.5492038Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     },
     "hackenproof:zynk-protocol": {
       "id": "hackenproof:zynk-protocol",
@@ -37518,7 +39133,12 @@
         "submission_count": 16,
         "submission_count_known": true
       },
-      "details_fetched_at": "2026-10-03T19:12:00.5555225Z"
+      "details_fetched_at": "2026-10-03T19:12:00.5555225Z",
+      "scope_changed": null,
+      "requirements_changed": null,
+      "metadata_changed": null,
+      "lifecycle_changed": null,
+      "absent_scans": 1
     }
   }
 }

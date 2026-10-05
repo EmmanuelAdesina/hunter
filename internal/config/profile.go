@@ -247,15 +247,21 @@ type ScanConfig struct {
 	// MaxConcurrent bounds concurrent detail fetches for one source.
 	MaxConcurrent int `yaml:"max_concurrent"`
 
-	// ListingConcurrency bounds concurrent listing-page fetches during discovery.
-	//
-	// It is separate from MaxConcurrent because the two have different costs. A
-	// detail read is one page, requested rarely. The listing sweep is the whole
-	// catalogue, requested on every single scan, and it is the request pattern
-	// that draws a rate limit. Zero means "use whatever the adapter declares",
-	// which is the safe default: an adapter knows its host better than a profile
-	// does.
 	ListingConcurrency int `yaml:"listing_concurrency"`
+
+	// MaxCatchUpDetailFetchesPerScan caps the number of detail reads that are
+	// performed to bring stale or never-fetched records up to date in a single
+	// scan. It applies to:
+	//   - initial bootstrap detail reads (records never fetched before),
+	//   - periodic refreshes triggered by the elapsed-interval timer.
+	// It does NOT limit detail reads triggered by:
+	//   - listing changes (those are event-driven and must fire),
+	//   - incomplete records (parse retries),
+	//   - parse retries.
+	// Zero disables the cap (unlimited catch-up), which reproduces the old
+	// behaviour of a single massive catch-up sweep. A positive value spreads
+	// large catch-up work across multiple scans.
+	MaxCatchUpDetailFetchesPerScan int `yaml:"max_catch_up_detail_fetches_per_scan"`
 
 	// UserAgent identifies the crawler. It must be truthful and stable.
 	UserAgent string `yaml:"user_agent"`
@@ -606,6 +612,9 @@ func (p *Profile) applyDefaultsAndValidate() error {
 	}
 	if p.Scan.ListingConcurrency < 0 {
 		fail("scan.listing_concurrency must be >= 0")
+	}
+	if p.Scan.MaxCatchUpDetailFetchesPerScan < 0 {
+		fail("scan.max_catch_up_detail_fetches_per_scan must be >= 0")
 	}
 	// The listing-change trigger defaults to on. Leaving it off would mean the
 	// cheap tier notices that nothing moved but never re-reads anything that did,

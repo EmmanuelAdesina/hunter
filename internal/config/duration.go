@@ -114,6 +114,13 @@ func (p *Profile) DetailsRefreshInterval() time.Duration {
 	return time.Duration(p.Scan.DetailsRefreshInterval)
 }
 
+// MaxCatchUpDetailFetchesPerScan returns the cap on catch-up detail fetches per
+// scan. Zero means unlimited (the old behaviour). A positive value spreads large
+// catch-up work across multiple scans.
+func (p *Profile) MaxCatchUpDetailFetchesPerScan() int {
+	return p.Scan.MaxCatchUpDetailFetchesPerScan
+}
+
 // FetchDetailsOnListingChange reports whether a listing difference triggers a
 // detail read. It defaults to true, because the whole point of the cheap tier is
 // to decide when the expensive tier is needed.
