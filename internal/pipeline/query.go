@@ -90,12 +90,12 @@ type WindowView struct {
 // ReplayEvent combines history and opportunity-window records from one recorded
 // observation. It contains no re-evaluated eligibility or alert decision.
 type ReplayEvent struct {
-	Kind       string                    `json:"kind"`
-	ScanID     string                    `json:"scan_id,omitempty"`
-	RecordedAt *time.Time                `json:"recorded_at,omitempty"`
-	Eligible   *bool                     `json:"eligible,omitempty"`
-	Reasons    []string                  `json:"reasons,omitempty"`
-	Changes    domain.ChangeSet          `json:"changes,omitempty"`
+	Kind       string                     `json:"kind"`
+	ScanID     string                     `json:"scan_id,omitempty"`
+	RecordedAt *time.Time                 `json:"recorded_at,omitempty"`
+	Eligible   *bool                      `json:"eligible,omitempty"`
+	Reasons    []string                   `json:"reasons,omitempty"`
+	Changes    domain.ChangeSet           `json:"changes,omitempty"`
 	Windows    []domain.OpportunityWindow `json:"windows,omitempty"`
 }
 

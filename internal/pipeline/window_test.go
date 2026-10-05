@@ -25,20 +25,6 @@ func storedWindows(t *testing.T, dir string) []domain.OpportunityWindow {
 	return out
 }
 
-func removeAPIScope(src *fakeSource, id, target string) {
-	src.mu.Lock()
-	defer src.mu.Unlock()
-	rec := src.records[id]
-	filtered := make([]domain.RawScope, 0, len(rec.Scopes))
-	for _, scope := range rec.Scopes {
-		if scope.Target != target {
-			filtered = append(filtered, scope)
-		}
-	}
-	rec.Scopes = filtered
-	src.records[id] = rec
-}
-
 func TestWindowLifecycleUsesOneIdentityPerOpeningTransition(t *testing.T) {
 	src := newFakeSource("alpha")
 	dir := t.TempDir()

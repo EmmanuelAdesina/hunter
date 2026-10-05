@@ -50,7 +50,7 @@ func seedReplayState(t *testing.T, dir string, base time.Time) {
 		Changes: domain.ChangeSet{{
 			Kind: domain.ChangeKYCRemoved, Severity: domain.SeverityMedium,
 			Field: "kyc", Before: "required", After: "not required",
-				Direction: domain.DirectionImproved,
+			Direction: domain.DirectionImproved,
 		}},
 		Eligible: true, Reasons: []string{"all access requirements passed"},
 	}); err != nil {
@@ -64,7 +64,7 @@ func runReplayCommand(t *testing.T, dir string, now time.Time, args ...string) (
 	cliArgs := append([]string{"replay", "--profile", "../../configs/profiles/personal.yaml", "--state", dir}, args...)
 	env := &cli.Env{
 		Stdout: &stdout, Stderr: &stderr, Args: cliArgs,
-		Now: func() time.Time { return now },
+		Now:       func() time.Time { return now },
 		LookupEnv: func(string) (string, bool) { return "", false },
 	}
 	code := cli.Run(context.Background(), env)

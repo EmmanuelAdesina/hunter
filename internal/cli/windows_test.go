@@ -25,7 +25,7 @@ func seedWindowState(t *testing.T, dir string, observed domain.ObservationInterv
 			Field: "scope", Kind: domain.ChangeAPIAdded,
 			Before: "no API target", After: "api.example.test",
 			Direction: domain.DirectionImproved,
-			Assets: []string{"api.example.test"},
+			Assets:    []string{"api.example.test"},
 		},
 		{
 			Field: "kyc", Kind: domain.ChangeKYCRemoved,
@@ -48,7 +48,7 @@ func runWindowsCommand(t *testing.T, dir string, now time.Time, args ...string) 
 	cliArgs := append([]string{"windows", "--profile", "../../configs/profiles/personal.yaml", "--state", dir}, args...)
 	env := &cli.Env{
 		Stdout: &stdout, Stderr: &stderr, Args: cliArgs,
-		Now: func() time.Time { return now },
+		Now:       func() time.Time { return now },
 		LookupEnv: func(string) (string, bool) { return "", false },
 	}
 	code := cli.Run(context.Background(), env)

@@ -226,35 +226,35 @@ func (s *Snapshot) MaterialDigest() string {
 			id, p.ScopeFingerprint, p.RequirementFingerprint,
 			p.MetadataFingerprint, p.Listing.Digest(), p.State, p.Name)
 		decisionInputs := struct {
-			StartedAt                  *time.Time
-			FirstSeenAt                time.Time
-			DetailsFetchedAt           *time.Time
-			SubmittedReports           *int
-			SubmittedReportsKnown      bool
-			ListingSubmissionCount     int
+			StartedAt                   *time.Time
+			FirstSeenAt                 time.Time
+			DetailsFetchedAt            *time.Time
+			SubmittedReports            *int
+			SubmittedReportsKnown       bool
+			ListingSubmissionCount      int
 			ListingSubmissionCountKnown bool
-			ParseConfidence            domain.Confidence
-			ParseIssues                []string
-			SurfaceTags                domain.Tags
-			ScopeChanged               domain.ObservationInterval
-			RequirementsChanged        domain.ObservationInterval
-			MetadataChanged            domain.ObservationInterval
-			LifecycleChanged           domain.ObservationInterval
+			ParseConfidence             domain.Confidence
+			ParseIssues                 []string
+			SurfaceTags                 domain.Tags
+			ScopeChanged                domain.ObservationInterval
+			RequirementsChanged         domain.ObservationInterval
+			MetadataChanged             domain.ObservationInterval
+			LifecycleChanged            domain.ObservationInterval
 		}{
-			StartedAt:                  p.StartedAt,
-			FirstSeenAt:                p.FirstSeenAt,
-			DetailsFetchedAt:           p.DetailsFetchedAt,
-			SubmittedReports:           p.SubmittedReports,
-			SubmittedReportsKnown:      p.SubmittedReportsKnown,
-			ListingSubmissionCount:     p.Listing.SubmissionCount,
+			StartedAt:                   p.StartedAt,
+			FirstSeenAt:                 p.FirstSeenAt,
+			DetailsFetchedAt:            p.DetailsFetchedAt,
+			SubmittedReports:            p.SubmittedReports,
+			SubmittedReportsKnown:       p.SubmittedReportsKnown,
+			ListingSubmissionCount:      p.Listing.SubmissionCount,
 			ListingSubmissionCountKnown: p.Listing.SubmissionCountKnown,
-			ParseConfidence:            p.ParseConfidence,
-			ParseIssues:                p.ParseIssues,
-			SurfaceTags:                p.SurfaceTags,
-			ScopeChanged:               p.ScopeChanged,
-			RequirementsChanged:        p.RequirementsChanged,
-			MetadataChanged:            p.MetadataChanged,
-			LifecycleChanged:           p.LifecycleChanged,
+			ParseConfidence:             p.ParseConfidence,
+			ParseIssues:                 p.ParseIssues,
+			SurfaceTags:                 p.SurfaceTags,
+			ScopeChanged:                p.ScopeChanged,
+			RequirementsChanged:         p.RequirementsChanged,
+			MetadataChanged:             p.MetadataChanged,
+			LifecycleChanged:            p.LifecycleChanged,
 		}
 		encodedInputs, err := canon.Marshal(decisionInputs)
 		if err != nil {

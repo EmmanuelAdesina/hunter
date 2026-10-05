@@ -607,17 +607,17 @@ func rawInputs(in input) domain.TriageInputs {
 	count, countKnown := reportedSubmissions(p)
 	baseline, movement := postChangeSubmissionObservation(in)
 	inputs := domain.TriageInputs{
-		SubmissionCountKnown:            countKnown,
-		AccessDeltas:                    accessDeltas(in),
-		PostChangeSubmissionDeltaKnown:   movement != nil,
-		ProgramAgeBasis:                 f.ProgramAgeBasis,
-		ScopeChange:                     f.ScopeChange,
-		RequirementChange:               f.RequirementChange,
-		MetadataChange:                  f.MetadataChange,
-		LifecycleChange:                 f.LifecycleChange,
-		ScopeSize:                       len(p.InScopeTargets()),
-		ChangeCount:                     material,
-		MaxBountyUSD:                    p.MaxBountyUSD,
+		SubmissionCountKnown:           countKnown,
+		AccessDeltas:                   accessDeltas(in),
+		PostChangeSubmissionDeltaKnown: movement != nil,
+		ProgramAgeBasis:                f.ProgramAgeBasis,
+		ScopeChange:                    f.ScopeChange,
+		RequirementChange:              f.RequirementChange,
+		MetadataChange:                 f.MetadataChange,
+		LifecycleChange:                f.LifecycleChange,
+		ScopeSize:                      len(p.InScopeTargets()),
+		ChangeCount:                    material,
+		MaxBountyUSD:                   p.MaxBountyUSD,
 	}
 	if countKnown {
 		v := count
