@@ -404,7 +404,7 @@ func (s *Scanner) evaluateOne(ctx context.Context, src domain.ProgramSource, ref
 	prev, hadPrev := snap.Program(ref.Key())
 
 	if !s.cfg.FetchDetails || !s.needsDetail(ref, prev, hadPrev) {
-		out, err := s.evaluateListingOnly(ref, prev, hadPrev)
+		out, err := s.evaluateListingOnly(ref, prev, hadPrev, snap.WindowsFor(ref.Key()))
 		return programOutcome{Evaluated: out, Freshness: out.Fresh}, err
 	}
 
@@ -443,7 +443,7 @@ func (s *Scanner) evaluateOne(ctx context.Context, src domain.ProgramSource, ref
 	d := s.detector.Compare(prev, program)
 	decision := s.policy.Evaluate(program)
 	fresh := s.computeFreshness(prev, program, d, hadPrev)
-	triageScore := s.scorer.Score(program, decision, fresh, d.Changes)
+	triageScore := s.scorer.ScoreWithWindows(program, decision, fresh, d.Changes, snap.WindowsFor(program.ID))
 
 	prior := alerts.PriorDecision{Known: hadPrev}
 	if hadPrev {
@@ -490,11 +490,30 @@ func (s *Scanner) needsDetail(ref domain.ProgramRef, prev domain.Program, hadPre
 		return true
 	}
 	// A periodic refresh keeps access gates from going stale and bounds the cost
-	// of any change the listing does not expose at all.
-	if interval := s.cfg.Profile.DetailsRefreshInterval(); interval > 0 {
-		if s.cfg.Now().Sub(prev.DetailsFetchedAt.UTC()) >= interval {
-			return true
+	// of any change the listing does not expose at all. A recently observed
+	// fingerprint movement shortens that bound to one quarter of the configured
+	// interval, but only while its entire observation interval is still inside the
+	// configured opportunity horizon. This is a bounded follow-up cadence for
+	// targets already showing movement, not a second scheduler; stable programs
+	// retain the profile's normal interval.
+	interval := s.cfg.Profile.DetailsRefreshInterval()
+	now := s.cfg.Now().UTC()
+	if interval > 0 && interval >= 4*time.Hour {
+		horizon := s.cfg.Profile.ChangeWindowMaxAge()
+		for _, observed := range []domain.ObservationInterval{
+			prev.ScopeChanged,
+			prev.RequirementsChanged,
+			prev.MetadataChanged,
+			prev.LifecycleChanged,
+		} {
+			if observed.DefinitelyWithin(now, horizon) {
+				interval /= 4
+				break
+			}
 		}
+	}
+	if interval > 0 && now.Sub(prev.DetailsFetchedAt.UTC()) >= interval {
+		return true
 	}
 	return false
 }
@@ -505,7 +524,7 @@ func (s *Scanner) needsDetail(ref domain.ProgramRef, prev domain.Program, hadPre
 // poorer than the detail page, so overwriting a complete record with a summary
 // would discard the access gates policy depends on. Only freshness is refreshed,
 // and no change is claimed, because none was observed.
-func (s *Scanner) evaluateListingOnly(ref domain.ProgramRef, prev domain.Program, hadPrev bool) (Evaluated, error) {
+func (s *Scanner) evaluateListingOnly(ref domain.ProgramRef, prev domain.Program, hadPrev bool, windows []domain.OpportunityWindow) (Evaluated, error) {
 	if !hadPrev {
 		// Nothing is known and nothing was fetched. Storing a shell record
 		// would create a program that can never be judged, so it is skipped.
@@ -565,7 +584,7 @@ func (s *Scanner) evaluateListingOnly(ref domain.ProgramRef, prev domain.Program
 	fresh.MetadataChange = program.MetadataChanged
 	fresh.LifecycleChange = program.LifecycleChanged
 
-	triageScore := s.scorer.Score(program, decision, fresh, d.Changes)
+	triageScore := s.scorer.ScoreWithWindows(program, decision, fresh, d.Changes, windows)
 
 	return Evaluated{
 		Program:  program,
@@ -741,9 +760,8 @@ func (s *Scanner) openWindows(snap *state.Snapshot, evaluated []Evaluated, scanI
 
 		w := domain.NewOpportunityWindow(e.Program.ID, e.Program.Name, observed, deltas, opts)
 		w.AssetsAdded = assets
-		if e.Program.SubmittedReportsKnown && e.Program.SubmittedReports != nil {
-			w.Observe(e.Program.SubmittedReports, true)
-		}
+		count, known := submissionObservation(e.Program)
+		w.SetOpeningSubmissions(count, known)
 		snap.RecordWindow(w)
 	}
 }
@@ -800,18 +818,34 @@ func (s *Scanner) refreshWindows(snap *state.Snapshot, evaluated []Evaluated) {
 	}
 	for _, w := range snap.Windows {
 		p, ok := byID[w.ProgramID]
-		if !ok || !p.SubmittedReportsKnown || p.SubmittedReports == nil {
+		if !ok {
+			continue
+		}
+		count, known := submissionObservation(p)
+		if !known {
 			continue
 		}
 		snap.RecordWindow(func() domain.OpportunityWindow {
 			c := w
-			c.Notified = w.Notified
-			c.NotifiedAt = w.NotifiedAt
-			c.BaselineSubmissions = w.BaselineSubmissions
-			c.Observe(p.SubmittedReports, true)
+			c.Observe(count, true)
 			return c
 		}())
 	}
+}
+
+// submissionObservation returns the freshest public count available, preferring
+// the listing observation because it is refreshed on every scan. The detail
+// count is the fallback for sources whose listing omits submissions.
+func submissionObservation(p domain.Program) (*int, bool) {
+	if p.Listing.SubmissionCountKnown {
+		count := p.Listing.SubmissionCount
+		return &count, true
+	}
+	if p.SubmittedReportsKnown && p.SubmittedReports != nil {
+		count := *p.SubmittedReports
+		return &count, true
+	}
+	return nil, false
 }
 
 // buildAlerts selects and renders alerts, returning generated and suppressed

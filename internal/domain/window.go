@@ -201,21 +201,35 @@ func (w OpportunityWindow) Status(now time.Time, opts OpportunityWindowOptions) 
 	return WindowOpen
 }
 
+// SetOpeningSubmissions captures the platform count on the scan that opened the
+// window. If the count is unknown at that moment, the baseline stays unknown;
+// a later observation must not be relabelled as the opening count.
+func (w *OpportunityWindow) SetOpeningSubmissions(submissions *int, known bool) {
+	if !known || submissions == nil {
+		return
+	}
+	baseline := *submissions
+	current := baseline
+	delta := 0
+	w.BaselineSubmissions = &baseline
+	w.CurrentSubmissions = &current
+	w.SubmissionsSinceOpen = &delta
+}
+
 // Observe updates the window's competition signals from a fresh observation.
 //
-// The baseline is set once, on the scan that opened the window, and never
-// rewritten. Rewriting it would silently move the origin and make the measured
-// movement meaningless, so a second call only refreshes the current count.
+// The opening baseline is never inferred later. If it was unknown when the
+// window opened, current counts are retained for display but no movement is
+// claimed. Otherwise every update is measured against that original baseline.
 func (w *OpportunityWindow) Observe(submissions *int, known bool) {
 	if !known || submissions == nil {
 		return
 	}
 	current := *submissions
-	if w.BaselineSubmissions == nil {
-		baseline := current
-		w.BaselineSubmissions = &baseline
-	}
 	w.CurrentSubmissions = &current
+	if w.BaselineSubmissions == nil {
+		return
+	}
 	delta := current - *w.BaselineSubmissions
 	w.SubmissionsSinceOpen = &delta
 }

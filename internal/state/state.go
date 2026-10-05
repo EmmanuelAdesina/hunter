@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/eadeshina/hunter/internal/canon"
 	"github.com/eadeshina/hunter/internal/domain"
 )
 
@@ -205,8 +206,10 @@ const MaxDeliveredAlerts = 500
 // is only written when the system genuinely learned something: a new program, a
 // real change, an alert, or a new history entry.
 //
-// Fields deliberately excluded: LastSeenAt, LastScanID, LastScanAt, and the
-// observation timestamp on a listing signal. None of them can change a decision.
+// LastSeenAt, LastScanID, and LastScanAt are excluded as per-run metadata. In
+// contrast, source launch age, first-seen time, detail-refresh time, observed
+// submission counts, change intervals, and the listing signal are included
+// because they affect refresh scheduling, trigger gates, or scoring.
 func (s *Snapshot) MaterialDigest() string {
 	h := sha256.New()
 
@@ -220,14 +223,45 @@ func (s *Snapshot) MaterialDigest() string {
 	for _, id := range programs {
 		p := s.Programs[id]
 		fmt.Fprintf(h, "program=%s scope=%s req=%s meta=%s listing=%s state=%s name=%q\n",
-			id,
-			p.ScopeFingerprint,
-			p.RequirementFingerprint,
-			p.MetadataFingerprint,
-			p.Listing.Digest(),
-			p.State,
-			p.Name,
-		)
+			id, p.ScopeFingerprint, p.RequirementFingerprint,
+			p.MetadataFingerprint, p.Listing.Digest(), p.State, p.Name)
+		decisionInputs := struct {
+			StartedAt                   *time.Time
+			FirstSeenAt                 time.Time
+			DetailsFetchedAt            *time.Time
+			SubmittedReports            *int
+			SubmittedReportsKnown       bool
+			ListingSubmissionCount      int
+			ListingSubmissionCountKnown bool
+			ParseConfidence             domain.Confidence
+			ParseIssues                 []string
+			SurfaceTags                 domain.Tags
+			ScopeChanged                domain.ObservationInterval
+			RequirementsChanged         domain.ObservationInterval
+			MetadataChanged             domain.ObservationInterval
+			LifecycleChanged            domain.ObservationInterval
+		}{
+			StartedAt:                   p.StartedAt,
+			FirstSeenAt:                 p.FirstSeenAt,
+			DetailsFetchedAt:            p.DetailsFetchedAt,
+			SubmittedReports:            p.SubmittedReports,
+			SubmittedReportsKnown:       p.SubmittedReportsKnown,
+			ListingSubmissionCount:      p.Listing.SubmissionCount,
+			ListingSubmissionCountKnown: p.Listing.SubmissionCountKnown,
+			ParseConfidence:             p.ParseConfidence,
+			ParseIssues:                 p.ParseIssues,
+			SurfaceTags:                 p.SurfaceTags,
+			ScopeChanged:                p.ScopeChanged,
+			RequirementsChanged:         p.RequirementsChanged,
+			MetadataChanged:             p.MetadataChanged,
+			LifecycleChanged:            p.LifecycleChanged,
+		}
+		encodedInputs, err := canon.Marshal(decisionInputs)
+		if err != nil {
+			fmt.Fprintf(h, "program-inputs-unencodable=%q\n", err)
+		} else {
+			fmt.Fprintf(h, "program-inputs=%s %s\n", id, encodedInputs)
+		}
 	}
 
 	alerts := make([]string, 0, len(s.Alerts))
@@ -268,12 +302,14 @@ func (s *Snapshot) MaterialDigest() string {
 		// NotifiedAt are excluded because they change when a mail is sent rather
 		// than when anything was learned, and including them would make delivery
 		// state look like new evidence.
-		fmt.Fprintf(h, "window=%s program=%s not_before=%s deltas=%s baseline=%s current=%s\n",
+		fmt.Fprintf(h, "window=%s program=%s not_before=%s not_after=%s deltas=%s baseline=%s current=%s movement=%s\n",
 			id, w.ProgramID,
-			w.Observed.NotBefore.UTC().Format(time.RFC3339),
+			w.Observed.NotBefore.UTC().Format(time.RFC3339Nano),
+			w.Observed.NotAfter.UTC().Format(time.RFC3339Nano),
 			w.Deltas.Identity(),
 			intPtrString(w.BaselineSubmissions),
 			intPtrString(w.CurrentSubmissions),
+			intPtrString(w.SubmissionsSinceOpen),
 		)
 	}
 

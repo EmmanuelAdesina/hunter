@@ -100,6 +100,33 @@ func TestTheShippedProfileIsValid(t *testing.T) {
 	}
 }
 
+// TestChangeWindowsRequireAnExplicitDefault verifies every test profile must
+// declare a recency fallback rather than silently leaving a trigger unbounded.
+func TestChangeWindowsRequireAnExplicitDefault(t *testing.T) {
+	profile := strings.Replace(minimalProfile, "      default: 72h\n", "", 1)
+	_, err := config.Parse([]byte(profile))
+	if err == nil {
+		t.Fatal("a profile with no change_windows.default was accepted")
+	}
+	if !strings.Contains(err.Error(), "notifications.change_windows.default") {
+		t.Errorf("error = %v, want it to identify the missing change-window default", err)
+	}
+}
+
+// TestChangeWindowMaxAgeDefaultsToWidestTriggerWindow verifies derived expiry
+// tracks the broadest configured trigger window instead of expiring eligible
+// windows prematurely.
+func TestChangeWindowMaxAgeDefaultsToWidestTriggerWindow(t *testing.T) {
+	profile := strings.Replace(minimalProfile, "default: 72h", "default: 72h\n      access_improved: 168h", 1)
+	p, err := config.Parse([]byte(profile))
+	if err != nil {
+		t.Fatalf("parse profile: %v", err)
+	}
+	if got := p.ChangeWindowMaxAge(); got != 168*time.Hour {
+		t.Errorf("derived window max age = %s, want the widest trigger window of 168h", got)
+	}
+}
+
 // TestDefaultsAreApplied verifies omitted keys take sensible values rather than
 // zero, since a zero reputation ceiling would reject every program.
 func TestDefaultsAreApplied(t *testing.T) {

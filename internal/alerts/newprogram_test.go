@@ -219,6 +219,123 @@ func TestHTMLBodyIsSelfContained(t *testing.T) {
 	}
 }
 
+// TestChangeAlertsUseTheirOwnHTMLHero verifies a recent change on an old program
+// is presented as a change, with the interval evidence rather than a launch-age
+// claim in the hero.
+func TestChangeAlertsUseTheirOwnHTMLHero(t *testing.T) {
+	got := generator(profile(t)).Decide(candidate(func(c *alerts.Candidate) {
+		c.Program = program(launchedAgo(200 * 24 * time.Hour))
+		c.Program.Finalize()
+		c.Diff = domain.Diff{
+			ProgramID: "hackenproof:example",
+			Changes: domain.ChangeSet{{
+				Kind: domain.ChangeKYCRemoved, Severity: domain.SeverityMedium,
+				Direction: domain.DirectionImproved, Field: "kyc",
+				Before: "KYC required", After: "KYC not required",
+			}},
+		}
+		c.Fresh.RequirementChange = domain.NewObservationInterval(
+			fixedNow.Add(-11*time.Minute), fixedNow.Add(-9*time.Minute))
+		c.Prior = alerts.PriorDecision{Known: true, Eligible: true}
+	}))
+	if got == nil {
+		t.Fatal("no alert for a recent KYC removal")
+	}
+	if got.Kind != domain.AlertMaterialChange {
+		t.Errorf("alert kind = %s, want %s", got.Kind, domain.AlertMaterialChange)
+	}
+	if !strings.Contains(got.Subject, "CHANGED") || !strings.Contains(got.Subject, "within the last 9m-11m") {
+		t.Errorf("subject uses the wrong trigger age: %q", got.Subject)
+	}
+	if strings.Contains(got.Subject, "launched 200d ago") {
+		t.Errorf("change subject is presented as a launch: %q", got.Subject)
+	}
+	if !strings.Contains(got.Body, "Change observed: within the last 9m-11m") ||
+		!strings.Contains(got.Body, "Started:") || strings.Contains(got.Body, "Detected: launched 200d ago") {
+		t.Errorf("plain-text body does not separate change age from program age:\n%s", got.Body)
+	}
+	for _, want := range []string{"PROGRAM CHANGED", "CHANGE OBSERVED", "within the last 9m-11m", "PROGRAM AGE"} {
+		if !strings.Contains(got.HTMLBody, want) {
+			t.Errorf("HTML body is missing %q", want)
+		}
+	}
+	if strings.Contains(got.HTMLBody, "NEWLY LAUNCHED") {
+		t.Error("a change alert was labelled as a launch")
+	}
+	if strings.Contains(got.HTMLBody, "Sent because this program launched") {
+		t.Error("the HTML footer justified a change alert using its launch date")
+	}
+}
+
+// TestScopeExpansionUsesChangeIntervalAcrossRenderers verifies every output
+// format labels an old program's new API by the bounded scope-change evidence.
+func TestScopeExpansionUsesChangeIntervalAcrossRenderers(t *testing.T) {
+	got := generator(profile(t)).Decide(candidate(func(c *alerts.Candidate) {
+		c.Program = program(launchedAgo(200 * 24 * time.Hour))
+		c.Program.Finalize()
+		c.Diff = domain.Diff{
+			ProgramID: "hackenproof:example",
+			Changes: domain.ChangeSet{{
+				Kind: domain.ChangeAPIAdded, Severity: domain.SeverityHigh,
+				Field: "scope", Assets: []string{"https://api-v2.example.com"},
+				Direction: domain.DirectionImproved,
+			}},
+		}
+		c.Fresh.ScopeChange = domain.NewObservationInterval(
+			fixedNow.Add(-11*time.Minute), fixedNow.Add(-9*time.Minute))
+		c.Prior = alerts.PriorDecision{Known: true, Eligible: true}
+	}))
+	if got == nil {
+		t.Fatal("no alert for a recent API addition")
+	}
+	if got.Kind != domain.AlertScopeExpansion {
+		t.Errorf("alert kind = %s, want %s", got.Kind, domain.AlertScopeExpansion)
+	}
+	if !strings.Contains(got.Subject, "SCOPE EXPANDED") ||
+		!strings.Contains(got.Subject, "within the last 9m-11m") {
+		t.Errorf("subject does not use scope-change evidence: %q", got.Subject)
+	}
+	if !strings.Contains(got.Body, "ATTACK SURFACE EXPANDED") ||
+		!strings.Contains(got.Body, "Change observed: within the last 9m-11m") ||
+		!strings.Contains(got.Body, "Started:") {
+		t.Errorf("plain-text body does not distinguish the change and program ages:\n%s", got.Body)
+	}
+	for _, want := range []string{"SCOPE EXPANDED", "CHANGE OBSERVED", "within the last 9m-11m", "PROGRAM AGE"} {
+		if !strings.Contains(got.HTMLBody, want) {
+			t.Errorf("HTML body is missing %q", want)
+		}
+	}
+	if strings.Contains(got.HTMLBody, "NEWLY LAUNCHED") || strings.Contains(got.Subject, "launched 200d ago") {
+		t.Error("scope-change alert was presented as a launch")
+	}
+}
+
+// TestAccessImprovementsAreNotMislabelledAsScopeExpansions verifies the trigger
+// label follows the event kind instead of treating every material improvement as
+// newly added attack surface.
+func TestAccessImprovementsAreNotMislabelledAsScopeExpansions(t *testing.T) {
+	got := generator(profile(t)).Decide(candidate(func(c *alerts.Candidate) {
+		c.Program = program(launchedAgo(200 * 24 * time.Hour))
+		c.Program.Finalize()
+		c.Diff = domain.Diff{
+			ProgramID: "hackenproof:example",
+			Changes: domain.ChangeSet{{
+				Kind: domain.ChangeKYCRemoved, Severity: domain.SeverityMedium,
+				Direction: domain.DirectionImproved, Field: "kyc",
+			}},
+		}
+		c.Fresh.RequirementChange = domain.NewObservationInterval(
+			fixedNow.Add(-11*time.Minute), fixedNow.Add(-9*time.Minute))
+		c.Prior = alerts.PriorDecision{Known: true, Eligible: true}
+	}))
+	if got == nil {
+		t.Fatal("no alert for a recent access improvement")
+	}
+	if got.Kind != domain.AlertMaterialChange {
+		t.Errorf("alert kind = %s, want %s", got.Kind, domain.AlertMaterialChange)
+	}
+}
+
 // TestHTMLIsEscaped verifies third-party text cannot inject markup.
 //
 // Program names, descriptions and asset identifiers all originate from a page

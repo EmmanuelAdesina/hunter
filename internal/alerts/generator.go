@@ -321,9 +321,40 @@ func (g *Generator) CapAlerts(alerts []domain.Alert) ([]domain.Alert, int) {
 	return g.cap(alerts)
 }
 
+// selectedTrigger returns the trigger the generator would choose for rendering.
+func selectedTrigger(c Candidate, profile *config.Profile, now time.Time) domain.AlertKind {
+	age, known := launchAge(c.Program, now)
+	generator := Generator{profile: profile}
+	kind, _ := generator.selectKind(c, age, known, now)
+	return kind
+}
+
 // hasSurfaceExpansion reports whether the change set added attack surface.
 //
 // Additions count; removals do not. Losing scope is a change but not an opening.
 func hasSurfaceExpansion(c Candidate) bool {
-	return c.Diff.Changes.AlertableMaterial()
+	for _, change := range c.Diff.Changes {
+		if isSurfaceExpansion(change) {
+			return true
+		}
+	}
+	return false
+}
+
+// isSurfaceExpansion reports whether one alertable change actually added
+// testable surface. Other improvements (for example, a removed KYC gate) are
+// material changes, but they are not scope expansions.
+func isSurfaceExpansion(change domain.Change) bool {
+	if !change.Alertable() || !change.Severity.AtLeast(domain.SeverityMedium) {
+		return false
+	}
+	switch change.Kind {
+	case domain.ChangeTargetAdded, domain.ChangeAPIAdded,
+		domain.ChangeRepositoryAdded, domain.ChangeMobileAdded,
+		domain.ChangeTargetInScope,
+		domain.ChangeScopeChanged, domain.ChangeSurfaceChanged:
+		return true
+	default:
+		return false
+	}
 }

@@ -2,9 +2,11 @@
 
 A personal bug-bounty opportunity monitor.
 
-It watches bug-bounty programs, decides whether the new or changed ones are
-actually reachable and worth your time, and emails you only when the answer is
-yes.
+It watches bug-bounty programs, decides whether newly launched programs and
+material changes are actually reachable and worth your time, and emails you only
+when a configured trigger has fresh evidence. Launch age and change age are
+separate clocks: a five-year-old program can still be worth a look when its scope
+or access gates changed recently.
 
 The goal is not a dashboard. The goal is to **see the right opportunity before
 you spend an evening reading through everything else**.
@@ -30,8 +32,13 @@ Every five minutes it:
 6. **Prioritizes** what deserves attention, publishing each component.
 7. **Alerts** once, with a message you can act on from a phone.
 8. **Records** the result so the same thing is never announced twice.
+9. **Tracks opportunity windows** with their individual deltas and the source's
+   submission-count movement since each transition.
 
-It deliberately does **not** dump every new program at you.
+A new-program alert is gated by the source-reported launch date. A change alert is
+gated by the interval between the last detail observation that did not show the
+change and the first one that did. If Hunter cannot bound a change in time, it
+does not call that change recent and does not alert on it.
 
 ---
 
@@ -134,8 +141,12 @@ bin/hunter scan
 | `hunter programs --changed` | Only programs that changed in the last scan. |
 | `hunter explain <id>` | Show the full decision, check by check. |
 | `hunter history <id>` | Show recorded changes over time. |
+| `hunter replay <id>` | Merge saved change history and opportunity windows into a read-only timeline. |
 | `hunter alerts` | List recorded alerts. |
 | `hunter alerts --undelivered` | Only alerts not confirmed delivered. |
+| `hunter windows` | List recorded opportunity windows and their current status. |
+| `hunter windows --open` | Only windows still within their configured age and crowding bounds. |
+| `hunter windows --program <id-or-slug>` | Filter windows to one program. |
 | `hunter validate-config` | Parse and validate the profile. |
 | `hunter test-fixtures` | Re-parse the recorded upstream pages. |
 | `hunter version` | Print the build version. |
@@ -193,9 +204,20 @@ profile:
     min_severity: medium
     require_eligible: true
     alert_on_new_programs: true
+    new_program_window: 24h
     alert_on_material_change: true
     alert_on_newly_eligible: true
     alert_on_scope_expansion: true
+    change_windows:
+      default: 72h
+      scope_expansion: 72h
+      access_improved: 168h
+      reactivated: 72h
+      bundle_window: 0s
+      # If omitted, max_age is the widest change window above.
+      max_age: 168h
+      # Zero disables submission-count crowding expiry.
+      max_post_change_submissions: 0
     max_per_scan: 10
     subject_prefix: "[HUNTER]"
 
@@ -298,14 +320,16 @@ Why this matched:
   program state is live (one of: live, new)
   exposes api, web2, web_application (one of: web_application, api, backend)
 
-Attention priority: 88/100 (ordering aid, not a success estimate)
-  eligibility          100  8 of 8 requirements satisfied; eligible
-  freshness             96  first seen 8m ago
-  surface relevance     94  matches api, web_application
-  scope richness        75  2 in-scope assets
-  change magnitude     100  3 weighted change events
-  low competition       93  4 submissions reported by the platform
+Attention priority: 83/100 (ordering aid, not a success estimate)
+  access delta          50  no typed access-gate delta in bounded evidence
   bounty                70  ceiling $1500
+  change magnitude      60  3 weighted change events
+  eligibility          100  8 of 8 requirements satisfied; eligible
+  freshness            100  first seen 8m ago
+  low competition       84  4 submissions reported by the platform
+  post-change competition  50  opening baseline or current count is unknown
+  scope richness        50  2 in-scope assets
+  surface relevance    100  matches api, web2, web_application
 
 Timing:
   - program age: 4y ago
@@ -315,10 +339,10 @@ Open:
 https://hackenproof.com/programs/poloniex
 ```
 
-Every number shown is an observation, not an estimate. Submission counts are
-printed as the raw figure the platform published, because a submission count is a
-weak proxy for competition and framing it as anything more would overstate what
-is known.
+The score and component values are ordering heuristics, not measurements of
+success. Submission counts and signed movement are printed as the raw figures the
+platform published; they are weak proxies for competition, and framing them as
+researcher counts would overstate what is known.
 
 ---
 
@@ -329,13 +353,19 @@ something, and it never claims to.
 
 Every component is published with its own value and a one-line basis, so the total
 can always be traced back to observed facts, and you can disagree with any single
-input. Bounty size is weighted lowest on purpose: a large bounty is not evidence
+input. The `access delta` component counts only typed, directional gate changes;
+it does not parse prose or fuse several facts into a claim. The `post-change competition`
+component applies the existing submission-count curve to signed movement from
+the latest opportunity window's opening baseline. Unknown baselines stay neutral,
+and a negative movement remains visible. These and the existing
+`low competition` component contribute to one weighted total, not separate
+scores. Bounty size is weighted lowest on purpose: a large bounty is not evidence
 of an easier bug, and weighting it heavily would bias the channel toward whoever
 pays most.
 
 ---
 
-## Change detection
+## Change detection and opportunity windows
 
 Change is detected by comparing **content**, never by trusting page timestamps.
 Fingerprints cover three disjoint subsets, so a change lands in exactly the signal
@@ -343,19 +373,39 @@ that describes it:
 
 | Fingerprint | Covers |
 |---|---|
-| scope | the in-scope asset set |
+| scope | the in-scope asset set and technical surface |
 | requirements | access gates and participation constraints |
 | metadata | identity, classification, bounty, state |
 
-Detected events include `NEW_PROGRAM`, `PROGRAM_REACTIVATED`, `SCOPE_CHANGED`,
-`TARGET_ADDED`, `TARGET_REMOVED`, `API_ADDED`, `REPOSITORY_ADDED`,
-`KYC_CHANGED`, `REPUTATION_CHANGED`, `SUBMISSION_FEE_CHANGED`,
-`BOUNTY_CHANGED`, `PROGRAM_ENDED`, and more.
+The diff keeps directional evidence atomic. Examples include `API_ADDED`,
+`ASSET_MOVED_IN_SCOPE`, `REPUTATION_LOWERED`, `KYC_REMOVED`, `FEE_REDUCED`, and
+`POC_REMOVED`; the opposite movements are recorded separately and do not open a
+window. An unreadable gate has no direction. Summary events such as
+`SCOPE_CHANGED` and `SURFACE_CHANGED` are alertable only when their recorded
+direction is improved access.
 
-Severity is directional. Losing scope is recorded but never alerts on its own;
-gaining an API is high-value. A program coming back to life is rated higher than
-a routine metadata edit, because a reopened program is a fresh window that other
-researchers have not seen.
+Every change is bounded by an `ObservationInterval`: the last detail read that did
+not show it and the first read that did. Hunter does not claim to know the instant
+between those reads. Human output shows the youngest-to-oldest possible age range;
+unknown or unbounded changes alert on nothing. Each trigger has its own recency
+window, resolved from a per-kind setting, then a change class, then `default`.
+
+An opportunity window is a temporal bundle, not a rewritten editorial conclusion.
+It carries each directional delta separately, plus the submission count observed
+when it opened and the signed count movement seen later. `hunter windows` shows
+these records and derives `open` or `expired` from the current age and optional
+crowding thresholds. An unbounded window is expired rather than presumed fresh.
+
+`hunter replay <id>` merges a program's saved change-history entries and windows
+into a read-only timeline. It shows scan-recorded times separately from bounded
+observation intervals, preserves each atomic delta, and reports saved eligibility
+without re-running policy, scoring, alert generation, or source reads. The order is
+by the earliest available evidence; overlapping intervals remain visibly bounded,
+not converted into a claimed event time.
+
+A change alert for a long-running program is therefore presented as a change (for
+example, `PROGRAM CHANGED`) with its own observed-age range, not as `NEWLY
+LAUNCHED`. The program's source-reported launch age remains a separate fact.
 
 ---
 
@@ -373,6 +423,14 @@ Hunter reads in two tiers:
 - **The expensive tier** reads a detail page only when the listing says something
   differs, when the record has never been completed, or when the refresh interval
   has elapsed.
+
+The profile's refresh interval is the normal upper bound. If a scope,
+requirements, metadata, or lifecycle change has a bounded interval that is still
+**definitely** inside the configured opportunity horizon, Hunter shortens that
+program's refresh interval to one quarter of the configured value. The faster
+follow-up ends when the recorded interval is no longer definitely recent; stable
+programs keep the normal cadence. This adaptation runs inside the single-shot
+scan, with no daemon or second scheduler.
 
 Two things are deliberately excluded from the trigger, because both change
 constantly and would otherwise defeat the whole design:
@@ -404,6 +462,7 @@ State lives in the repository so it is reviewable and recoverable:
 state/
   programs.json          current record per program
   alerts.json            alert delivery records
+  windows.json           opportunity windows and competition observations
   history/<program>.json per-program change history
 ```
 
@@ -557,18 +616,18 @@ each was invisible in output and expensive in practice:
 
 ## Scheduling
 
-`.github/workflows/monitor.yml` runs every five minutes. It is the entire
-runtime: the binary is a single-shot worker with no server and no listening
-socket.
+The `deploy/systemd/hunter.timer` unit invokes `hunter scan` every five minutes.
+Systemd is the scheduler; GitHub Actions is not used for live scans. Each
+invocation is a single-shot worker with no server and no listening socket: it
+reads the source, writes state, optionally sends email, and exits.
 
-Each run validates the profile, re-verifies the fixtures against recorded
-upstream output, scans, and commits the state it produced. Overlapping runs are
-cancelled explicitly.
+The state directory is persisted by the host deployment and is decision-making
+evidence: preserve and commit its contents to version control. No second
+scheduler should scan into a separate state store, because the two histories
+would diverge and could send duplicate alerts.
 
-`.github/workflows/test.yml` runs formatting, vet, build, the suite under the race
-detector, and a check that the configuration layer really does reject a bad
-profile. `.github/workflows/release.yml` builds static binaries for five targets
-and verifies each build is byte-reproducible.
+`.github/workflows/test.yml` runs formatting, vet, build, and the full suite on
+pushes and pull requests. It does not schedule production scans.
 
 ---
 

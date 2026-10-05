@@ -48,6 +48,22 @@ type TriageInputs struct {
 	// SubmissionCountKnown distinguishes a real zero from an absent count.
 	SubmissionCountKnown bool `json:"submission_count_known"`
 
+	// AccessDeltas lists the typed, directional gate movements used by the
+	// access-delta component. It contains change kinds, not an editorial summary.
+	AccessDeltas []string `json:"access_deltas,omitempty"`
+
+	// PostChangeBaselineSubmissions is the platform-reported count observed when
+	// the latest opportunity window opened.
+	PostChangeBaselineSubmissions *int `json:"post_change_baseline_submissions,omitempty"`
+
+	// PostChangeSubmissionDelta is the signed platform-reported count movement
+	// from the baseline captured when the latest opportunity window opened.
+	PostChangeSubmissionDelta *int `json:"post_change_submission_delta,omitempty"`
+
+	// PostChangeSubmissionDeltaKnown distinguishes an unknown baseline/count from
+	// an observed zero movement.
+	PostChangeSubmissionDeltaKnown bool `json:"post_change_submission_delta_known"`
+
 	// ProgramAge and its basis.
 	ProgramAge      time.Duration `json:"program_age,omitempty"`
 	ProgramAgeBasis AgeBasis      `json:"program_age_basis,omitempty"`

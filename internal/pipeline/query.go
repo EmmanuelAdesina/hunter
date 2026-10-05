@@ -66,6 +66,49 @@ type ProgramRequest struct {
 	LaunchWindow time.Duration
 }
 
+// WindowsRequest describes a query over recorded opportunity windows.
+type WindowsRequest struct {
+	// OpenOnly excludes windows whose evidence is stale or whose submission
+	// count has reached the configured crowding threshold.
+	OpenOnly bool
+
+	// Program filters to one program ID, slug, or unambiguous name.
+	Program string
+
+	// Limit caps the result count. Zero means unlimited.
+	Limit int
+}
+
+// WindowView pairs a stored opportunity window with its status under the
+// current profile. Status is derived at query time, never persisted as a
+// lifecycle state that could drift from the evidence.
+type WindowView struct {
+	Window domain.OpportunityWindow `json:"window"`
+	Status domain.WindowStatus      `json:"status"`
+}
+
+// ReplayEvent combines history and opportunity-window records from one recorded
+// observation. It contains no re-evaluated eligibility or alert decision.
+type ReplayEvent struct {
+	Kind       string                     `json:"kind"`
+	ScanID     string                     `json:"scan_id,omitempty"`
+	RecordedAt *time.Time                 `json:"recorded_at,omitempty"`
+	Eligible   *bool                      `json:"eligible,omitempty"`
+	Reasons    []string                   `json:"reasons,omitempty"`
+	Changes    domain.ChangeSet           `json:"changes,omitempty"`
+	Windows    []domain.OpportunityWindow `json:"windows,omitempty"`
+}
+
+// ReplayTimeline is the recorded evidence for one program, ordered by the
+// earliest available observation bound. Intervals remain intervals; replay does
+// not invent an exact change time or re-run old decisions.
+type ReplayTimeline struct {
+	ProgramID string        `json:"program_id"`
+	Count     int           `json:"count"`
+	Total     int           `json:"total"`
+	Events    []ReplayEvent `json:"events"`
+}
+
 // Programs returns evaluated programs matching the request.
 func (q *Query) Programs(ctx context.Context, req ProgramRequest) ([]Evaluated, error) {
 	snap, err := q.store.Load(ctx)
@@ -136,7 +179,7 @@ func (q *Query) evaluateStored(p domain.Program, snap *state.Snapshot) Evaluated
 		}}
 	}
 
-	tri := q.scorer.Score(p, decision, fresh, d.Changes)
+	tri := q.scorer.ScoreWithWindows(p, decision, fresh, d.Changes, snap.WindowsFor(p.ID))
 	return Evaluated{Program: p, Diff: d, Decision: decision, Triage: tri, Fresh: fresh}
 }
 
@@ -230,6 +273,57 @@ func (q *Query) launchWindow(req ProgramRequest) time.Duration {
 	return req.LaunchWindow
 }
 
+// Windows returns recorded opportunity windows, with status derived from the
+// current time and profile thresholds.
+func (q *Query) Windows(ctx context.Context, req WindowsRequest) ([]WindowView, error) {
+	snap, err := q.store.Load(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	programID := ""
+	if strings.TrimSpace(req.Program) != "" {
+		var ok bool
+		programID, ok = ResolveID(snap, req.Program)
+		if !ok {
+			return nil, fmt.Errorf("no program matching %q", req.Program)
+		}
+	}
+
+	now := q.now()
+	opts := domain.OpportunityWindowOptions{
+		Now:                      now,
+		MaxAge:                   q.profile.ChangeWindowMaxAge(),
+		MaxPostChangeSubmissions: q.profile.MaxPostChangeSubmissions(),
+	}
+	out := make([]WindowView, 0, len(snap.Windows))
+	for _, window := range snap.Windows {
+		if programID != "" && window.ProgramID != programID {
+			continue
+		}
+		status := window.Status(now, opts)
+		if req.OpenOnly && status != domain.WindowOpen {
+			continue
+		}
+		out = append(out, WindowView{Window: window, Status: status})
+	}
+
+	sort.SliceStable(out, func(i, j int) bool {
+		a, b := out[i].Window.Observed.NotAfter, out[j].Window.Observed.NotAfter
+		if a.IsZero() != b.IsZero() {
+			return !a.IsZero()
+		}
+		if !a.Equal(b) {
+			return a.After(b)
+		}
+		return out[i].Window.ID < out[j].Window.ID
+	})
+	if req.Limit > 0 && len(out) > req.Limit {
+		out = out[:req.Limit]
+	}
+	return out, nil
+}
+
 // Explain returns the full decision for one program.
 func (q *Query) Explain(ctx context.Context, query string) (Evaluated, bool, error) {
 	snap, err := q.store.Load(ctx)
@@ -287,6 +381,130 @@ func (q *Query) History(ctx context.Context, query string) (string, []state.Hist
 		return "", nil, err
 	}
 	return id, entries, nil
+}
+
+// Replay reconstructs a read-only timeline from saved history and opportunity
+// windows. It does not re-run policy, scoring, alert generation, or source reads.
+func (q *Query) Replay(ctx context.Context, query string, limit int) (ReplayTimeline, error) {
+	snap, err := q.store.Load(ctx)
+	if err != nil {
+		return ReplayTimeline{}, err
+	}
+	id, ok := ResolveID(snap, query)
+	if !ok {
+		return ReplayTimeline{}, fmt.Errorf("no program matching %q", query)
+	}
+
+	entries, err := q.store.HistoryFor(ctx, id)
+	if err != nil {
+		return ReplayTimeline{}, err
+	}
+	events := make([]ReplayEvent, 0, len(entries)+len(snap.Windows))
+	byScan := make(map[string]int, len(entries))
+	for _, entry := range entries {
+		recordedAt := entry.At
+		eligible := entry.Eligible
+		event := ReplayEvent{
+			Kind:       "change_history",
+			ScanID:     entry.ScanID,
+			RecordedAt: &recordedAt,
+			Eligible:   &eligible,
+			Reasons:    entry.Reasons,
+			Changes:    entry.Changes,
+		}
+		byScan[entry.ScanID] = len(events)
+		events = append(events, event)
+	}
+
+	for _, window := range snap.WindowsFor(id) {
+		if index, found := byScan[window.OpenedScanID]; found && window.OpenedScanID != "" {
+			events[index].Windows = append(events[index].Windows, window)
+			events[index].Kind = replayEventKind(events[index])
+			continue
+		}
+		events = append(events, ReplayEvent{
+			Kind:    "opportunity_window",
+			ScanID:  window.OpenedScanID,
+			Windows: []domain.OpportunityWindow{window},
+		})
+	}
+
+	for i := range events {
+		events[i].Kind = replayEventKind(events[i])
+		sort.SliceStable(events[i].Windows, func(a, b int) bool {
+			left, leftKnown := events[i].Windows[a].Observed.NotBefore, events[i].Windows[a].Observed.Known()
+			right, rightKnown := events[i].Windows[b].Observed.NotBefore, events[i].Windows[b].Observed.Known()
+			if leftKnown != rightKnown {
+				return leftKnown
+			}
+			if leftKnown && !left.Equal(right) {
+				return left.Before(right)
+			}
+			return events[i].Windows[a].ID < events[i].Windows[b].ID
+		})
+	}
+	sort.SliceStable(events, func(i, j int) bool {
+		left, leftKnown := replayOrderTime(events[i])
+		right, rightKnown := replayOrderTime(events[j])
+		if leftKnown != rightKnown {
+			return leftKnown
+		}
+		if leftKnown && !left.Equal(right) {
+			return left.Before(right)
+		}
+		if events[i].ScanID != events[j].ScanID {
+			return events[i].ScanID < events[j].ScanID
+		}
+		return replayWindowID(events[i]) < replayWindowID(events[j])
+	})
+
+	total := len(events)
+	if limit > 0 && len(events) > limit {
+		events = events[:limit]
+	}
+	return ReplayTimeline{
+		ProgramID: id,
+		Count:     len(events),
+		Total:     total,
+		Events:    events,
+	}, nil
+}
+
+func replayEventKind(event ReplayEvent) string {
+	hasHistory := event.Eligible != nil || event.RecordedAt != nil
+	if len(event.Windows) > 0 && hasHistory {
+		return "change_and_window"
+	}
+	if len(event.Windows) > 0 {
+		return "opportunity_window"
+	}
+	return "change_history"
+}
+
+func replayOrderTime(event ReplayEvent) (time.Time, bool) {
+	var earliest time.Time
+	for _, window := range event.Windows {
+		if !window.Observed.Known() {
+			continue
+		}
+		if earliest.IsZero() || window.Observed.NotBefore.Before(earliest) {
+			earliest = window.Observed.NotBefore
+		}
+	}
+	if !earliest.IsZero() {
+		return earliest, true
+	}
+	if event.RecordedAt != nil {
+		return *event.RecordedAt, true
+	}
+	return time.Time{}, false
+}
+
+func replayWindowID(event ReplayEvent) string {
+	if len(event.Windows) == 0 {
+		return ""
+	}
+	return event.Windows[0].ID
 }
 
 // Alerts returns recorded alert deliveries.
