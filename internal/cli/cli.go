@@ -167,14 +167,29 @@ func newSources(profile *config.Profile) ([]domain.ProgramSource, error) {
 	reg := source.NewRegistry()
 	reg.Register(hackenproof.AdapterName, func() (domain.ProgramSource, error) {
 		cfg := profile.SourceConfigFor(hackenproof.AdapterName)
+		// The adapter's declared pacing is the floor, not the profile's value.
+		// A profile that spaces requests more tightly than the adapter says the
+		// host tolerates would otherwise turn a politeness setting into a
+		// rate-limit generator, and the resulting 429 costs coverage silently.
+		caps := (&hackenproof.Source{}).Capabilities()
+
+		interval := profile.ScanDuration("min_request_interval")
+		if caps.MinRequestInterval > interval {
+			interval = caps.MinRequestInterval
+		}
+		concurrent := profile.Scan.MaxConcurrent
+		if caps.MaxConcurrent > 0 && caps.MaxConcurrent < concurrent {
+			concurrent = caps.MaxConcurrent
+		}
+
 		client := source.NewClient(source.ClientConfig{
 			Timeout:        profile.ScanDuration("request_timeout"),
 			MaxRetries:     profile.Scan.MaxRetries,
 			RetryBaseDelay: profile.ScanDuration("retry_base_delay"),
 			MaxRetryDelay:  profile.ScanDuration("max_retry_delay"),
-			MinInterval:    profile.ScanDuration("min_request_interval"),
+			MinInterval:    interval,
 			UserAgent:      profile.Scan.UserAgent,
-			MaxConcurrent:  profile.Scan.MaxConcurrent,
+			MaxConcurrent:  concurrent,
 		}, nil)
 		return hackenproof.New(hackenproof.Options{
 			Client:             client,
@@ -183,6 +198,7 @@ func newSources(profile *config.Profile) ([]domain.ProgramSource, error) {
 			DetailPathTemplate: cfg.DetailPathTemplate,
 			PerPage:            profile.Scan.PerPage,
 			MaxPages:           profile.Scan.MaxPages,
+			PageConcurrency:    profile.Scan.ListingConcurrency,
 		})
 	})
 

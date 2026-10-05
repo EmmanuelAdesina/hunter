@@ -247,6 +247,16 @@ type ScanConfig struct {
 	// MaxConcurrent bounds concurrent detail fetches for one source.
 	MaxConcurrent int `yaml:"max_concurrent"`
 
+	// ListingConcurrency bounds concurrent listing-page fetches during discovery.
+	//
+	// It is separate from MaxConcurrent because the two have different costs. A
+	// detail read is one page, requested rarely. The listing sweep is the whole
+	// catalogue, requested on every single scan, and it is the request pattern
+	// that draws a rate limit. Zero means "use whatever the adapter declares",
+	// which is the safe default: an adapter knows its host better than a profile
+	// does.
+	ListingConcurrency int `yaml:"listing_concurrency"`
+
 	// UserAgent identifies the crawler. It must be truthful and stable.
 	UserAgent string `yaml:"user_agent"`
 }
@@ -593,6 +603,9 @@ func (p *Profile) applyDefaultsAndValidate() error {
 	}
 	if p.Scan.MaxConcurrent <= 0 {
 		p.Scan.MaxConcurrent = 2
+	}
+	if p.Scan.ListingConcurrency < 0 {
+		fail("scan.listing_concurrency must be >= 0")
 	}
 	// The listing-change trigger defaults to on. Leaving it off would mean the
 	// cheap tier notices that nothing moved but never re-reads anything that did,

@@ -104,7 +104,10 @@ func New(opts Options) (*Source, error) {
 		opts.PerPage = 10
 	}
 	if opts.PageConcurrency <= 0 {
-		opts.PageConcurrency = 4
+		// Defaulted from the adapter's own declared concurrency rather than from a
+		// literal, so that raising the declared limit is enough to change the
+		// behaviour here. A separate magic number is how the two drifted apart.
+		opts.PageConcurrency = capabilities().MaxConcurrent
 	}
 	if opts.Now == nil {
 		opts.Now = time.Now
@@ -115,14 +118,9 @@ func New(opts Options) (*Source, error) {
 // Name returns the adapter identifier.
 func (s *Source) Name() string { return AdapterName }
 
-// Capabilities describes the adapter's limits.
-//
-// HasStableIDs is false because the platform's own program identifiers are
-// absent from the public listing and change across renames; the slug is the
-// durable key. SupportsIncrementalFetch is false because the listing's update
-// marker has day resolution, which cannot gate detail fetches without missing
-// same-day changes.
-func (s *Source) Capabilities() domain.SourceCapabilities {
+// capabilities is the adapter's declared limit set, as a value rather than a
+// literal, so the defaults below and the reported capabilities cannot disagree.
+func capabilities() domain.SourceCapabilities {
 	return domain.SourceCapabilities{
 		MaxConcurrent:            2,
 		MinRequestInterval:       750 * time.Millisecond,
@@ -135,6 +133,23 @@ func (s *Source) Capabilities() domain.SourceCapabilities {
 		},
 	}
 }
+
+// Capabilities describes the adapter's limits.
+//
+// HasStableIDs is false because the platform's own program identifiers are
+// absent from the public listing and change across renames; the slug is the
+// durable key. SupportsIncrementalFetch is false because the listing's update
+// marker has day resolution, which cannot gate detail fetches without missing
+// same-day changes.
+// These limits govern EVERY request this adapter makes, listing pages included.
+//
+// That was not true until the listing sweep was brought under them. The adapter
+// advertised 750ms and two-at-a-time while discovery fanned out four listing pages
+// at the profile's 400ms, so the sweep ran roughly three times hotter than the
+// adapter's own stated tolerance - which is how a routine scan ends in HTTP 429
+// and silently loses a tenth of the catalogue. A declared capability that the
+// adapter does not honour is worse than none, because callers trust it.
+func (s *Source) Capabilities() domain.SourceCapabilities { return capabilities() }
 
 // listingPaths returns the listing URLs to traverse.
 //
@@ -228,7 +243,12 @@ func (s *Source) Discover(ctx context.Context) ([]domain.ProgramRef, error) {
 		for i, r := range results {
 			path := paths[start+i]
 			if r.err != nil {
-				errs = append(errs, fmt.Errorf("listing %s: %w", path, r.err))
+				// An empty page is the listing ending, not a fault. It advances the
+				// unproductive counter and nothing else, so a scan that walked off
+				// the end of the catalogue still reports a clean result.
+				if !errors.Is(r.err, errNoProgramsOnPage) {
+					errs = append(errs, fmt.Errorf("listing %s: %w", path, r.err))
+				}
 				unproductive++
 				if unproductive >= unproductivePageLimit {
 					errs = errs[:tailStart]
@@ -295,7 +315,7 @@ func (s *Source) parseListing(body []byte) ([]domain.ProgramRef, error) {
 		out = append(out, ref)
 	}
 	if len(out) == 0 {
-		return nil, fmt.Errorf("%w: listing page yielded no identifiable programs", source.ErrParse)
+		return nil, errNoProgramsOnPage
 	}
 	return out, nil
 }
@@ -690,7 +710,7 @@ func ParseListingPage(body []byte) ([]domain.ProgramRef, error) {
 		}
 	}
 	if len(out) == 0 {
-		return nil, fmt.Errorf("%w: listing page yielded no identifiable programs", source.ErrParse)
+		return nil, errNoProgramsOnPage
 	}
 	return out, nil
 }
@@ -701,6 +721,15 @@ func ParseListingPage(body []byte) ([]domain.ProgramRef, error) {
 func ParseProgramPage(body []byte, ref domain.ProgramRef) (domain.RawProgram, error) {
 	return (&Source{}).parseProgram(body, ref)
 }
+
+// errNoProgramsOnPage reports a listing page that parsed cleanly but contained no
+// programs.
+//
+// It is deliberately not a parse failure. Pagination past the end of a listing is
+// normal, and reporting it as an error makes every healthy scan report errors>0
+// and exit non-zero, which trains an operator to ignore failures and destroys the
+// signal the exit code exists to carry.
+var errNoProgramsOnPage = errors.New("listing page contains no programs")
 
 // unproductivePageLimit is how many consecutive pages may contribute nothing new
 // before traversal is considered finished.

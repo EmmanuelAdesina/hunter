@@ -167,8 +167,18 @@ profile:
     max_retries: 3
     retry_base_delay: 2s
     max_retry_delay: 30s
-    min_request_interval: 400ms
+    # Pacing floor. The adapter declares what the host tolerates and this value is
+    # raised to meet it if it is tighter, so a politeness setting here cannot
+    # become a rate-limit generator there. Discovery runs every scan over the whole
+    # catalogue, which makes it the request pattern that draws a 429 - and a 429
+    # costs coverage silently, which is what the coverage accounting now catches.
+    min_request_interval: 750ms
     max_concurrent: 4
+
+    # Listing pages fetched in parallel during discovery. Zero uses the adapter's
+    # declared limit, which is the safe default: an adapter knows its host better
+    # than a profile does.
+    listing_concurrency: 0
 
   sources:
     hackenproof:
