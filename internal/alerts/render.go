@@ -461,8 +461,9 @@ func HumanizeAge(d time.Duration) string {
 
 // headlineSurface renders the most relevant surface for the subject line.
 func headlineSurface(p domain.Program) string {
+	targets := p.InScopeTargets()
 	for _, kind := range []domain.TargetKind{domain.KindAPI, domain.KindWeb, domain.KindRepository} {
-		if len(p.Targets.OfKind(kind)) > 0 {
+		if len(targets.OfKind(kind)) > 0 {
 			switch kind {
 			case domain.KindAPI:
 				return "API/Web"

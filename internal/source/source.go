@@ -76,7 +76,11 @@ func IsRetryable(err error) bool {
 		case errors.Is(err, ErrRateLimited):
 			return true
 		case errors.Is(err, ErrUnavailable):
-			return se.StatusCode >= 500 || se.StatusCode == 408 || se.StatusCode == 429
+			// Status zero is a connection/transport failure, and a 2xx status
+			// with ErrUnavailable is a response-body read failure. Both are
+			// transient even though they do not have a retryable HTTP status.
+			return se.StatusCode == 0 || (se.StatusCode >= 200 && se.StatusCode < 300) ||
+				se.StatusCode >= 500 || se.StatusCode == 408 || se.StatusCode == 429
 		default:
 			return false
 		}

@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/eadeshina/hunter/internal/domain"
 )
@@ -167,18 +168,30 @@ func (n *SMTPNotifier) Send(ctx context.Context, a domain.Alert) error {
 		return err
 	}
 
-	// The whole exchange is bounded by the caller's context and an explicit
-	// dial timeout, so a hung server cannot stall a scan indefinitely.
-	dialCtx, cancel := context.WithTimeout(ctx, n.timeout)
+	// The whole exchange, not only the TCP dial, is bounded. net/smtp uses
+	// synchronous reads and writes, so set the socket deadline and force it to
+	// expire promptly if the caller cancels its context.
+	exchangeCtx, cancel := context.WithTimeout(ctx, n.timeout)
 	defer cancel()
 
 	addr := net.JoinHostPort(n.cfg.Host, strconv.Itoa(n.cfg.Port))
 	dialer := &net.Dialer{Timeout: n.timeout}
 
-	conn, err := dialer.DialContext(dialCtx, "tcp", addr)
+	conn, err := dialer.DialContext(exchangeCtx, "tcp", addr)
 	if err != nil {
 		return fmt.Errorf("dial %s: %w", addr, err)
 	}
+	if deadline, ok := exchangeCtx.Deadline(); ok {
+		if err := conn.SetDeadline(deadline); err != nil {
+			_ = conn.Close()
+			return fmt.Errorf("set SMTP deadline: %w", err)
+		}
+	}
+	stopCancelWatch := context.AfterFunc(exchangeCtx, func() {
+		_ = conn.SetDeadline(time.Now())
+	})
+	defer stopCancelWatch()
+
 	// smtp.Client takes ownership of the connection and closes it on Quit.
 	client, err := smtp.NewClient(conn, n.cfg.Host)
 	if err != nil {
@@ -357,16 +370,25 @@ var errNotInjectable = errors.New("notify: value is not safe for a header")
 
 // mimeWord encodes a header value as an RFC 2047 encoded word.
 func mimeWord(s string) string {
-	const chunkSize = 45
+	// RFC 2047 limits every encoded-word to 75 characters. The UTF-8 bytes
+	// must therefore fit in 45 bytes: base64 expands those to at most 60
+	// characters, plus the 12-character encoded-word wrapper. Split only at
+	// rune boundaries so a multibyte character is never damaged.
+	const maxChunkBytes = 45
 	var words []string
-	runes := []rune(s)
-	for start := 0; start < len(runes); start += chunkSize {
-		end := start + chunkSize
-		if end > len(runes) {
-			end = len(runes)
+	for start := 0; start < len(s); {
+		end := start
+		for end < len(s) {
+			_, size := utf8.DecodeRuneInString(s[end:])
+			if end-start+size > maxChunkBytes {
+				break
+			}
+			end += size
 		}
-		chunk := string(runes[start:end])
-		words = append(words, mime.BEncoding.Encode("utf-8", chunk))
+		// Every Unicode rune occupies at most four bytes, so a non-empty
+		// string always advances by at least one rune.
+		words = append(words, mime.BEncoding.Encode("utf-8", s[start:end]))
+		start = end
 	}
 	return strings.Join(words, "\r\n ")
 }

@@ -64,6 +64,7 @@ func (e *Engine) Evaluate(p domain.Program) domain.EligibilityDecision {
 	e.checkFee(b, p)
 	e.checkKYC(b, p)
 	e.checkState(b, p)
+	e.checkAcceptsReports(b, p)
 	e.checkSurfaces(b, p)
 	e.checkCrypto(b, p)
 
@@ -321,9 +322,12 @@ func (e *Engine) checkCrypto(b *builder, p domain.Program) {
 	allowed := e.profile.AllowedCryptoTraits()
 	excluded := e.profile.ExcludedCryptoTraits()
 
-	if len(allowed) == 0 {
+	if len(allowed) == 0 && e.profile.Crypto.RequireAllowedTrait {
+		b.fail(CheckCryptoAllowed, "crypto program must carry an allowed trait",
+			"no allowed crypto traits are configured", "at least one allowed trait must be configured", "")
+	} else if len(allowed) == 0 {
 		b.skip(CheckCryptoAllowed, "crypto program must carry an allowed trait",
-			"the profile lists no allowed crypto traits")
+			"the profile lists no allowed crypto traits and does not require one")
 	} else if traits.HasAnyString(toStrings(allowed)...) {
 		b.pass(CheckCryptoAllowed, "crypto program must carry an allowed trait",
 			"carries "+domain.NewTags(toStrings(intersectTraits(traits, allowed))...).Join(),

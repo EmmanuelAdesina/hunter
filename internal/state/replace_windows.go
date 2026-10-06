@@ -16,3 +16,8 @@ func replaceFile(src, dst string) error {
 	}
 	return os.Rename(src, dst)
 }
+
+// syncDirectory is a no-op on Windows: directory handles cannot be synced
+// portably through os.File. File contents are still synced before replacement,
+// and the transaction journal allows an interrupted replacement to be replayed.
+func syncDirectory(string) error { return nil }

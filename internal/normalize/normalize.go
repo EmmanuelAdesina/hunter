@@ -120,6 +120,9 @@ func Program(raw domain.RawProgram, opts Options) domain.Program {
 	// policy will see.
 	kinds := make([]domain.TargetKind, 0, len(p.Targets))
 	for _, tgt := range p.Targets {
+		if !tgt.InScope {
+			continue
+		}
 		kinds = append(kinds, tgt.Kind)
 	}
 	scopeText := buildScopeText(p.Targets)
@@ -216,6 +219,9 @@ func normalizeTargets(scopes []domain.RawScope, issues *[]string) domain.Targets
 func buildScopeText(targets domain.Targets) string {
 	parts := make([]string, 0, len(targets)*2)
 	for _, t := range targets {
+		if !t.InScope {
+			continue
+		}
 		if t.Label != "" {
 			parts = append(parts, t.Label)
 		}

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/eadeshina/hunter/internal/canon"
@@ -17,13 +18,15 @@ import (
 //
 // The layout is intentionally reviewable and diff-friendly:
 //
-//	programs.json            current program records
-//	alerts.json              alert delivery records
-//	history/<program>.json   per-program change history
+//	programs.json                 current program records
+//	alerts.json                   alert delivery records
+//	windows.json                  opportunity scoring windows
+//	history/<program>.json        per-program change history
+//	material.sha256               material-change marker for scheduled runs
+//	.save-transaction.json        recoverable multi-file save journal
 //
-// Two files rather than one is a deliberate trade: programs and alerts change
-// on different schedules, so splitting them keeps the frequently rewritten file
-// small and its diffs meaningful.
+// The state remains split into focused files, while the hidden transaction
+// journal makes each multi-file snapshot recoverable as a unit.
 type FileStore struct {
 	dir string
 
@@ -34,6 +37,7 @@ type FileStore struct {
 	alertsPath   string
 	historyDir   string
 	digestPath   string
+	txnPath      string
 }
 
 // NewFileStore builds a store rooted at dir.
@@ -45,6 +49,7 @@ func NewFileStore(dir string) *FileStore {
 		historyDir:   filepath.Join(dir, "history"),
 		windowsPath:  filepath.Join(dir, "windows.json"),
 		digestPath:   filepath.Join(dir, "material.sha256"),
+		txnPath:      filepath.Join(dir, ".save-transaction.json"),
 	}
 }
 
@@ -69,20 +74,33 @@ type alertsFile struct {
 
 // windowsFile is the on-disk shape of the window set.
 //
-// Windows are written as their own file for reviewability, not for durability:
-// the snapshot is saved through one atomic sequence and the digest is written
-// last, so a partially written run leaves the previous digest in place and the
-// next run refuses to treat the new bytes as a clean state transition. What
-// matters is that programs, history, alerts, and windows all move together, and
-// they do because they move inside one Save.
+// Windows are written as their own file for reviewability. The save transaction
+// journal makes the programs, alerts, windows, and material digest recover as one
+// snapshot if the process stops between their individual atomic replacements.
 type windowsFile struct {
 	Version int                                 `json:"version"`
 	Windows map[string]domain.OpportunityWindow `json:"windows"`
 }
 
+// saveTransaction is a write-ahead record for the files that make up one
+// snapshot. Each individual file is atomically replaced, but the snapshot spans
+// several files. Keeping the complete new snapshot in this record means a
+// process or host interruption can be completed on the next Load instead of
+// exposing a new program baseline without its pending alert.
+type saveTransaction struct {
+	Version  int          `json:"version"`
+	Programs programsFile `json:"programs"`
+	Alerts   alertsFile   `json:"alerts"`
+	Windows  windowsFile  `json:"windows"`
+	Digest   string       `json:"digest"`
+}
+
 // Load implements StateStore.
 func (s *FileStore) Load(ctx context.Context) (*Snapshot, error) {
 	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if err := s.recoverSaveTransaction(); err != nil {
 		return nil, err
 	}
 
@@ -119,11 +137,35 @@ func (s *FileStore) Load(ctx context.Context) (*Snapshot, error) {
 	if snap.Version == 0 {
 		snap.Version = CurrentVersion
 	}
+	if err := s.validateMaterialDigest(snap); err != nil {
+		return nil, err
+	}
 
 	// History is loaded lazily by HistoryFor. A scan does not need it, and
 	// loading every program's history on every five-minute run would read
 	// files it does not use.
 	return snap, nil
+}
+
+// validateMaterialDigest detects a state-file mixture left by an older
+// interrupted save, or an out-of-band edit. Missing digests are accepted for
+// backward compatibility with state created before the digest was introduced;
+// once present, the digest must describe the complete loaded snapshot.
+func (s *FileStore) validateMaterialDigest(snap *Snapshot) error {
+	raw, err := os.ReadFile(s.digestPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("read material digest: %w", err)
+	}
+	got := strings.TrimSpace(string(raw))
+	want := snap.MaterialDigest()
+	if got != want {
+		return fmt.Errorf("%w: material digest mismatch (stored %q, computed %q); state may be inconsistent",
+			ErrCorrupt, got, want)
+	}
+	return nil
 }
 
 func (s *FileStore) readWindows() (*windowsFile, error) {
@@ -191,7 +233,16 @@ func (s *FileStore) Save(ctx context.Context, snap *Snapshot) error {
 	if snap == nil {
 		return fmt.Errorf("save state: snapshot is nil")
 	}
+	// Complete an earlier interrupted save before preparing another one. This
+	// also prevents a later Save from replacing the recovery record while some of
+	// its files are still from the previous snapshot.
+	if err := s.recoverSaveTransaction(); err != nil {
+		return err
+	}
 	snap.EnsureMaps()
+	// Apply the same normalization Load uses before hashing and writing so the
+	// committed digest cannot describe records that Load will later discard.
+	snap.Programs = filterUsablePrograms(snap.Programs)
 
 	if err := os.MkdirAll(s.dir, 0o755); err != nil {
 		return fmt.Errorf("create state directory: %w", err)
@@ -203,30 +254,74 @@ func (s *FileStore) Save(ctx context.Context, snap *Snapshot) error {
 	pruneAlerts(snap.Alerts)
 	snap.pruneWindows()
 
-	pf := programsFile{
-		Version:    CurrentVersion,
-		LastScanID: snap.LastScanID,
-		LastScanAt: snap.LastScanAt.UTC(),
-		Programs:   snap.Programs,
+	txn := saveTransaction{
+		Version: CurrentVersion,
+		Programs: programsFile{
+			Version:    CurrentVersion,
+			LastScanID: snap.LastScanID,
+			LastScanAt: snap.LastScanAt.UTC(),
+			Programs:   snap.Programs,
+		},
+		Alerts:  alertsFile{Version: CurrentVersion, Alerts: snap.Alerts},
+		Windows: windowsFile{Version: CurrentVersion, Windows: snap.Windows},
+		Digest:  snap.MaterialDigest(),
 	}
-	if err := writeCanonicalFile(s.programsPath, pf); err != nil {
+	if err := writeCanonicalFile(s.txnPath, txn); err != nil {
+		return fmt.Errorf("write state transaction: %w", err)
+	}
+	return s.applySaveTransaction(txn)
+}
+
+// recoverSaveTransaction replays a pending transaction before any snapshot is
+// read. The transaction file remains present until every state file and the
+// material digest are durable, so replay is safe and idempotent.
+func (s *FileStore) recoverSaveTransaction() error {
+	raw, err := os.ReadFile(s.txnPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("read state transaction: %w", err)
+	}
+
+	var txn saveTransaction
+	if err := json.Unmarshal(raw, &txn); err != nil {
+		return fmt.Errorf("%w: %s: %v", ErrCorrupt, filepath.Base(s.txnPath), err)
+	}
+	if txn.Version != CurrentVersion || txn.Programs.Version != CurrentVersion ||
+		txn.Alerts.Version != CurrentVersion || txn.Windows.Version != CurrentVersion {
+		return fmt.Errorf("%w: unsupported state transaction version %d", ErrCorrupt, txn.Version)
+	}
+	if txn.Programs.Programs == nil || txn.Alerts.Alerts == nil ||
+		txn.Windows.Windows == nil || strings.TrimSpace(txn.Digest) == "" {
+		return fmt.Errorf("%w: incomplete state transaction", ErrCorrupt)
+	}
+	return s.applySaveTransaction(txn)
+}
+
+// applySaveTransaction writes the transaction's state files and removes its
+// journal only after the material digest has been installed last.
+func (s *FileStore) applySaveTransaction(txn saveTransaction) error {
+	if err := writeCanonicalFile(s.programsPath, txn.Programs); err != nil {
 		return fmt.Errorf("write programs: %w", err)
 	}
-
-	af := alertsFile{Version: CurrentVersion, Alerts: snap.Alerts}
-	if err := writeCanonicalFile(s.alertsPath, af); err != nil {
+	if err := writeCanonicalFile(s.alertsPath, txn.Alerts); err != nil {
 		return fmt.Errorf("write alerts: %w", err)
 	}
-
-	wf := windowsFile{Version: CurrentVersion, Windows: snap.Windows}
-	if err := writeCanonicalFile(s.windowsPath, wf); err != nil {
+	if err := writeCanonicalFile(s.windowsPath, txn.Windows); err != nil {
 		return fmt.Errorf("write windows: %w", err)
 	}
 
 	// The material digest is written last and is the only file the scheduled
 	// workflow compares, so a scan that learned nothing produces no commit.
-	if err := writeRawFile(s.digestPath, snap.MaterialDigest()+"\n"); err != nil {
+	if err := writeRawFile(s.digestPath, txn.Digest+"\n"); err != nil {
 		return fmt.Errorf("write material digest: %w", err)
+	}
+	if err := os.Remove(s.txnPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove state transaction: %w", err)
+	}
+	if err := syncDirectory(s.dir); err != nil {
+		return fmt.Errorf("sync state directory: %w", err)
 	}
 	return nil
 }
@@ -267,6 +362,9 @@ func writeRawFile(path, content string) error {
 	if err := replaceFile(tmpName, path); err != nil {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("replace %s: %w", filepath.Base(path), err)
+	}
+	if err := syncDirectory(dir); err != nil {
+		return fmt.Errorf("sync directory: %w", err)
 	}
 	return nil
 }
@@ -462,6 +560,9 @@ func writeCanonicalFile(path string, v any) error {
 	if err := replaceFile(tmpName, path); err != nil {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("replace %s: %w", filepath.Base(path), err)
+	}
+	if err := syncDirectory(dir); err != nil {
+		return fmt.Errorf("sync directory: %w", err)
 	}
 	return nil
 }

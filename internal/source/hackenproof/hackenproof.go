@@ -217,12 +217,6 @@ func (s *Source) Discover(ctx context.Context) ([]domain.ProgramRef, error) {
 			end = len(paths)
 		}
 
-		// Pagination past the end of the listing is normal, not a failure. Once
-		// traversal has clearly passed the end, errors from that tail are
-		// dropped: reporting them would make every healthy run look broken and
-		// would mask a genuine failure earlier in the traversal.
-		tailStart := len(errs)
-
 		results := make([]pageResult, len(paths[start:end]))
 		var wg sync.WaitGroup
 		for i, path := range paths[start:end] {
@@ -242,19 +236,13 @@ func (s *Source) Discover(ctx context.Context) ([]domain.ProgramRef, error) {
 
 		for i, r := range results {
 			path := paths[start+i]
-			if r.err != nil {
-				// An empty page is the listing ending, not a fault. It advances the
-				// unproductive counter and nothing else, so a scan that walked off
-				// the end of the catalogue still reports a clean result.
-				if !errors.Is(r.err, errNoProgramsOnPage) {
-					errs = append(errs, fmt.Errorf("listing %s: %w", path, r.err))
-				}
-				unproductive++
-				if unproductive >= unproductivePageLimit {
-					errs = errs[:tailStart]
-					return refs, joinErrors(errs)
-				}
-				continue
+			if r.err != nil && !errors.Is(r.err, errNoProgramsOnPage) &&
+				!(path != paths[0] && errors.Is(r.err, source.ErrNotFound)) {
+				// A page can contain usable references and malformed rows at the
+				// same time. Keep both the references and the error so the caller
+				// gets partial coverage without a silent omission. A 404 only ends
+				// pagination after page one; a missing listing endpoint is a fault.
+				errs = append(errs, fmt.Errorf("listing %s: %w", path, r.err))
 			}
 
 			fresh := 0
@@ -266,15 +254,18 @@ func (s *Source) Discover(ctx context.Context) ([]domain.ProgramRef, error) {
 				refs = append(refs, ref)
 				fresh++
 			}
-			if fresh == 0 {
-				unproductive++
-				if unproductive >= unproductivePageLimit {
-					errs = errs[:tailStart]
-					return refs, joinErrors(errs)
-				}
+			if fresh > 0 {
+				unproductive = 0
 				continue
 			}
-			unproductive = 0
+
+			// Empty pages, later-page 404s, and duplicate-only pages indicate the
+			// end of this cursorless listing. Other errors still count as
+			// unproductive to bound requests, but remain visible to the caller.
+			unproductive++
+			if unproductive >= unproductivePageLimit {
+				return refs, joinErrors(errs)
+			}
 		}
 	}
 
@@ -286,38 +277,7 @@ func (s *Source) Discover(ctx context.Context) ([]domain.ProgramRef, error) {
 
 // parseListing extracts program references from one listing page.
 func (s *Source) parseListing(body []byte) ([]domain.ProgramRef, error) {
-	doc, err := decodePayload(body)
-	if err != nil {
-		return nil, err
-	}
-
-	programs, ok := devalue.Find(doc.Root, "data", "programs-api-bounty", "programs")
-	if !ok {
-		return nil, fmt.Errorf("%w: listing payload has no programs-api-bounty.programs", source.ErrParse)
-	}
-	list, ok := devalue.AsSlice(programs)
-	if !ok {
-		return nil, fmt.Errorf("%w: listing programs is %T, want a list", source.ErrParse, programs)
-	}
-
-	out := make([]domain.ProgramRef, 0, len(list))
-	for i, item := range list {
-		m, ok := devalue.AsMap(item)
-		if !ok {
-			// A single unreadable entry must not lose the rest of the page.
-			continue
-		}
-		ref, ok := refFromListing(m)
-		if !ok {
-			continue
-		}
-		_ = i
-		out = append(out, ref)
-	}
-	if len(out) == 0 {
-		return nil, errNoProgramsOnPage
-	}
-	return out, nil
+	return parseListingPage(body)
 }
 
 // refFromListing builds a reference from one listing entry.
@@ -685,6 +645,13 @@ func joinErrors(errs []error) error {
 // parsing code as a live scan. A test that reimplemented the parser would prove
 // nothing about the parser that actually runs.
 func ParseListingPage(body []byte) ([]domain.ProgramRef, error) {
+	return parseListingPage(body)
+}
+
+// parseListingPage parses valid rows while retaining errors for every malformed
+// row. The caller can use partial references and still report that coverage was
+// incomplete.
+func parseListingPage(body []byte) ([]domain.ProgramRef, error) {
 	doc, err := decodePayload(body)
 	if err != nil {
 		return nil, err
@@ -698,21 +665,29 @@ func ParseListingPage(body []byte) ([]domain.ProgramRef, error) {
 	if !ok {
 		return nil, fmt.Errorf("%w: listing programs is %T, want a list", source.ErrParse, programs)
 	}
-
-	out := make([]domain.ProgramRef, 0, len(list))
-	for _, item := range list {
-		m, ok := devalue.AsMap(item)
-		if !ok {
-			continue
-		}
-		if ref, ok := refFromListing(m); ok {
-			out = append(out, ref)
-		}
-	}
-	if len(out) == 0 {
+	if len(list) == 0 {
 		return nil, errNoProgramsOnPage
 	}
-	return out, nil
+
+	out := make([]domain.ProgramRef, 0, len(list))
+	var rowErrors []error
+	for i, item := range list {
+		m, ok := devalue.AsMap(item)
+		if !ok {
+			rowErrors = append(rowErrors, fmt.Errorf("%w: listing entry %d is %T, want an object", source.ErrParse, i, item))
+			continue
+		}
+		ref, ok := refFromListing(m)
+		if !ok {
+			rowErrors = append(rowErrors, fmt.Errorf("%w: listing entry %d has no usable slug", source.ErrParse, i))
+			continue
+		}
+		out = append(out, ref)
+	}
+	if len(out) == 0 {
+		return nil, errors.Join(rowErrors...)
+	}
+	return out, errors.Join(rowErrors...)
 }
 
 // ParseProgramPage extracts a program record from a captured detail page.

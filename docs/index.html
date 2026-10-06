@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#0b1424">
+  <meta name="description" content="Hunter engineering documentation: runtime architecture, scan lifecycle, policy evaluation, persistence, and alert delivery.">
+  <title>Hunter Engineering — Runtime Architecture</title>
+  <link rel="stylesheet" href="./assets/hunter-docs.css">
+</head>
+<body>
+  <a class="skip-link" href="#overview">Skip to documentation content</a>
+  <div class="docs-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Documentation navigation">
+      <a class="brand" href="#overview" aria-label="Hunter engineering home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 36 36" fill="none"><path d="M8 27V9h5v7h10V9h5v18h-5v-7H13v7H8Z" fill="currentColor"/><path d="M27 7.5 30 4" stroke="#78E8CE" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <span class="brand-wordmark">hunter<span class="brand-subtitle">ENGINEERING</span></span>
+      </a>
+
+      <div class="sidebar-label">ENGINEERING HANDBOOK <span class="version-tag">v1</span></div>
+      <nav class="side-nav" id="sideNav">
+        <a class="nav-link is-active" href="#overview"><span class="nav-index">00</span><span>Overview</span></a>
+        <a class="nav-link" href="#runtime-map"><span class="nav-index">01</span><span>Runtime map</span></a>
+        <a class="nav-link" href="#execution"><span class="nav-index">02</span><span>Execution stages</span></a>
+        <a class="nav-link" href="#decision-model"><span class="nav-index">03</span><span>Decision model</span></a>
+        <a class="nav-link" href="#state-reliability"><span class="nav-index">04</span><span>State & reliability</span></a>
+        <a class="nav-link" href="#operations"><span class="nav-index">05</span><span>Operations</span></a>
+        <a class="nav-link" href="#implementation-notes"><span class="nav-index">06</span><span>Implementation notes</span></a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="runtime-status"><span class="status-light"></span><span>Single-shot worker</span></div>
+        <div class="sidebar-footnote">No daemon. No listener.<br>One scheduled scan per process.</div>
+        <div class="sidebar-repo"><span class="repo-mark">GH</span><span>hunter / internal architecture</span></div>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <button class="mobile-menu" id="menuToggle" type="button" aria-label="Open documentation navigation" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="breadcrumbs"><span>Engineering</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg><strong>Runtime architecture</strong></div>
+        <div class="topbar-actions">
+          <label class="search-box" for="docSearch">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.7" cy="8.7" r="5.7"/><path d="m13 13 4 4"/></svg>
+            <input id="docSearch" type="search" placeholder="Search this page" autocomplete="off" aria-label="Search documentation sections">
+            <kbd>/</kbd>
+          </label>
+          <button class="icon-button" id="themeToggle" type="button" aria-label="Toggle high contrast theme" aria-pressed="false" title="Toggle high contrast">
+            <svg class="theme-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 1.8v2M10 16.2v2M18.2 10h-2M3.8 10h-2m14-5.8-1.4 1.4M5.6 14.4l-1.4 1.4m11.6 0-1.4-1.4M5.6 5.6 4.2 4.2"/></svg>
+          </button>
+        </div>
+        <span class="sr-only" id="searchStatus" role="status" aria-live="polite"></span>
+      </header>
+
+      <div class="doc-content" id="docContent">
+        <div class="search-empty" id="searchEmpty" role="status" hidden>
+          <strong>No sections match that search.</strong>
+          <span>Try another term or <button id="clearSearch" type="button">clear search</button>.</span>
+        </div>
+        <section class="hero doc-section" id="overview" data-section="Overview">
+          <div class="hero-topline">
+            <div class="eyebrow"><span class="eyebrow-mark"></span> SYSTEM DESIGN <span class="eyebrow-slash">/</span> RUNTIME</div>
+            <div class="doc-stamp"><span class="stamp-dot"></span> ENGINEERING GUIDE <span class="stamp-sep">·</span> 8 MIN READ</div>
+          </div>
+          <h1>How Hunter runs,<br><span>from trigger to delivery.</span></h1>
+          <p class="hero-copy">A code-level map of the single-shot scan: how source observations become policy decisions, durable state, and retryable notifications.</p>
+          <div class="hero-tags">
+            <span class="hero-tag"><span class="tag-icon">01</span> Five-minute cadence</span>
+            <span class="hero-tag"><span class="tag-icon">02</span> Recoverable state</span>
+            <span class="hero-tag"><span class="tag-icon">03</span> Policy-gated alerts</span>
+          </div>
+
+          <div class="stat-grid" aria-label="Runtime characteristics">
+            <article class="stat-card">
+              <div class="stat-label">PROCESS MODEL</div>
+              <div class="stat-value">Single-shot</div>
+              <div class="stat-note">Run · persist · exit</div>
+              <span class="stat-glyph glyph-process" aria-hidden="true"><i></i><i></i><i></i></span>
+            </article>
+            <article class="stat-card">
+              <div class="stat-label">LIVE SCHEDULER</div>
+              <div class="stat-value">systemd</div>
+              <div class="stat-note">Every five minutes</div>
+              <span class="stat-glyph glyph-clock" aria-hidden="true"><i></i></span>
+            </article>
+            <article class="stat-card">
+              <div class="stat-label">CURRENT SOURCE</div>
+              <div class="stat-value">HackenProof</div>
+              <div class="stat-note">Adapter capability limits apply</div>
+              <span class="stat-glyph glyph-source" aria-hidden="true">↗</span>
+            </article>
+            <article class="stat-card">
+              <div class="stat-label">DELIVERY CHANNEL</div>
+              <div class="stat-value">SMTP</div>
+              <div class="stat-note">Environment-configured</div>
+              <span class="stat-glyph glyph-mail" aria-hidden="true"><i></i></span>
+            </article>
+          </div>
+        </section>
+
+        <section class="doc-section section-block" id="runtime-map" data-section="Runtime map">
+          <div class="section-heading">
+            <div>
+              <div class="section-kicker">01 <span>/</span> SYSTEM MAP</div>
+              <h2>End-to-end runtime</h2>
+              <p>Follow one invocation across discovery, evaluation, persistence, and delivery. The source file remains the canonical diagram.</p>
+            </div>
+            <span class="section-state"><span class="status-light"></span> CURRENT FLOW</span>
+          </div>
+
+          <div class="diagram-card">
+            <div class="diagram-toolbar">
+              <div class="diagram-file"><span class="file-icon">⌘</span><span>docs / hunter-end-to-end.md</span><span class="file-type">MERMAID</span></div>
+              <div class="diagram-controls">
+                <span class="diagram-key"><span class="key-square key-flow"></span> execution</span>
+                <span class="diagram-key"><span class="key-square key-state"></span> state</span>
+                <span class="diagram-key"><span class="key-square key-caveat"></span> caveat</span>
+                <button class="copy-button" id="copyDiagram" type="button" aria-label="Copy Mermaid source" title="Loading canonical Mermaid source" disabled>
+                  <svg viewBox="0 0 18 18" aria-hidden="true"><rect x="6" y="5" width="9" height="10" rx="1.5"/><path d="M11.5 5V3.5A1.5 1.5 0 0 0 10 2H4.5A1.5 1.5 0 0 0 3 3.5v8A1.5 1.5 0 0 0 4.5 13H6"/></svg>
+                  <span>Copy source</span>
+                </button>
+              </div>
+            </div>
+            <div class="diagram-scroll" id="diagramHost" role="region" aria-busy="true" aria-label="Hunter runtime flow diagram">
+              <div class="diagram-loading"><span class="loading-spinner"></span><span>Loading architecture map…</span></div>
+            </div>
+            <div class="diagram-footer"><span id="diagramStatus">Loading the canonical Mermaid source</span><span>SCROLL TO EXPLORE <span class="scroll-cue">↕</span></span></div>
+          </div>
+          <div class="diagram-caption"><span class="caption-marker">i</span><span>Solid paths show the normal scan lifecycle. Dashed paths mark error propagation, inspection paths, or implementation caveats.</span></div>
+        </section>
+
+        <section class="doc-section section-block" id="execution" data-section="Execution stages">
+          <div class="section-heading">
+            <div>
+              <div class="section-kicker">02 <span>/</span> EXECUTION MODEL</div>
+              <h2>Five stages, one process</h2>
+              <p>Every `hunter scan` invocation starts with a fresh process and a durable snapshot from the previous run.</p>
+            </div>
+          </div>
+          <div class="stage-grid">
+            <article class="stage-card">
+              <div class="stage-head"><span class="stage-number">01</span><span class="stage-chip">BOOTSTRAP</span></div>
+              <h3>Load a trusted baseline</h3>
+              <p>CLI flags and the strict profile are validated; enabled adapters and SMTP are wired. State loading replays a pending save journal and validates the material digest before scanning.</p>
+              <div class="stage-code">config → FileStore.Load → Snapshot</div>
+            </article>
+            <article class="stage-card">
+              <div class="stage-head"><span class="stage-number">02</span><span class="stage-chip">DISCOVERY</span></div>
+              <h3>Observe listing pages</h3>
+              <p>The adapter pages through the public listing. The shared HTTP client applies timeouts, concurrency limits, request pacing, transient retries, and server Retry-After guidance.</p>
+              <div class="stage-code">Discover(ctx) → ProgramRef[]</div>
+            </article>
+            <article class="stage-card">
+              <div class="stage-head"><span class="stage-number">03</span><span class="stage-chip">EVALUATION</span></div>
+              <h3>Refresh only when needed</h3>
+              <p>Listing changes, incomplete records, bootstrap, and staleness decide when details are fetched. The adapter parses status, access, scopes, rewards, and metadata into <code>RawProgram</code>; normalization standardizes tags and target types before fingerprinting. Catch-up reads are budgeted; event-driven reads are not.</p>
+              <div class="stage-code">ProgramRef → RawProgram → Program</div>
+            </article>
+            <article class="stage-card">
+              <div class="stage-head"><span class="stage-number">04</span><span class="stage-chip">DECISION</span></div>
+              <h3>Compare, gate, score</h3>
+              <p>Normalized fields and stable fingerprints feed the diff engine. Parse trust and policy checks produce eligibility blockers; freshness and scoring rank opportunities but never override a failed hard gate.</p>
+              <div class="stage-code">diff → policy → freshness → triage</div>
+            </article>
+            <article class="stage-card stage-card-accent">
+              <div class="stage-head"><span class="stage-number">05</span><span class="stage-chip">COMMIT & DELIVER</span></div>
+              <h3>Persist before sending</h3>
+              <p>Programs, alert records, windows, and the material digest are saved through a recovery journal. New and pending alerts are then dispatched and acknowledged.</p>
+              <div class="stage-code">Save → pending merge → Dispatch → exit</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="doc-section section-block" id="decision-model" data-section="Decision model">
+          <div class="section-heading">
+            <div>
+              <div class="section-kicker">03 <span>/</span> POLICY & ALERTING</div>
+              <h2>Hard gates before attention</h2>
+              <p>Eligibility is a policy result. Triage is a ranking signal. Alert triggers are a separate time- and evidence-bounded decision.</p>
+            </div>
+          </div>
+          <div class="model-grid">
+            <article class="model-card policy-card">
+              <div class="card-eyebrow"><span class="card-icon icon-shield">✓</span> POLICY ENGINE</div>
+              <h3>Unknown is not approval</h3>
+              <p>Access facts, lifecycle state, accepts-reports, in-scope surfaces, and crypto traits contribute structured checks. Any failed or unknown required check blocks eligibility unless the profile explicitly allows that unknown.</p>
+              <div class="model-flow"><span>facts</span><b>→</b><span>checks</span><b>→</b><span class="flow-outcome">eligible / blocked</span></div>
+            </article>
+            <article class="model-card trigger-card">
+              <div class="card-eyebrow"><span class="card-icon icon-bolt">↗</span> ALERT GENERATOR</div>
+              <h3>Evidence chooses the trigger</h3>
+              <p>New launch age, newly eligible status, scope expansion, and material changes use their own configured trigger and recency window. Severity, eligibility, fingerprint idempotency, and the per-scan cap are applied before delivery.</p>
+              <div class="model-flow"><span>trigger</span><b>→</b><span>window + severity</span><b>→</b><span class="flow-outcome">alert / suppress</span></div>
+            </article>
+          </div>
+          <div class="callout callout-info">
+            <span class="callout-icon">i</span>
+            <div><strong>Inventory is not approval.</strong><p>The state store retains discovered program records for comparison and coverage. A saved program record does not mean it passed policy or generated an alert.</p></div>
+          </div>
+        </section>
+
+        <section class="doc-section section-block" id="state-reliability" data-section="State and reliability">
+          <div class="section-heading">
+            <div>
+              <div class="section-kicker">04 <span>/</span> STATE & RELIABILITY</div>
+              <h2>Recoverable by design</h2>
+              <p>The durable store is the scan’s memory. It supports change detection, coverage accounting, alert retries, and operator inspection.</p>
+            </div>
+          </div>
+          <div class="state-layout">
+            <div class="state-table-wrap">
+              <div class="table-title"><span>STATE SURFACES</span><span>FILE STORE</span></div>
+              <div class="state-row"><code>programs.json</code><span>Current normalized program records and scan metadata</span></div>
+              <div class="state-row"><code>alerts.json</code><span>Rendered alert records and delivery acknowledgement state</span></div>
+              <div class="state-row"><code>windows.json</code><span>Opportunity windows and competition evidence</span></div>
+              <div class="state-row"><code>history/&lt;id&gt;.json</code><span>Per-program material-change history; appended separately</span></div>
+              <div class="state-row"><code>material.sha256</code><span>Material-change marker used to detect snapshot inconsistency</span></div>
+              <div class="state-row"><code>.save-transaction.json</code><span>Write-ahead snapshot journal, removed after successful replay/save</span></div>
+            </div>
+            <div class="reliability-card">
+              <div class="reliability-orbit" aria-hidden="true"><span></span><span></span><span></span><b>R</b></div>
+              <div class="card-eyebrow">SAVE PROTOCOL</div>
+              <h3>Journal first.<br>Digest last.</h3>
+              <ol class="protocol-list">
+                <li><span>01</span>Persist complete transaction journal</li>
+                <li><span>02</span>Replace programs, alerts, and windows</li>
+                <li><span>03</span>Write material digest after snapshot files</li>
+                <li><span>04</span>Remove journal; replay it on next load if interrupted</li>
+              </ol>
+            </div>
+          </div>
+          <div class="callout callout-warning">
+            <span class="callout-icon">!</span>
+            <div><strong>Notification delivery is at-least-once, not exactly-once.</strong><p>The dispatcher records an attempt before sending and continues across the batch when one notification fails. If SMTP succeeds but saving the delivered marker fails, the pipeline still surfaces the bookkeeping error: delivered=1, failed=0, and the record stays retryable for a possible resend on a later scan.</p></div>
+          </div>
+        </section>
+
+        <section class="doc-section section-block" id="operations" data-section="Operations">
+          <div class="section-heading">
+            <div>
+              <div class="section-kicker">05 <span>/</span> OPERATIONS</div>
+              <h2>Run it, inspect it, trust it carefully</h2>
+              <p>Production scheduling and CI are intentionally separate. The live worker reads the persisted state directory on every invocation.</p>
+            </div>
+          </div>
+          <div class="ops-grid">
+            <article class="ops-card">
+              <div class="ops-card-head"><span class="ops-icon">⌁</span><span>LIVE EXECUTION</span></div>
+              <h3>systemd timer</h3>
+              <p><code>deploy/systemd/hunter.timer</code> launches the oneshot service on a five-minute cadence. The host persists the configured state directory between runs.</p>
+              <div class="ops-command"><span>$</span> hunter scan --profile … --state …</div>
+            </article>
+            <article class="ops-card">
+              <div class="ops-card-head"><span class="ops-icon">⌘</span><span>EXIT CONTRACT</span></div>
+              <h3>Meaningful process status</h3>
+              <div class="exit-row"><code>0</code><span>Scan completed without a reported failure</span></div>
+              <div class="exit-row"><code>1</code><span>Runtime, state, or notification failure</span></div>
+              <div class="exit-row"><code>2</code><span>Invalid profile/configuration</span></div>
+              <div class="exit-row"><code>3</code><span>Scan ran, but coverage/results are untrustworthy</span></div>
+            </article>
+            <article class="ops-card">
+              <div class="ops-card-head"><span class="ops-icon">✓</span><span>CI VALIDATION</span></div>
+              <h3>GitHub Actions</h3>
+              <p>Push/PR checks run formatting, vet, builds, race tests, fixture parsing, and config validation. This workflow does <strong>not</strong> schedule production scans.</p>
+              <div class="ops-command"><span>↗</span> .github/workflows/test.yml</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="doc-section section-block" id="implementation-notes" data-section="Implementation notes">
+          <div class="section-heading">
+            <div>
+              <div class="section-kicker">06 <span>/</span> IMPLEMENTATION NOTES</div>
+              <h2>Known seams in the current implementation</h2>
+              <p>These are code-level observations, not product aspirations. Keep them visible until the behavior and configuration agree.</p>
+            </div>
+            <span class="review-badge"><span></span> REVIEW ITEMS</span>
+          </div>
+          <div class="notes-list">
+            <article class="note-item">
+              <span class="note-index">A</span><div><h3><code>program_states.alert_on_state</code> is not wired</h3><p>The YAML key is parsed and exposed by config, but no alert-generation path consumes it. Lifecycle reactivation may alert through the material-change path; this setting itself does not trigger it.</p></div><span class="note-status">UNWIRED</span>
+            </article>
+            <article class="note-item">
+              <span class="note-index">B</span><div><h3>Partial parse confidence currently passes the trust check</h3><p>Low-confidence records are blocked by default. <code>ConfidencePartial</code> is treated as a pass at the parse-trust check; independent unknown access-gate checks can still block eligibility.</p></div><span class="note-status">POLICY NUANCE</span>
+            </article>
+            <article class="note-item">
+              <span class="note-index">C</span><div><h3>POC is not an eligibility gate</h3><p>The current profile has no proof-of-concept acceptance rule, and the policy engine does not reject programs on POC status.</p></div><span class="note-status">NOT CONFIGURED</span>
+            </article>
+            <article class="note-item">
+              <span class="note-index">D</span><div><h3>Coverage “seen” is recorded after successful evaluation</h3><p>A discovered reference that fails fetch/parse does not enter the current seen set, so that failure also contributes to coverage missing counts.</p></div><span class="note-status">COVERAGE SEMANTICS</span>
+            </article>
+          </div>
+        </section>
+
+        <footer class="doc-footer">
+          <div class="footer-brand"><span class="brand-mark brand-mark-small">H</span><span>HUNTER <b>ENGINEERING</b></span></div>
+          <span>Runtime architecture <span class="footer-dot">·</span> Source of truth: repository code</span>
+          <a href="./hunter-end-to-end.md">Open Mermaid source <span aria-hidden="true">↗</span></a>
+        </footer>
+      </div>
+    </main>
+    <div class="mobile-scrim" id="mobileScrim"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <script src="./assets/hunter-docs.js" defer></script>
+</body>
+</html>

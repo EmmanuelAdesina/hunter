@@ -163,7 +163,7 @@ func (e *errConfig) Unwrap() error { return e.err }
 //
 // Adapters are registered in one place. Adding a platform means adding a
 // registration line, not editing the pipeline.
-func newSources(profile *config.Profile) ([]domain.ProgramSource, error) {
+func newSources(profile *config.Profile, full bool) ([]domain.ProgramSource, error) {
 	reg := source.NewRegistry()
 	reg.Register(hackenproof.AdapterName, func() (domain.ProgramSource, error) {
 		cfg := profile.SourceConfigFor(hackenproof.AdapterName)
@@ -197,7 +197,7 @@ func newSources(profile *config.Profile) ([]domain.ProgramSource, error) {
 			ListPath:           cfg.ListPath,
 			DetailPathTemplate: cfg.DetailPathTemplate,
 			PerPage:            profile.Scan.PerPage,
-			MaxPages:           profile.Scan.MaxPages,
+			MaxPages:           effectiveMaxPages(profile.Scan.MaxPages, full),
 			PageConcurrency:    profile.Scan.ListingConcurrency,
 		})
 	})
@@ -207,6 +207,15 @@ func newSources(profile *config.Profile) ([]domain.ProgramSource, error) {
 		return nil, fmt.Errorf("%w: the profile enables no sources", source.ErrConfig)
 	}
 	return reg.Build(names)
+}
+
+// effectiveMaxPages applies the explicit --full override without mutating the
+// loaded profile. Zero is the adapter's documented "traverse to the end" value.
+func effectiveMaxPages(configured int, full bool) int {
+	if full {
+		return 0
+	}
+	return configured
 }
 
 // nonEmpty filters blank strings.

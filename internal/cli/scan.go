@@ -94,14 +94,15 @@ func cmdScan(ctx context.Context, env *Env, args []string) int {
 		return classifyConfigError(err)
 	}
 
-	sources, err := newSources(profile)
+	sources, err := newSources(profile, full)
 	if err != nil {
 		fmt.Fprintf(env.Stderr, "scan: %v\n", err)
 		return exitBadConfig
 	}
 
 	if full {
-		logger.Debug("full traversal requested; the profile default is already unbounded")
+		logger.Debug("full traversal requested; ignoring the profile page cap",
+			"configured_max_pages", profile.Scan.MaxPages)
 	}
 
 	cfg := pipeline.Config{

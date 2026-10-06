@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -257,26 +258,35 @@ func classifyStatus(resp *http.Response, url string) error {
 	return e
 }
 
-// parseRetryAfter interprets the Retry-After header in seconds. An
-// unparseable or absent value yields zero, which leaves the exponential
-// backoff in charge.
+// parseRetryAfter interprets either supported Retry-After form: delta-seconds
+// or an HTTP-date. An unparseable, absent, or already elapsed value yields zero,
+// which leaves the exponential backoff in charge.
 func parseRetryAfter(v string) time.Duration {
+	v = strings.TrimSpace(v)
 	if v == "" {
 		return 0
 	}
-	secs, err := strconv.Atoi(v)
-	if err != nil || secs <= 0 {
-		return 0
+	if secs, err := strconv.ParseInt(v, 10, 64); err == nil && secs > 0 {
+		const maxDuration = time.Duration(1<<63 - 1)
+		maxSeconds := int64(maxDuration / time.Second)
+		if secs > maxSeconds {
+			return maxDuration
+		}
+		return time.Duration(secs) * time.Second
 	}
-	return time.Duration(secs) * time.Second
+	if at, err := http.ParseTime(v); err == nil {
+		if delay := time.Until(at); delay > 0 {
+			return delay
+		}
+	}
+	return 0
 }
 
 // backoff returns the delay before the given attempt.
 //
-// The delay doubles each time and is capped. When the source sent a Retry-After
-// header, that instruction wins over the computed delay: a server asking for
-// three seconds is authoritative, and retrying sooner would be disregarding an
-// explicit access control.
+// The exponential delay doubles each time and is capped. When the source sent a
+// Retry-After header, that instruction wins over the computed delay and the local
+// cap: retrying sooner would disregard an explicit access control.
 func (c *Client) backoff(attempt int, lastErr error) time.Duration {
 	if attempt < 1 {
 		return 0
@@ -284,11 +294,11 @@ func (c *Client) backoff(attempt int, lastErr error) time.Duration {
 
 	d := c.cfg.RetryBaseDelay
 	for i := 1; i < attempt; i++ {
-		d *= 2
-		if d >= c.cfg.MaxRetryDelay {
+		if d >= c.cfg.MaxRetryDelay || d > c.cfg.MaxRetryDelay/2 {
 			d = c.cfg.MaxRetryDelay
 			break
 		}
+		d *= 2
 	}
 
 	var se *HTTPStatusError
@@ -296,6 +306,9 @@ func (c *Client) backoff(attempt int, lastErr error) time.Duration {
 		if se.RetryAfter > d {
 			d = se.RetryAfter
 		}
+		// Retry-After is an explicit server instruction. Do not cap it back
+		// down to the local exponential-backoff ceiling and retry prematurely.
+		return d
 	}
 	if d > c.cfg.MaxRetryDelay {
 		d = c.cfg.MaxRetryDelay

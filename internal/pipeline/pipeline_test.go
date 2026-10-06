@@ -183,6 +183,15 @@ func (n *recordingNotifier) Send(_ context.Context, a domain.Alert) error {
 func (n *recordingNotifier) Name() string     { return "recording" }
 func (n *recordingNotifier) Configured() bool { return true }
 
+type failingDeliveryStore struct {
+	state.StateStore
+	err error
+}
+
+func (s failingDeliveryStore) MarkAlertDelivered(context.Context, string, time.Time) error {
+	return s.err
+}
+
 // runScanner wires a scanner over a source and state directory.
 func runScanner(t *testing.T, src domain.ProgramSource, dir string, mutators ...func(*pipeline.Config)) (pipeline.Result, error) {
 	t.Helper()
@@ -226,6 +235,30 @@ func TestFirstScanFindsEverything(t *testing.T) {
 	}
 	if len(res.Alerts) != 2 {
 		t.Errorf("alerts = %d, want 2", len(res.Alerts))
+	}
+}
+
+// TestCatchUpDetailBudgetIsSharedAcrossConcurrentEvaluations verifies the
+// configured per-scan cap is consumed exactly once per detail request despite
+// concurrent program evaluation.
+func TestCatchUpDetailBudgetIsSharedAcrossConcurrentEvaluations(t *testing.T) {
+	ids := make([]string, 24)
+	for i := range ids {
+		ids[i] = fmt.Sprintf("program-%02d", i)
+	}
+	src := newFakeSource(ids...)
+
+	_, _ = runScanner(t, src, t.TempDir(), func(c *pipeline.Config) {
+		c.Profile.Scan.MaxCatchUpDetailFetchesPerScan = 3
+		c.Concurrency = 16
+	})
+
+	fetched := 0
+	for _, id := range ids {
+		fetched += src.fetchCount(id)
+	}
+	if fetched != 3 {
+		t.Errorf("detail fetches = %d, want the shared catch-up cap of 3", fetched)
 	}
 }
 
@@ -471,6 +504,37 @@ func TestNotificationFailureDoesNotLoseState(t *testing.T) {
 	}
 	if pending[0].Delivered {
 		t.Error("a failed delivery was recorded as delivered")
+	}
+}
+
+// TestDeliveryBookkeepingFailureMakesScanFail verifies a successful send whose
+// delivered marker could not be persisted is visible in the scan result.
+func TestDeliveryBookkeepingFailureMakesScanFail(t *testing.T) {
+	src := newFakeSource("alpha")
+	dir := t.TempDir()
+	notifier := &recordingNotifier{}
+	bookErr := errors.New("could not persist delivered marker")
+
+	res, err := runScanner(t, src, dir, func(c *pipeline.Config) {
+		c.Store = failingDeliveryStore{StateStore: state.NewFileStore(dir), err: bookErr}
+		c.Notifier = notifier
+	})
+	if err == nil {
+		t.Fatal("scan reported success despite a delivery-bookkeeping failure")
+	}
+	if res.Metrics.AlertsSent != 1 || res.Metrics.AlertsFailed != 0 {
+		t.Errorf("sent=%d failed=%d, want sent=1 and failed=0", res.Metrics.AlertsSent, res.Metrics.AlertsFailed)
+	}
+	if len(notifier.delivered) != 1 {
+		t.Errorf("notifier sent %d alerts, want one", len(notifier.delivered))
+	}
+
+	records, loadErr := state.NewFileStore(dir).ListAlerts(context.Background(), 0)
+	if loadErr != nil {
+		t.Fatalf("ListAlerts: %v", loadErr)
+	}
+	if len(records) != 1 || records[0].Delivered {
+		t.Errorf("delivery records = %+v, want one pending alert for safe retry", records)
 	}
 }
 
