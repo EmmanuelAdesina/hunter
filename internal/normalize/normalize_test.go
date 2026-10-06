@@ -336,6 +336,30 @@ func TestSmartContractProgramIsClassifiedSeparately(t *testing.T) {
 	}
 }
 
+// TestOutOfScopeTargetsDoNotInfluenceClassification verifies excluded assets
+// remain available as source data but cannot make a program appear to have an
+// in-scope surface or crypto trait.
+func TestOutOfScopeTargetsDoNotInfluenceClassification(t *testing.T) {
+	p := normalizeWith(baseRaw(func(r *domain.RawProgram) {
+		r.ProjectTypesRaw = nil
+		r.CategoriesRaw = nil
+		r.Description = ""
+		r.Scopes = []domain.RawScope{{
+			Title: "Smart Contract", Target: "contracts/Stake.sol", OutOfScope: true,
+		}}
+	}))
+
+	if len(p.Targets) != 1 || p.Targets[0].InScope {
+		t.Fatalf("out-of-scope source target was not retained as excluded data: %+v", p.Targets)
+	}
+	if len(p.SurfaceTags) != 0 {
+		t.Errorf("surface tags = %v, want no in-scope surfaces", p.SurfaceTags)
+	}
+	if p.CryptoKind != domain.CryptoNotCrypto || len(p.CryptoTraits) != 0 {
+		t.Errorf("crypto classification = %s %v, want non-crypto with no traits", p.CryptoKind, p.CryptoTraits)
+	}
+}
+
 // TestProseAloneDoesNotCreatePlatformCharacter verifies marketing copy mentioning
 // web3 cannot promote a contract program to a crypto platform.
 //

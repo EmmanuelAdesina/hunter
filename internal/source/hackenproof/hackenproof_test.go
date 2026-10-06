@@ -158,6 +158,46 @@ func TestDiscoverFromListingFixture(t *testing.T) {
 	t.Logf("discovered %d references, e.g. %s", len(refs), refs[0].ID)
 }
 
+// TestListingRowsReportMalformedEntriesWithoutDroppingValidPrograms verifies
+// partial pages retain their valid references while surfacing the unreadable
+// rows as a parse error.
+func TestListingRowsReportMalformedEntriesWithoutDroppingValidPrograms(t *testing.T) {
+	page := `<script id="__NUXT_DATA__">[{"data":1},{"programs-api-bounty":2},{"programs":3},[4,5],{"slug":6},null,"alpha"]</script>`
+	refs, parseErr := ParseListingPage([]byte(page))
+	if len(refs) != 1 || refs[0].ID != "alpha" {
+		t.Fatalf("references = %+v, want the valid alpha row", refs)
+	}
+	if !errors.Is(parseErr, source.ErrParse) {
+		t.Fatalf("parse error = %v, want ErrParse for the malformed row", parseErr)
+	}
+
+	srv := &fixtureServer{pages: map[string]string{"/programs": page}}
+	s := newTestSource(t, srv)
+	discovered, discoverErr := s.Discover(context.Background())
+	if len(discovered) != 1 || discovered[0].ID != "alpha" {
+		t.Fatalf("Discover references = %+v, want alpha despite the bad row", discovered)
+	}
+	if !errors.Is(discoverErr, source.ErrParse) {
+		t.Fatalf("Discover error = %v, want the partial-page parse error", discoverErr)
+	}
+}
+
+// TestMalformedListingIsNotTreatedAsEmpty verifies a non-empty list whose rows
+// cannot be interpreted does not trigger the normal end-of-listing sentinel.
+func TestMalformedListingIsNotTreatedAsEmpty(t *testing.T) {
+	page := `<script id="__NUXT_DATA__">[{"data":1},{"programs-api-bounty":2},{"programs":3},[4],{"name":5},"no-slug"]</script>`
+	refs, err := ParseListingPage([]byte(page))
+	if err == nil || errors.Is(err, errNoProgramsOnPage) || !errors.Is(err, source.ErrParse) {
+		t.Fatalf("ParseListingPage = (%+v, %v), want an ErrParse and not the empty-page sentinel", refs, err)
+	}
+
+	empty := `<script id="__NUXT_DATA__">[{"data":1},{"programs-api-bounty":2},{"programs":3},[]]</script>`
+	refs, err = ParseListingPage([]byte(empty))
+	if len(refs) != 0 || !errors.Is(err, errNoProgramsOnPage) {
+		t.Fatalf("empty listing = (%+v, %v), want the normal empty-page sentinel", refs, err)
+	}
+}
+
 // TestDiscoverStopsAtEndOfPagination verifies traversal terminates instead of
 // looping, and that reaching the end of the listing is not treated as failure.
 //
@@ -202,6 +242,69 @@ func TestDiscoverStopsAtEndOfPagination(t *testing.T) {
 		t.Errorf("fetched %d pages; the listing is one page plus its tail", fetched)
 	}
 	t.Logf("stopped after %d page requests", fetched)
+}
+
+// TestDiscoverRetainsListingFailures verifies that a transient listing error is
+// not silently discarded as an ordinary end-of-pagination.
+func TestDiscoverRetainsListingFailures(t *testing.T) {
+	body, err := os.ReadFile(fixturePath("listing-page1.html"))
+	if err != nil {
+		t.Fatalf("read listing fixture: %v", err)
+	}
+	var mu sync.Mutex
+	var requests int
+	doer := source.HTTPDoerFunc(func(req *http.Request) (*http.Response, error) {
+		mu.Lock()
+		requests++
+		mu.Unlock()
+		if req.URL.RawQuery == "" {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     "200 OK",
+				Body:       io.NopCloser(strings.NewReader(string(body))),
+				Header:     http.Header{},
+				Request:    req,
+			}, nil
+		}
+		return &http.Response{
+			StatusCode: http.StatusServiceUnavailable,
+			Status:     "503 Service Unavailable",
+			Body:       io.NopCloser(strings.NewReader("unavailable")),
+			Header:     http.Header{},
+			Request:    req,
+		}, nil
+	})
+	client := source.NewClient(source.ClientConfig{
+		Timeout:        time.Second,
+		MaxRetries:     0,
+		RetryBaseDelay: time.Millisecond,
+		MaxRetryDelay:  2 * time.Millisecond,
+		MaxConcurrent:  4,
+		UserAgent:      "hunter-test/1.0",
+	}, doer)
+	s, err := New(Options{
+		Client:          client,
+		BaseURL:         "https://fixture.test",
+		MaxPages:        8,
+		PageConcurrency: 4,
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	refs, err := s.Discover(context.Background())
+	if len(refs) == 0 {
+		t.Fatal("valid first-page references were discarded")
+	}
+	if !errors.Is(err, source.ErrUnavailable) {
+		t.Fatalf("Discover error = %v, want ErrUnavailable for failed listing pages", err)
+	}
+	mu.Lock()
+	gotRequests := requests
+	mu.Unlock()
+	if gotRequests >= 8 {
+		t.Errorf("requested %d pages after repeated failures, want early stop", gotRequests)
+	}
 }
 
 // TestFetchProgramFixture verifies the detail parser extracts the access facts

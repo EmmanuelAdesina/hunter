@@ -99,6 +99,7 @@ type Scanner struct {
 	generator     *alerts.Generator
 	scorer        *scoring.Scorer
 	normalize     normalize.Options
+	catchUpMu     sync.Mutex
 	catchUpBudget int
 }
 
@@ -149,8 +150,11 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 	res := Result{Metrics: obs.ScanMetrics{ScanID: scanID, Started: started}}
 	log := s.cfg.Logger.With("scan_id", scanID)
 
-	// Reset the catch-up budget at the start of each scan.
+	// Reset the catch-up budget at the start of each scan. Evaluations consume
+	// it concurrently, so reads and decrements use the same mutex.
+	s.catchUpMu.Lock()
 	s.catchUpBudget = s.cfg.Profile.MaxCatchUpDetailFetchesPerScan()
+	s.catchUpMu.Unlock()
 
 	snap, err := s.cfg.Store.Load(ctx)
 	if err != nil {
@@ -279,17 +283,33 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 	// that the run's exit status reflects a delivery outage instead of reporting
 	// success.
 	batch := generated
-	if pending := s.pendingAlerts(ctx); len(pending) > 0 {
+	pending, pendingErr := s.pendingAlerts(ctx)
+	if pendingErr != nil {
+		res.Metrics.Errors++
+		res.Errors = append(res.Errors, fmt.Errorf("load pending alerts: %w", pendingErr))
+	} else if len(pending) > 0 {
 		batch = mergeAlerts(generated, pending)
 	}
-	sent, failed, skipped := s.deliver(ctx, batch)
-	res.Metrics.AlertsSent = sent
-	res.Metrics.AlertsFailed = failed
-	res.Metrics.AlertsSkipped = skipped
-	if failed > 0 {
-		res.Metrics.Errors += failed
+	delivery, deliveryErr := s.deliver(ctx, batch)
+	res.Metrics.AlertsSent = delivery.Delivered
+	res.Metrics.AlertsFailed = delivery.Failed
+	res.Metrics.AlertsSkipped = delivery.Skipped
+	if deliveryErr != nil {
+		// Send failures are counted below. Any additional dispatcher error is a
+		// bookkeeping or cancellation failure and must independently fail the
+		// scan, even when the SMTP server accepted the message.
+		bookkeepingErrors := len(delivery.Errors) - delivery.Failed
+		if bookkeepingErrors > 0 {
+			res.Metrics.Errors += bookkeepingErrors
+		} else if delivery.Failed == 0 {
+			res.Metrics.Errors++
+		}
+		res.Errors = append(res.Errors, fmt.Errorf("notification dispatch: %w", deliveryErr))
+	}
+	if delivery.Failed > 0 {
+		res.Metrics.Errors += delivery.Failed
 		res.Errors = append(res.Errors,
-			fmt.Errorf("%d of %d alert(s) could not be delivered; they remain recorded and will be retried", failed, len(batch)))
+			fmt.Errorf("%d of %d alert(s) could not be delivered; they remain recorded and will be retried", delivery.Failed, len(batch)))
 	}
 
 	res.Metrics.Duration = s.cfg.Now().Sub(started)
@@ -565,11 +585,14 @@ func (s *Scanner) needsDetail(ref domain.ProgramRef, prev domain.Program, hadPre
 	}
 
 	if catchUp {
-		if s.catchUpBudget > 0 {
+		if s.cfg.Profile.MaxCatchUpDetailFetchesPerScan() > 0 {
+			s.catchUpMu.Lock()
 			if s.catchUpBudget <= 0 {
+				s.catchUpMu.Unlock()
 				return false
 			}
 			s.catchUpBudget--
+			s.catchUpMu.Unlock()
 		}
 		return true
 	}
@@ -1012,9 +1035,10 @@ func (s *Scanner) persist(ctx context.Context, snap *state.Snapshot, evaluated [
 }
 
 // deliver sends alerts, honouring dry-run mode and per-alert idempotency.
-func (s *Scanner) deliver(ctx context.Context, generated []domain.Alert) (sent, failed, skipped int) {
+func (s *Scanner) deliver(ctx context.Context, generated []domain.Alert) (notify.Result, error) {
+	var empty notify.Result
 	if len(generated) == 0 {
-		return 0, 0, 0
+		return empty, nil
 	}
 
 	dispatcher := notify.NewDispatcher(notify.DispatcherConfig{
@@ -1035,23 +1059,13 @@ func (s *Scanner) deliver(ctx context.Context, generated []domain.Alert) (sent, 
 		Now: s.cfg.Now,
 	})
 
-	// A dry run still records each alert, but leaves it undelivered.
-	//
-	// That is what makes a dry run useful: `hunter alerts` shows exactly what
-	// would have been sent, and a later live run delivers the very same alerts
-	// because their fingerprints are unchanged and their records are still
-	// pending. Skipping the record instead would make a dry run invisible and
-	// force a second scan to rediscover the same conditions.
+	// A dry run still records each alert, but leaves it undelivered. A record
+	// failure is surfaced to the scan instead of being reduced to a log line.
 	if s.cfg.DryRun || !dispatcher.Status().Notified {
 		reason := dispatchReason(s, dispatcher)
 		s.cfg.Logger.Info("delivery skipped", "phase", obs.PhaseNotify,
 			"reason", reason, "alerts", len(generated))
 
-		// Notifications being enabled in the profile while no channel is
-		// configured is a misconfiguration, not a neutral outcome: the system
-		// would generate alerts indefinitely and deliver none of them, reporting
-		// success every time. It is recorded so that the caller can say so out
-		// loud rather than letting a missing credential look like a quiet day.
 		if !s.cfg.DryRun && s.cfg.Profile.Notifications.Enabled && len(generated) > 0 {
 			s.cfg.Logger.Error("notifications are enabled but no delivery channel is configured; "+
 				"alerts will be generated and recorded but never sent",
@@ -1062,6 +1076,7 @@ func (s *Scanner) deliver(ctx context.Context, generated []domain.Alert) (sent, 
 				"phase", obs.PhaseNotify, "reason", reason)
 		}
 
+		var errs []error
 		for _, a := range generated {
 			rec := domain.AlertRecord{
 				Fingerprint:   a.Fingerprint,
@@ -1074,10 +1089,16 @@ func (s *Scanner) deliver(ctx context.Context, generated []domain.Alert) (sent, 
 				LastAttemptAt: s.cfg.Now().UTC(),
 			}
 			if err := s.cfg.Store.RecordAlertAttempt(ctx, rec); err != nil {
-				s.cfg.Logger.Warn("could not record alert", "phase", obs.PhaseNotify, "error", err.Error())
+				if s.cfg.Logger != nil {
+					s.cfg.Logger.Warn("could not record alert", "phase", obs.PhaseNotify, "error", err.Error())
+				}
+				resultErr := fmt.Errorf("record skipped alert %s: %w", a.ShortFingerprint(), err)
+				empty.Errors = append(empty.Errors, resultErr)
+				errs = append(errs, resultErr)
 			}
 		}
-		return 0, 0, len(generated)
+		empty.Skipped = len(generated)
+		return empty, errors.Join(errs...)
 	}
 
 	res, err := dispatcher.Dispatch(ctx, generated)
@@ -1086,7 +1107,7 @@ func (s *Scanner) deliver(ctx context.Context, generated []domain.Alert) (sent, 
 			s.cfg.Logger.Warn("delivery failed", "phase", obs.PhaseNotify, "error", e.Error())
 		}
 	}
-	return res.Delivered, res.Failed, res.Skipped
+	return res, err
 }
 
 func dispatchReason(s *Scanner, d *notify.Dispatcher) string {
@@ -1105,11 +1126,13 @@ func dispatchReason(s *Scanner, d *notify.Dispatcher) string {
 // by a dry run, or whose delivery failed, would otherwise never be retried: the
 // condition that produced it is no longer new. Reconstructing them from their
 // records closes that gap, and the dispatcher skips anything already delivered.
-func (s *Scanner) pendingAlerts(ctx context.Context) []domain.Alert {
+func (s *Scanner) pendingAlerts(ctx context.Context) ([]domain.Alert, error) {
 	records, err := s.cfg.Store.ListAlerts(ctx, 0)
 	if err != nil {
-		s.cfg.Logger.Warn("could not read alert records", "phase", obs.PhaseNotify, "error", err.Error())
-		return nil
+		if s.cfg.Logger != nil {
+			s.cfg.Logger.Warn("could not read alert records", "phase", obs.PhaseNotify, "error", err.Error())
+		}
+		return nil, err
 	}
 
 	out := make([]domain.Alert, 0, len(records))
@@ -1127,7 +1150,7 @@ func (s *Scanner) pendingAlerts(ctx context.Context) []domain.Alert {
 			DetectedAt:  rec.CreatedAt,
 		})
 	}
-	return out
+	return out, nil
 }
 
 // mergeAlerts combines newly generated alerts with previously pending ones.

@@ -12,3 +12,13 @@ import "os"
 func replaceFile(src, dst string) error {
 	return os.Rename(src, dst)
 }
+
+// syncDirectory makes renames and removals durable across a host interruption.
+func syncDirectory(path string) error {
+	dir, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	return dir.Sync()
+}

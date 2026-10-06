@@ -150,6 +150,28 @@ func TestDispatchIsIdempotent(t *testing.T) {
 	}
 }
 
+// TestDeliveryBookkeepingFailureIsReturned verifies a successful SMTP send
+// cannot hide a failed persisted acknowledgement.
+func TestDeliveryBookkeepingFailureReturnedEvenWhenSendSucceeds(t *testing.T) {
+	n := &recordingNotifier{configured: true}
+	d, book := newDispatcherFor(t, n)
+	book.deliverErr = errors.New("state store unavailable")
+
+	res, err := d.Dispatch(context.Background(), []domain.Alert{alertFor("ack-failure")})
+	if err == nil {
+		t.Fatal("Dispatch reported success after delivery bookkeeping failed")
+	}
+	if res.Delivered != 1 || n.count() != 1 {
+		t.Errorf("delivered=%d sent=%d, want one successful send", res.Delivered, n.count())
+	}
+	if res.Failed != 0 {
+		t.Errorf("failed = %d, want 0 because the notifier send succeeded", res.Failed)
+	}
+	if book.isDelivered("fp-ack-failure") {
+		t.Error("failed delivery acknowledgement was recorded as delivered")
+	}
+}
+
 // TestOneFailureDoesNotStopTheBatch verifies a provider outage does not
 // suppress every later alert.
 func TestOneFailureDoesNotStopTheBatch(t *testing.T) {

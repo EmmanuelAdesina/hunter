@@ -23,8 +23,11 @@ import (
 type AccessConfig struct {
 	// MaxReputationPoints is the highest reputation requirement the
 	// researcher is willing to satisfy. Programs without a reputation gate
-	// always pass.
+	// always pass. An omitted value defaults to 80; an explicit zero only
+	// accepts programs that require no reputation.
 	MaxReputationPoints int `yaml:"max_reputation_points"`
+
+	maxReputationPointsSet bool `yaml:"-"`
 
 	// MaxSubmissionFeeUSD is the highest submission fee the researcher will
 	// pay. Programs with no fee always pass.
@@ -87,9 +90,12 @@ type CryptoConfig struct {
 	Excluded []string `yaml:"excluded"`
 
 	// RequireAllowedTrait demands at least one Allowed trait before a crypto
-	// program passes. Defaults to true in auto mode: admitting every crypto
-	// program is precisely the noise this system exists to remove.
+	// program passes. Defaults to true when crypto filtering is enabled in auto
+	// mode: admitting every crypto program is precisely the noise this system
+	// exists to remove.
 	RequireAllowedTrait bool `yaml:"require_allowed_trait"`
+
+	requireAllowedTraitSet bool `yaml:"-"`
 
 	// DominanceRatio is the fraction of crypto traits that must be excluded
 	// for the excluded list to veto a program. A program that is both a crypto
@@ -220,9 +226,9 @@ type ScanConfig struct {
 	// refresh.
 	FetchDetailsOnListingChange bool `yaml:"fetch_details_on_listing_change"`
 
-	// detailChangeUnset records whether the key was present, so that a default
-	// of true is applied without overriding an explicit false.
-	detailChangeUnset bool `yaml:"-"`
+	// detailChangeConfigured records whether the key was present, so that a
+	// default of true is applied without overriding an explicit false.
+	detailChangeConfigured bool `yaml:"-"`
 
 	// DetailsRefreshInterval is the longest a detail record may go unrefreshed.
 	// Zero disables the periodic refresh, which makes the listing the only
@@ -397,10 +403,50 @@ func Parse(raw []byte) (*Profile, error) {
 		}
 	}
 
+	// yaml's zero values do not distinguish an omitted integer/boolean from
+	// an explicitly configured zero/false. Preserve presence for fields whose
+	// documented defaults differ from those zero values.
+	p.Access.maxReputationPointsSet = yamlPathPresent(raw, wrapped, "access", "max_reputation_points")
+	p.Crypto.requireAllowedTraitSet = yamlPathPresent(raw, wrapped, "crypto", "require_allowed_trait")
+	p.Scan.detailChangeConfigured = yamlPathPresent(raw, wrapped, "scan", "fetch_details_on_listing_change")
+
 	if err := p.applyDefaultsAndValidate(); err != nil {
 		return nil, err
 	}
 	return &p, nil
+}
+
+// yamlPathPresent reports whether a nested key exists in the profile mapping.
+// It is used only to distinguish an omitted zero-value option from an explicit
+// zero or false; yaml.Decoder remains responsible for strict type and key
+// validation.
+func yamlPathPresent(raw []byte, wrapped bool, path ...string) bool {
+	var doc yaml.Node
+	if err := yaml.Unmarshal(raw, &doc); err != nil || len(doc.Content) != 1 {
+		return false
+	}
+	node := doc.Content[0]
+	if wrapped {
+		path = append([]string{"profile"}, path...)
+	}
+	for _, part := range path {
+		if node.Kind != yaml.MappingNode {
+			return false
+		}
+		found := false
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			key := node.Content[i]
+			if key.Kind == yaml.ScalarNode && key.Value == part {
+				node = node.Content[i+1]
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
 // hasProfileWrapper reports whether the document nests the profile under a
@@ -456,7 +502,11 @@ func (p *Profile) applyDefaultsAndValidate() error {
 	}
 
 	// Access defaults. A zero-value reputation ceiling would reject every
-	// program, which is never the intent of an omitted key.
+	// program, which is never the intent of an omitted key. An explicit zero
+	// remains valid and means that no reputation requirement is acceptable.
+	if !p.Access.maxReputationPointsSet {
+		p.Access.MaxReputationPoints = 80
+	}
 	if p.Access.MaxReputationPoints < 0 {
 		fail("access.max_reputation_points must be >= 0")
 	}
@@ -473,6 +523,9 @@ func (p *Profile) applyDefaultsAndValidate() error {
 	if p.Crypto.Mode == "" {
 		p.Crypto.Mode = CryptoModeAuto
 	}
+	if p.Crypto.Enabled && p.Crypto.Mode == CryptoModeAuto && !p.Crypto.requireAllowedTraitSet {
+		p.Crypto.RequireAllowedTrait = true
+	}
 	if _, err := ParseCryptoMode(string(p.Crypto.Mode)); err != nil {
 		fail("%v", err)
 	}
@@ -485,13 +538,16 @@ func (p *Profile) applyDefaultsAndValidate() error {
 		fail("crypto.excluded: %v", err)
 	}
 	p.allowedCrypto, p.excludedCrypto = allowed, excluded
-	if p.Crypto.Mode == CryptoModeAuto && !p.Crypto.RequireAllowedTrait && len(p.Crypto.Allowed) > 0 {
+	if p.Crypto.Enabled && p.Crypto.Mode == CryptoModeAuto && p.Crypto.RequireAllowedTrait && len(allowed) == 0 {
+		fail("crypto.require_allowed_trait is true but crypto.allowed is empty")
+	}
+	if p.Crypto.Enabled && p.Crypto.Mode == CryptoModeAuto && !p.Crypto.RequireAllowedTrait && len(allowed) > 0 {
 		// With an allow list present but the requirement disabled, the list
 		// would have no effect. Surfacing this prevents a profile that looks
 		// filtered but is not.
 		fail("crypto.allow list is set but crypto.require_allowed_trait is false: the allow list would have no effect")
 	}
-	if p.Crypto.Mode != CryptoModeAuto && len(p.Crypto.Allowed) > 0 {
+	if p.Crypto.Mode != CryptoModeAuto && len(allowed) > 0 {
 		p.Crypto.RequireAllowedTrait = false
 	}
 	if p.Crypto.DominanceRatio < 0 || p.Crypto.DominanceRatio > 1 {
@@ -620,7 +676,7 @@ func (p *Profile) applyDefaultsAndValidate() error {
 	// cheap tier notices that nothing moved but never re-reads anything that did,
 	// which would silently disable change detection altogether. A profile that
 	// genuinely wants the cheap tier alone must say so explicitly.
-	if !p.Scan.detailChangeUnset {
+	if !p.Scan.detailChangeConfigured {
 		p.Scan.FetchDetailsOnListingChange = true
 	}
 	if p.Scan.RequestTimeout == 0 {

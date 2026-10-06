@@ -410,6 +410,23 @@ func TestSubjectFormat(t *testing.T) {
 	}
 }
 
+// TestSubjectSurfaceIgnoresOutOfScopeTargets verifies an excluded API does not
+// become the headline surface just because its source record is retained.
+func TestSubjectSurfaceIgnoresOutOfScopeTargets(t *testing.T) {
+	c := candidate(func(c *alerts.Candidate) {
+		c.Program.Targets = domain.Targets{
+			{Kind: domain.KindAPI, Identifier: "https://excluded.example", InScope: false},
+		}
+	})
+	got := generator(profile(t)).Decide(c)
+	if got == nil {
+		t.Fatal("no alert")
+	}
+	if strings.Contains(got.Subject, "API/Web") {
+		t.Errorf("subject uses an out-of-scope API as its surface: %q", got.Subject)
+	}
+}
+
 // TestBodyContent verifies the body carries access facts, surface, and the
 // reasoning.
 func TestBodyContent(t *testing.T) {

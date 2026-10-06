@@ -191,6 +191,61 @@ func TestOverridesTakeEffect(t *testing.T) {
 	}
 }
 
+// TestOmittedNumericDefaultsAndExplicitZero verifies omitted integer policy
+// values receive their documented defaults while an intentional zero is kept.
+func TestOmittedNumericDefaultsAndExplicitZero(t *testing.T) {
+	omitted := strings.Replace(minimalProfile, "    max_reputation_points: 80\n", "", 1)
+	p, err := config.Parse([]byte(omitted))
+	if err != nil {
+		t.Fatalf("parse omitted reputation ceiling: %v", err)
+	}
+	if p.Access.MaxReputationPoints != 80 {
+		t.Errorf("omitted max_reputation_points = %d, want default 80", p.Access.MaxReputationPoints)
+	}
+
+	explicitZero := strings.Replace(minimalProfile, "max_reputation_points: 80", "max_reputation_points: 0", 1)
+	p, err = config.Parse([]byte(explicitZero))
+	if err != nil {
+		t.Fatalf("parse explicit zero reputation ceiling: %v", err)
+	}
+	if p.Access.MaxReputationPoints != 0 {
+		t.Errorf("explicit max_reputation_points = %d, want 0", p.Access.MaxReputationPoints)
+	}
+}
+
+// TestExplicitFalseOverridesBooleanDefault verifies YAML key presence is
+// tracked for settings whose default is true.
+func TestExplicitFalseOverridesBooleanDefault(t *testing.T) {
+	yaml := strings.Replace(minimalProfile, "  notifications:",
+		"  scan:\n    fetch_details_on_listing_change: false\n  notifications:", 1)
+	p, err := config.Parse([]byte(yaml))
+	if err != nil {
+		t.Fatalf("parse explicit false: %v", err)
+	}
+	if p.FetchDetailsOnListingChange() {
+		t.Error("explicit false was overwritten by the true default")
+	}
+}
+
+// TestCryptoAllowTraitIsDefaultedAndRequired ensures auto mode cannot silently
+// skip an empty allow list when the rule is supposed to be mandatory.
+func TestCryptoAllowTraitIsDefaultedAndRequired(t *testing.T) {
+	withAllowList := strings.Replace(minimalProfile, "  notifications:",
+		"  crypto:\n    enabled: true\n    mode: auto\n    allowed: [crypto_platform]\n  notifications:", 1)
+	p, err := config.Parse([]byte(withAllowList))
+	if err != nil {
+		t.Fatalf("parse auto crypto profile: %v", err)
+	}
+	if !p.Crypto.RequireAllowedTrait {
+		t.Error("require_allowed_trait defaulted to false in auto mode")
+	}
+
+	withoutAllowList := strings.Replace(withAllowList, "    allowed: [crypto_platform]\n", "", 1)
+	if _, err := config.Parse([]byte(withoutAllowList)); err == nil || !strings.Contains(err.Error(), "crypto.allowed is empty") {
+		t.Errorf("empty required allow list error = %v, want a validation error", err)
+	}
+}
+
 // TestFlatProfileShapeIsAccepted verifies a profile without the outer key still
 // loads, since both shapes are in use.
 func TestFlatProfileShapeIsAccepted(t *testing.T) {

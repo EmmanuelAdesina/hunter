@@ -175,6 +175,36 @@ func TestCorruptStateIsReported(t *testing.T) {
 	}
 }
 
+// TestMaterialDigestMismatchIsReported verifies Load refuses to trust a
+// mixture of state files that no longer matches the committed snapshot digest.
+func TestMaterialDigestMismatchIsReported(t *testing.T) {
+	dir := t.TempDir()
+	store := state.NewFileStore(dir)
+	snap := state.NewSnapshot()
+	p := sampleProgram("hackenproof:alpha", "alpha")
+	snap.Programs[p.ID] = p
+	if err := store.Save(context.Background(), snap); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	path := filepath.Join(dir, "programs.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read programs: %v", err)
+	}
+	changed := strings.Replace(string(raw), "Example alpha", "Changed alpha", 1)
+	if changed == string(raw) {
+		t.Fatal("test failed to locate the serialized program name")
+	}
+	if err := os.WriteFile(path, []byte(changed), 0o644); err != nil {
+		t.Fatalf("tamper programs: %v", err)
+	}
+
+	if _, err := store.Load(context.Background()); !errors.Is(err, state.ErrCorrupt) {
+		t.Errorf("Load error = %v, want ErrCorrupt for a digest mismatch", err)
+	}
+}
+
 // TestFutureVersionIsRejected verifies a state file written by a newer build is
 // refused rather than misread.
 func TestFutureVersionIsRejected(t *testing.T) {

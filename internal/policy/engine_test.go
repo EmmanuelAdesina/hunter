@@ -117,6 +117,45 @@ func TestBaselineEligible(t *testing.T) {
 	}
 }
 
+// TestAcceptsReportsIsAlwaysEnforced verifies a state explicitly allowed by a
+// profile still cannot pass policy when reports are not currently accepted.
+func TestAcceptsReportsIsAlwaysEnforced(t *testing.T) {
+	profile := strings.Replace(baseProfile, "allowed: [live, new]", "allowed: [live, new, paused]", 1)
+	p := newProgram(func(p *domain.Program) { p.State = domain.StatePaused })
+	d := decide(t, profile, p)
+	if d.Eligible {
+		t.Fatal("a paused program was approved despite not accepting reports")
+	}
+	check, ok := d.CheckByID(policy.CheckAcceptsReports)
+	if !ok {
+		t.Fatal("accepts-reports check is missing from the decision")
+	}
+	if check.Outcome != domain.CheckFail {
+		t.Errorf("accepts-reports outcome = %s, want fail", check.Outcome)
+	}
+}
+
+// TestRequiredCryptoAllowListFailsClosed protects the policy engine even when a
+// Profile is assembled directly instead of passing config validation.
+func TestRequiredCryptoAllowListFailsClosed(t *testing.T) {
+	profile := &config.Profile{
+		Name: "test",
+		Crypto: config.CryptoConfig{
+			Enabled:             true,
+			Mode:                config.CryptoModeAuto,
+			RequireAllowedTrait: true,
+		},
+	}
+	d := policy.New(profile, func() time.Time { return fixedNow }).Evaluate(newProgram())
+	check, ok := d.CheckByID(policy.CheckCryptoAllowed)
+	if !ok {
+		t.Fatal("crypto allow-trait check is missing")
+	}
+	if check.Outcome != domain.CheckFail {
+		t.Errorf("empty required crypto allow list produced %s, want fail", check.Outcome)
+	}
+}
+
 // TestAccessGates covers the three access requirements independently.
 func TestAccessGates(t *testing.T) {
 	cases := []struct {
