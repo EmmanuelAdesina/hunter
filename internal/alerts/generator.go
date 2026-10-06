@@ -150,6 +150,22 @@ func withinLaunchWindow(age time.Duration, known bool, window time.Duration) boo
 	return known && age <= window
 }
 
+// stateAllowsAlert reports whether the program's current lifecycle state is one
+// the profile considers alert-worthy. An unconfigured list allows everything,
+// preserving the behavior of profiles written before the setting existed.
+func (g *Generator) stateAllowsAlert(state domain.ProgramState) bool {
+	listed := g.profile.AlertOnStates()
+	if len(listed) == 0 {
+		return true
+	}
+	for _, s := range listed {
+		if s == state {
+			return true
+		}
+	}
+	return false
+}
+
 // selectKind picks the single most significant trigger for a candidate.
 //
 // Each branch carries its own recency evidence. The launch window governs only
@@ -160,6 +176,16 @@ func withinLaunchWindow(age time.Duration, known bool, window time.Duration) boo
 func (g *Generator) selectKind(c Candidate, launchAge time.Duration, launchKnown bool, now time.Time) (domain.AlertKind, string) {
 	cfg := g.profile.Notifications
 	launchWindow := g.profile.NewProgramWindow()
+
+	// program_states.alert_on_state lists the lifecycle states that warrant an
+	// alert in their own right. When configured, every alert kind requires the
+	// program to currently be in a listed state; when empty, no state gating
+	// applies. This is what separates "evaluate and track" (allowed states)
+	// from "page the researcher" (alert states): a profile may watch paused
+	// programs without being woken for them.
+	if !g.stateAllowsAlert(c.Program.State) {
+		return "", ""
+	}
 
 	// A program seen for the first time is the primary event.
 	if c.Diff.IsNew {

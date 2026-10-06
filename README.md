@@ -182,6 +182,7 @@ profile:
     max_reputation_points: 80
     max_submission_fee_usd: 5
     kyc_required: no
+    poc_required: yes
     accept_unknown_access_gates: false
     accept_unknown_parse_state: false
 
@@ -198,6 +199,11 @@ profile:
 
   program_states:
     allowed: [live, new]
+    # States that independently warrant an alert. Every alert requires the
+    # program to currently be in a listed state; an empty list disables the
+    # gate. This separates "evaluate and track" (allowed) from "wake the
+    # researcher" (alert_on_state).
+    alert_on_state: [live, new]
 
   notifications:
     enabled: true

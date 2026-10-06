@@ -13,6 +13,11 @@ profile:
     # Whether identity verification is acceptable. "no" is a deliberate
     # choice: KYC-gated programs are unreachable without it.
     kyc_required: no
+    # Whether a proof-of-concept requirement is acceptable. "yes" is deliberate:
+    # providing a working exploit with the report is normal bounty workflow, and
+    # refusing it would exclude most of the catalogue. Set to "no" to treat a
+    # PoC demand the way this profile treats KYC.
+    poc_required: yes
     # Never auto-accept programs whose access facts could not be parsed.
     accept_unknown_access_gates: false
     # Never auto-accept programs the adapter could not fully understand.

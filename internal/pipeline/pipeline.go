@@ -548,12 +548,17 @@ func (s *Scanner) evaluateOne(ctx context.Context, src domain.ProgramSource, ref
 // The budget limits catch-up detail reads (bootstrap and stale refreshes) per scan.
 // It does NOT limit event-driven reads (listing changes) or retries (incomplete records).
 func (s *Scanner) needsDetail(ref domain.ProgramRef, prev domain.Program, hadPrev bool) bool {
-	// Event-driven reads are never budget-limited.
-	if s.cfg.Profile.FetchDetailsOnListingChange() && prev.ListingChangedSince(ref) {
-		return true
-	}
-	if prev.ParseConfidence == domain.ConfidenceLow {
-		return true
+	// Event-driven reads are never budget-limited. Both branches require a
+	// previous record: a program seen for the first time has no listing to have
+	// changed against and no parse to have failed, and the zero value of prev
+	// would compare unequal to any real listing and bypass the budget below.
+	if hadPrev {
+		if s.cfg.Profile.FetchDetailsOnListingChange() && prev.ListingChangedSince(ref) {
+			return true
+		}
+		if prev.ParseConfidence == domain.ConfidenceLow {
+			return true
+		}
 	}
 
 	// Catch-up reads are budget-limited.
