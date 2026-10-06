@@ -38,6 +38,16 @@ type AccessConfig struct {
 	// materially different answer from "no".
 	KYCRequired domain.Tri `yaml:"kyc_required"`
 
+	// POCRequired declares whether a proof-of-concept requirement is
+	// acceptable. It mirrors kyc_required: "no" means a program that demands a
+	// working exploit with the report is out of reach for this researcher.
+	//
+	// Unlike KYC, an unspecified stance defaults to acceptance. Providing a
+	// proof of concept is normal bounty workflow rather than an identity or
+	// monetary gate, so defaulting to refusal would silently narrow the channel
+	// for the majority of the catalogue. An explicit "no" opts into refusal.
+	POCRequired domain.Tri `yaml:"poc_required"`
+
 	// AcceptUnknownAccessGates allows programs whose access facts could not
 	// be determined. It defaults to false and must be enabled explicitly,
 	// because a parser regression would otherwise silently widen results.
@@ -517,6 +527,14 @@ func (p *Profile) applyDefaultsAndValidate() error {
 		// An unspecified KYC policy is treated as "unwilling", which is the
 		// safe direction: it can only narrow results, never widen them.
 		p.Access.KYCRequired = domain.TriNo
+	}
+	if !p.Access.POCRequired.Known() {
+		// An unspecified PoC stance defaults to acceptance, which preserves the
+		// behavior of profiles written before the setting existed. Refusal must
+		// be explicit, because most of the catalogue requires a proof of
+		// concept and a silent default-refusal would narrow the channel
+		// without the profile saying so.
+		p.Access.POCRequired = domain.TriYes
 	}
 
 	// Crypto.

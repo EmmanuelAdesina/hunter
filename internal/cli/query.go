@@ -498,6 +498,7 @@ func cmdValidateConfig(env *Env, args []string) int {
 	fmt.Fprintf(env.Stdout, "  max reputation:       %d\n", profile.Access.MaxReputationPoints)
 	fmt.Fprintf(env.Stdout, "  max submission fee:   $%.2f\n", profile.Access.MaxSubmissionFeeUSD)
 	fmt.Fprintf(env.Stdout, "  kyc required:         %s\n", profile.Access.KYCRequired)
+	fmt.Fprintf(env.Stdout, "  poc required:         %s\n", profile.Access.POCRequired)
 	fmt.Fprintf(env.Stdout, "  accept unknown gates: %v\n", profile.Access.AcceptUnknownAccessGates)
 	fmt.Fprintf(env.Stdout, "  min alert severity:   %s\n", profile.MinSeverity())
 	fmt.Fprintf(env.Stdout, "  notifications:        %v\n", profile.Notifications.Enabled)

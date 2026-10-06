@@ -28,6 +28,7 @@ const (
 	CheckReputation      = "access.reputation"
 	CheckSubmissionFee   = "access.submission_fee"
 	CheckKYC             = "access.kyc"
+	CheckPOC             = "access.poc"
 	CheckState           = "program.state"
 	CheckAcceptsReports  = "program.accepts_reports"
 	CheckParseTrust      = "data.parse_trust"
@@ -63,6 +64,7 @@ func (e *Engine) Evaluate(p domain.Program) domain.EligibilityDecision {
 	e.checkReputation(b, p)
 	e.checkFee(b, p)
 	e.checkKYC(b, p)
+	e.checkPOC(b, p)
 	e.checkState(b, p)
 	e.checkAcceptsReports(b, p)
 	e.checkSurfaces(b, p)
@@ -91,8 +93,21 @@ func (e *Engine) checkTrust(b *builder, p domain.Program) {
 		return
 	}
 	if p.ParseConfidence == domain.ConfidencePartial {
-		b.pass(CheckParseTrust, "program data must be fully understood",
-			"partially understood", "access facts present")
+		// A partially understood record is not a fully understood one, and the
+		// profile's default refuses to auto-accept anything the adapter could
+		// not fully understand. The access facts that are present may look
+		// complete while the surrounding structure was not, which is exactly
+		// the shape a parser regression takes.
+		if e.profile.Access.AcceptUnknownParseState {
+			b.pass(CheckParseTrust, "program data must be fully understood",
+				"partially understood record accepted by profile", "accept_unknown_parse_state=true")
+			return
+		}
+		detail := "the source record was only partially understood"
+		if len(p.ParseIssues) > 0 {
+			detail += ": " + strings.Join(p.ParseIssues, "; ")
+		}
+		b.unknown(CheckParseTrust, "program data must be fully understood", detail)
 		return
 	}
 	b.pass(CheckParseTrust, "program data must be fully understood",
@@ -187,6 +202,44 @@ func (e *Engine) checkKYC(b *builder, p domain.Program) {
 			"the program is unreachable without identity verification")
 	default:
 		b.pass(CheckKYC, "KYC requirement must be compatible", "KYC is not required", "profile does not require KYC")
+	}
+}
+
+// checkPOC enforces the proof-of-concept policy, mirroring checkKYC.
+//
+// A PoC requirement is an access gate in the same structural sense as KYC: the
+// program demands something beyond the report itself. It differs in default
+// posture only — acceptance unless the profile explicitly refuses — because
+// providing a proof of concept is normal bounty workflow.
+func (e *Engine) checkPOC(b *builder, p domain.Program) {
+	willing := e.profile.Access.POCRequired
+
+	if !p.POC.Known() {
+		if e.profile.Access.AcceptUnknownAccessGates {
+			b.pass(CheckPOC, "PoC requirement must be compatible", "unknown accepted by profile", "accept_unknown_access_gates=true")
+			return
+		}
+		b.unknown(CheckPOC, "PoC requirement must be compatible",
+			"the source did not state whether a proof of concept is required")
+		return
+	}
+
+	if !willing.Known() {
+		b.unknown(CheckPOC, "PoC requirement must be compatible",
+			"the profile does not state a PoC stance")
+		return
+	}
+
+	switch {
+	case p.POC.No() && !willing.Yes():
+		b.pass(CheckPOC, "PoC requirement must be compatible", "PoC is not required", "profile does not require a PoC")
+	case p.POC.Yes() && willing.Yes():
+		b.pass(CheckPOC, "PoC requirement must be compatible", "PoC is required and accepted by the profile", "")
+	case p.POC.Yes():
+		b.fail(CheckPOC, "PoC requirement must be compatible", "PoC is required", "the profile does not accept a PoC requirement",
+			"the program is unreachable without a working exploit")
+	default:
+		b.pass(CheckPOC, "PoC requirement must be compatible", "PoC is not required", "profile does not require a PoC")
 	}
 }
 
