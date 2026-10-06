@@ -1,0 +1,20 @@
+[38;2;74;84;104m$ [0m[1mreliastra[0m [38;2;232;200;122mhelp[0m[38;2;139;148;169m[0m
+[38;2;232;200;122m┌─ [0m[38;2;232;200;122m◈ RELIASTRA · SIGNAL OVER NOISE · V2.0.0[0m[38;2;232;200;122m ───────────────────────────────────────────────────┐[0m
+[38;2;232;200;122m│ [0m[38;2;139;148;169mhunter engine inside · zero-deps binary · --json stays byte-stable[0m                          [38;2;232;200;122m │[0m
+[38;2;232;200;122m└──────────────────────────────────────────────────────────────────────────────────────────────┘[0m
+[38;2;74;84;104mOPERATE [0m[38;2;110;95;60m────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;2;232;200;122mscan[0m [38;2;94;234;212m[--dry-run] [--no-details][0m           [38;2;139;148;169mDiscover, evaluate, alert in one pass.[0m
+[38;2;232;200;122msync[0m                                      [38;2;139;148;169mAlias for scan — the manual-run spelling.[0m
+[38;2;74;84;104mINVESTIGATE [0m[38;2;110;95;60m────────────────────────────────────────────────────────────────────────────────────[0m
+[38;2;232;200;122mprograms[0m [38;2;94;234;212m[--eligible] [--new] [--changed][0m [38;2;139;148;169mThe ledger of known programs.[0m
+[38;2;232;200;122mexplain[0m [38;2;94;234;212m<id>[0m                              [38;2;139;148;169mThe dossier — every check with its reason.[0m
+[38;2;232;200;122mhistory[0m [38;2;94;234;212m<id>[0m                              [38;2;139;148;169mMaterial changes, oldest first.[0m
+[38;2;232;200;122mreplay[0m [38;2;94;234;212m<id> [--limit n][0m                   [38;2;139;148;169mRead-only timeline; decisions frozen.[0m
+[38;2;232;200;122mwindows[0m [38;2;94;234;212m[--open] [--program id][0m           [38;2;139;148;169mOpportunity windows with bounded intervals.[0m
+[38;2;232;200;122malerts[0m [38;2;94;234;212m[--undelivered][0m                    [38;2;139;148;169mDelivery ledger — sent vs pending.[0m
+[38;2;74;84;104mADMINISTER [0m[38;2;110;95;60m─────────────────────────────────────────────────────────────────────────────────────[0m
+[38;2;232;200;122mvalidate-config[0m                           [38;2;139;148;169mAttest the profile. 14 checks.[0m
+[38;2;232;200;122mtest-email[0m [38;2;94;234;212m[id][0m                           [38;2;139;148;169mSend one rendered sample email.[0m
+[38;2;232;200;122mversion[0m                                   [38;2;139;148;169mBuild version, linker-stamped.[0m
+[38;2;74;84;104mglobal: --profile --state --log-level --json --no-color --quiet[0m
+[38;2;74;84;104mexit 0 ok · 1 fail · 2 config · 3 degraded[0m

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reliastra CLI — Enterprise Design Demo · Obsidian Executive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04060B; --bg2:#070B14;
+  --surface:#0B111E; --surface2:#0E1626; --surface3:#131D33;
+  --gold:#E8C87A; --gold-deep:#B8934A; --gold-faint:rgba(232,200,122,.14);
+  --gold-hair:rgba(232,200,122,.18);
+  --teal:#5EEAD4; --sky:#7DD3FC; --green:#34D399; --amber:#FBBF24; --rose:#FB7185; --violet:#A78BFA;
+  --text:#E8ECF4; --muted:#8B94A9; --faint:#4A5468;
+  --mono:'JetBrains Mono','SF Mono','Cascadia Code',Menlo,monospace;
+  --ui:'Inter',-apple-system,'SF Pro',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100vh;overflow-x:hidden;
+  background-image:radial-gradient(1200px 500px at 50% -10%,rgba(232,200,122,.07),transparent 60%),radial-gradient(900px 420px at 85% 110%,rgba(94,234,212,.05),transparent 60%),radial-gradient(700px 380px at 8% 100%,rgba(167,139,250,.05),transparent 60%);}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(232,200,122,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(232,200,122,.025) 1px,transparent 1px);
+  background-size:56px 56px;mask-image:radial-gradient(ellipse 90% 70% at 50% 0%,black 30%,transparent 75%);}
+::selection{background:rgba(232,200,122,.28)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 28px 90px;position:relative;z-index:1}
+/* ── top bar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:22px 0 18px;border-bottom:1px solid rgba(232,200,122,.1)}
+.brand{display:flex;align-items:center;gap:14px}
+.mark{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;position:relative;
+  background:linear-gradient(145deg,#141B30,#0A0F1C);border:1px solid var(--gold-hair);
+  box-shadow:0 0 24px rgba(232,200,122,.15),inset 0 1px 0 rgba(255,255,255,.06)}
+.mark svg{width:22px;height:22px}
+.brand h1{font-size:17px;font-weight:800;letter-spacing:.24em}
+.brand h1 span{color:var(--gold)}
+.brand small{display:block;font-size:10px;letter-spacing:.32em;color:var(--muted);font-weight:600;margin-top:2px}
+.top-right{display:flex;align-items:center;gap:10px}
+.badge{font-family:var(--mono);font-size:11px;padding:6px 12px;border-radius:99px;border:1px solid var(--gold-hair);color:var(--gold);background:rgba(232,200,122,.06);letter-spacing:.04em}
+.badge.ghost{color:var(--muted);border-color:rgba(139,148,169,.25);background:transparent}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);display:inline-block;margin-right:7px;vertical-align:1px;animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* ── hero ── */
+.hero{padding:56px 0 30px;display:grid;grid-template-columns:1.35fr .85fr;gap:40px;align-items:end}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--gold);margin-bottom:18px;display:flex;align-items:center;gap:12px}
+.eyebrow::before{content:'';width:28px;height:1px;background:var(--gold)}
+.hero h2{font-size:clamp(34px,4.6vw,54px);line-height:1.04;font-weight:800;letter-spacing:-.02em}
+.hero h2 em{font-style:normal;background:linear-gradient(100deg,#F4E3B2,#E8C87A 40%,#B8934A);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--muted);font-size:15px;line-height:1.7;margin-top:18px;max-width:560px}
+.hero p strong{color:var(--text);font-weight:600}
+.principles{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
+.principle{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid rgba(139,148,169,.22);border-radius:8px;padding:8px 13px;background:rgba(11,17,30,.6)}
+.principle b{color:var(--teal);font-weight:600}
+.hero-card{background:linear-gradient(160deg,rgba(19,29,51,.9),rgba(9,13,24,.9));border:1px solid var(--gold-hair);border-radius:16px;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.hero-card h3{font-family:var(--mono);font-size:10px;letter-spacing:.28em;color:var(--muted);margin-bottom:16px}
+.token-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-family:var(--mono);font-size:11.5px}
+.swatch{width:34px;height:18px;border-radius:5px;border:1px solid rgba(255,255,255,.12)}
+.token-row code{color:var(--muted)} .token-row span:last-child{margin-left:auto;color:var(--faint);font-size:10.5px}
+/* ── layout ── */
+.stage{display:grid;grid-template-columns:228px 1fr;gap:22px;margin-top:26px;align-items:start}
+/* nav */
+.nav{background:rgba(11,17,30,.75);backdrop-filter:blur(12px);border:1px solid rgba(232,200,122,.12);border-radius:14px;padding:12px;position:sticky;top:20px}
+.nav h4{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--faint);padding:8px 12px 10px}
+.nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:transparent;border:1px solid transparent;color:var(--muted);font-family:var(--mono);font-size:12.5px;padding:10px 12px;border-radius:9px;cursor:pointer;transition:all .18s}
+.nav button:hover{color:var(--text);background:rgba(232,200,122,.05)}
+.nav button.active{color:var(--gold);background:rgba(232,200,122,.08);border-color:rgba(232,200,122,.2)}
+.nav button .n{font-size:10px;color:var(--faint);width:18px}
+.nav button.active .n{color:var(--gold-deep)}
+.nav button .k{margin-left:auto;font-size:10px;color:var(--faint);border:1px solid rgba(139,148,169,.2);border-radius:5px;padding:2px 6px}
+.nav .sep{height:1px;background:rgba(232,200,122,.1);margin:10px 4px}
+.nav .foot{padding:10px 12px 4px;font-family:var(--mono);font-size:10.5px;color:var(--faint);line-height:1.7}
+.nav .foot b{color:var(--muted)}
+/* terminal */
+.term{background:linear-gradient(180deg,#0A101D,#060A13);border:1px solid rgba(232,200,122,.16);border-radius:16px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4),0 0 80px rgba(232,200,122,.05)}
+.term-bar{display:flex;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid rgba(232,200,122,.1);background:rgba(14,22,38,.6)}
+.lights{display:flex;gap:7px}
+.lights i{width:11px;height:11px;border-radius:50%}
+.lights i:nth-child(1){background:#FB7185}.lights i:nth-child(2){background:#FBBF24}.lights i:nth-child(3){background:#34D399}
+.term-title{font-family:var(--mono);font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.term-title b{color:var(--gold);font-weight:600}
+.term-actions{margin-left:auto;display:flex;gap:8px}
+.tbtn{font-family:var(--mono);font-size:10.5px;color:var(--muted);background:rgba(139,148,169,.08);border:1px solid rgba(139,148,169,.2);border-radius:7px;padding:5px 11px;cursor:pointer;transition:all .15s}
+.tbtn:hover{color:var(--gold);border-color:var(--gold-hair)}
+.tbtn.primary{color:#0A0E18;background:linear-gradient(120deg,#F0D89A,#D8AE5C);border-color:transparent;font-weight:700}
+.tbtn.primary:hover{filter:brightness(1.08)}
+.term-body{padding:26px 28px 30px;font-family:var(--mono);font-size:12.5px;line-height:1.75;min-height:560px;position:relative}
+.screen{display:none;animation:fadeUp .35s ease}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* prompt */
+.prompt{color:var(--muted);margin-bottom:16px;font-size:12.5px}
+.prompt .u{color:var(--teal)} .prompt .p{color:var(--faint)} .prompt .c{color:var(--text);font-weight:600} .prompt .a{color:var(--gold)}
+.cursor{display:inline-block;width:8px;height:15px;background:var(--gold);vertical-align:-2px;margin-left:4px;animation:blink 1.1s steps(1) infinite;border-radius:2px}
+@keyframes blink{50%{opacity:0}}
+/* header band */
+.band{border:1px solid var(--gold-hair);border-radius:10px;background:linear-gradient(120deg,rgba(232,200,122,.08),rgba(232,200,122,.02) 55%,rgba(94,234,212,.05));padding:13px 16px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.band .logo{font-size:15px;color:var(--gold)}
+.band .t{font-weight:700;letter-spacing:.14em;font-size:12px}
+.band .t small{color:var(--muted);font-weight:400;letter-spacing:.06em}
+.band .meta{margin-left:auto;font-size:11px;color:var(--muted);display:flex;gap:14px}
+.band .meta b{color:var(--text);font-weight:600}
+/* pills */
+.pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;padding:2px 9px;border-radius:99px;border:1px solid;vertical-align:1px;white-space:nowrap}
+.p-live{color:var(--green);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+.p-new{color:var(--gold);border-color:rgba(232,200,122,.45);background:rgba(232,200,122,.08)}
+.p-paused{color:var(--muted);border-color:rgba(139,148,169,.35);background:rgba(139,148,169,.07)}
+.p-info{color:var(--sky);border-color:rgba(125,211,252,.4);background:rgba(125,211,252,.07)}
+.p-warn{color:var(--amber);border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.07)}
+.p-bad{color:var(--rose);border-color:rgba(251,113,133,.4);background:rgba(251,113,133,.07)}
+.p-teal{color:var(--teal);border-color:rgba(94,234,212,.4);background:rgba(94,234,212,.07)}
+.p-violet{color:var(--violet);border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.08)}
+/* verdict */
+.verdict{border-radius:10px;padding:14px 18px;margin:16px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.verdict.ok{border:1px solid rgba(52,211,153,.35);background:linear-gradient(120deg,rgba(52,211,153,.1),rgba(52,211,153,.02))}
+.verdict.gold{border:1px solid rgba(232,200,122,.4);background:linear-gradient(120deg,rgba(232,200,122,.12),rgba(232,200,122,.02))}
+.verdict.bad{border:1px solid rgba(251,113,133,.35);background:linear-gradient(120deg,rgba(251,113,133,.1),rgba(251,113,133,.02))}
+.verdict .big{font-size:14px;font-weight:700;letter-spacing:.06em}
+.verdict.ok .big{color:var(--green)} .verdict.gold .big{color:var(--gold)} .verdict.bad .big{color:var(--rose)}
+.verdict .sub{font-size:11px;color:var(--muted)} .verdict .sub b{color:var(--text)}
+.verdict .right{margin-left:auto;display:flex;gap:18px;font-size:11px;color:var(--muted)}
+.verdict .right b{display:block;font-size:17px;color:var(--text)}
+/* metric grid */
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.m{background:rgba(19,29,51,.5);border:1px solid rgba(139,148,169,.14);border-radius:10px;padding:11px 14px;position:relative;overflow:hidden}
+.m::after{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--ac,var(--faint));opacity:.8}
+.m .k{font-size:9.5px;letter-spacing:.18em;color:var(--faint);font-weight:600}
+.m .v{font-size:21px;font-weight:700;margin:2px 0 0}
+.m .d{font-size:10.5px;color:var(--muted)}
+.m.hl{border-color:rgba(232,200,122,.3);background:rgba(232,200,122,.05)}
+/* bars */
+.bar{height:6px;border-radius:99px;background:rgba(139,148,169,.14);overflow:hidden;margin-top:8px;position:relative}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold-deep),var(--gold));box-shadow:0 0 12px rgba(232,200,122,.4)}
+.bar.teal i{background:linear-gradient(90deg,#0E9F8A,var(--teal));box-shadow:0 0 12px rgba(94,234,212,.35)}
+.bar.green i{background:linear-gradient(90deg,#0E9F6E,var(--green));box-shadow:0 0 12px rgba(52,211,153,.35)}
+.bar.sky i{background:linear-gradient(90deg,#3B82F6,var(--sky))}
+.microbar{display:inline-block;width:64px;height:5px;border-radius:99px;background:rgba(139,148,169,.16);vertical-align:middle;overflow:hidden;margin-right:8px}
+.microbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold))}
+/* tables */
+table.t{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}
+table.t th{text-align:left;font-size:9.5px;letter-spacing:.2em;color:var(--faint);font-weight:600;padding:8px 10px;border-bottom:1px solid rgba(232,200,122,.14)}
+table.t td{padding:9px 10px;border-bottom:1px solid rgba(139,148,169,.08);vertical-align:middle}
+table.t tr:last-child td{border-bottom:none}
+table.t tr:hover td{background:rgba(232,200,122,.025)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.score{font-weight:700;color:var(--gold)}
+.dim{color:var(--muted)} .faint{color:var(--faint)} .gold{color:var(--gold)} .teal{color:var(--teal)} .green{color:var(--green)} .amber{color:var(--amber)} .rose{color:var(--rose)} .sky{color:var(--sky)} .violet{color:var(--violet)}
+.tag{font-size:10.5px;color:var(--sky);background:rgba(125,211,252,.07);border:1px solid rgba(125,211,252,.2);border-radius:6px;padding:1px 7px;margin-right:4px;white-space:nowrap}
+/* phase rail */
+.phase{display:grid;grid-template-columns:150px 1fr 120px;gap:14px;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(139,148,169,.1);font-size:12px}
+.phase:last-child{border-bottom:none}
+.phase .pn{color:var(--muted)} .phase .pn b{color:var(--text)}
+.phase .st{font-size:10px;font-weight:700;letter-spacing:.1em;text-align:right}
+.st.done{color:var(--green)} .st.run{color:var(--gold);animation:blink 1.4s steps(1) infinite} .st.wait{color:var(--faint)}
+.pbar{height:7px;border-radius:99px;background:rgba(139,148,169,.12);overflow:hidden}
+.pbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold),var(--teal));border-radius:99px;transition:width .3s}
+.spin{display:inline-block;animation:spin 1s linear infinite;color:var(--gold)}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* alert card */
+.acard{border:1px solid rgba(232,200,122,.3);border-radius:12px;background:linear-gradient(140deg,rgba(232,200,122,.09),rgba(232,200,122,.02) 60%);padding:16px 18px;margin:12px 0;display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center}
+.ring{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:16px;color:var(--gold);
+  background:conic-gradient(var(--gold) 0 87%,rgba(139,148,169,.15) 87% 100%);position:relative}
+.ring::after{content:'';position:absolute;inset:6px;border-radius:50%;background:#0A0F1C}
+.ring b{position:relative;z-index:1}
+.acard h5{font-size:13px;font-weight:700;margin-bottom:3px}
+.acard .s{font-size:11px;color:var(--muted)}
+.acard .s b{color:var(--text)}
+.acard .go{text-align:right;font-size:11px;color:var(--muted)}
+.acard .go .bounty{font-size:19px;font-weight:800;color:var(--gold)}
+/* explain */
+.dossier{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.panel{border:1px solid rgba(139,148,169,.14);border-radius:10px;padding:13px 16px;background:rgba(19,29,51,.4)}
+.panel.full{grid-column:1/-1}
+.panel h6{font-size:9.5px;letter-spacing:.22em;color:var(--faint);margin-bottom:10px;font-weight:600}
+.kv{display:flex;justify-content:space-between;font-size:12px;padding:3.5px 0}
+.kv span:first-child{color:var(--muted)}
+.check{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed rgba(139,148,169,.1);font-size:12px}
+.check:last-child{border-bottom:none}
+.ck{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:2px 8px;border-radius:6px;min-width:52px;text-align:center}
+.ck.pass{color:var(--green);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3)}
+.ck.fail{color:var(--rose);background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3)}
+.ck.info{color:var(--sky);background:rgba(125,211,252,.08);border:1px solid rgba(125,211,252,.25)}
+.pledger{display:grid;grid-template-columns:150px 44px 1fr;gap:10px;align-items:center;font-size:11.5px;padding:4px 0}
+.pledger .pv{font-weight:700;text-align:right;color:var(--gold)}
+/* windows */
+.wcard{border:1px solid rgba(139,148,169,.16);border-radius:12px;padding:15px 18px;margin:10px 0;background:rgba(19,29,51,.35)}
+.wcard.open{border-color:rgba(232,200,122,.35);background:linear-gradient(140deg,rgba(232,200,122,.07),transparent 65%)}
+.wcard .wh{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.wcard .wh b{font-size:12.5px}
+.delta{font-size:11.5px;color:var(--muted);padding:2.5px 0 2.5px 18px;position:relative}
+.delta::before{content:'◆';position:absolute;left:0;color:var(--teal);font-size:8px;top:7px}
+.delta b{color:var(--text);font-weight:600}
+/* help atlas */
+.cmds{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.cmd{border:1px solid rgba(139,148,169,.13);border-radius:10px;padding:11px 14px;background:rgba(19,29,51,.35);font-size:12px;transition:all .15s}
+.cmd:hover{border-color:var(--gold-hair)}
+.cmd b{color:var(--gold)} .cmd code{color:var(--teal);font-size:11px} .cmd p{color:var(--muted);font-size:11px;margin-top:3px}
+/* coverage */
+.cov{display:flex;align-items:center;gap:14px;margin:12px 0;font-size:11.5px}
+.cov .track{flex:1;height:10px;border-radius:99px;background:rgba(139,148,169,.12);position:relative;overflow:visible}
+.cov .fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#0E9F6E,var(--green));box-shadow:0 0 16px rgba(52,211,153,.35)}
+.cov .floor{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--amber)}
+.cov .floor::after{content:'floor 90%';position:absolute;top:-17px;left:-24px;font-size:9px;color:var(--amber);white-space:nowrap}
+/* status bar */
+.statusbar{display:flex;align-items:center;gap:16px;padding:11px 20px;border-top:1px solid rgba(232,200,122,.1);background:rgba(7,11,20,.8);font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.statusbar .sb{display:flex;align-items:center;gap:7px}
+.statusbar .ok{color:var(--green)} .statusbar .g{color:var(--gold)}
+.statusbar .right{margin-left:auto;display:flex;gap:14px}
+/* section label */
+.slabel{font-size:10px;letter-spacing:.26em;color:var(--faint);font-weight:600;margin:20px 0 6px;display:flex;align-items:center;gap:10px}
+.slabel::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(232,200,122,.2),transparent)}
+.hint{font-size:11px;color:var(--faint);margin-top:10px}
+.hint kbd{border:1px solid rgba(139,148,169,.3);border-radius:5px;padding:1px 7px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+/* design notes */
+.notes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:34px}
+.note{border:1px solid rgba(139,148,169,.14);border-radius:14px;padding:20px;background:rgba(11,17,30,.6)}
+.note .ni{font-size:20px;margin-bottom:10px}
+.note h4{font-size:13.5px;font-weight:700;margin-bottom:8px}
+.note p{font-size:12.5px;color:var(--muted);line-height:1.65}
+.note p code{font-family:var(--mono);font-size:11px;color:var(--teal);background:rgba(94,234,212,.08);padding:1px 6px;border-radius:5px}
+/* footer */
+.footer{margin-top:44px;padding-top:22px;border-top:1px solid rgba(232,200,122,.1);display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--faint);flex-wrap:wrap;gap:10px}
+.footer b{color:var(--gold)}
+/* gallery */
+.gallery{display:grid;grid-template-columns:.9fr 1.1fr;gap:14px;margin-top:34px}
+.gcard{border:1px solid rgba(232,200,122,.14);border-radius:14px;overflow:hidden;background:rgba(11,17,30,.6)}
+.gcard img{display:block;width:100%;height:100%;object-fit:cover}
+.gcard .cap{padding:12px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);border-top:1px solid rgba(232,200,122,.1);display:flex;justify-content:space-between}
+.gcard .cap b{color:var(--gold);letter-spacing:.12em;font-size:10px}
+@media(max-width:1020px){.gallery{grid-template-columns:1fr}}
+@media(max-width:1020px){.hero{grid-template-columns:1fr}.stage{grid-template-columns:1fr}.nav{position:static;display:flex;flex-wrap:wrap;gap:6px}.nav h4,.nav .foot,.nav .sep{display:none}.nav button{width:auto}.mgrid{grid-template-columns:repeat(2,1fr)}.dossier,.cmds{grid-template-columns:1fr}.notes{grid-template-columns:1fr}.term-body{padding:18px 16px;font-size:11.5px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 1l2.2 6.1L21 8.2l-5.2 4.3 1.7 6.5L12 15.4 6.5 19l1.7-6.5L3 8.2l6.8-1.1L12 1z" stroke="#E8C87A" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="11.4" r="2.1" fill="#E8C87A"/><circle cx="12" cy="12" r="10.2" stroke="rgba(232,200,122,.35)" stroke-width="1" stroke-dasharray="3 4"/></svg>
+      </div>
+      <div><h1>RELIA<span>STRA</span></h1><small>OPPORTUNITY INTELLIGENCE</small></div>
+    </div>
+    <div class="top-right">
+      <span class="badge"><span class="dot"></span>DESIGN DEMO · v2.0</span>
+      <span class="badge ghost">OBSIDIAN EXECUTIVE THEME</span>
+      <span class="badge ghost">ENTERPRISE</span>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow">CLI REDESIGN · PRE-DEVELOPMENT DEMO</div>
+      <h2>The <em>hunter</em> engine,<br>re-cut as a <em>premium</em><br>enterprise instrument.</h2>
+      <p>This is a <strong>look-before-we-build</strong> demo of the <strong>Reliastra CLI</strong> — same battle-tested pipeline (discover → evaluate → alert), wrapped in a terminal experience worthy of a security-operations floor. <strong>Zero new dependencies.</strong> Pure stdlib ANSI. Every color carries a text label. <strong>--json stays byte-stable.</strong></p>
+      <div class="principles">
+        <span class="principle"><b>◆</b> Signal over noise</span>
+        <span class="principle"><b>◆</b> Verdicts, not walls of text</span>
+        <span class="principle"><b>◆</b> Trust is rendered — coverage always visible</span>
+        <span class="principle"><b>◆</b> Calm by default, loud only on opportunity</span>
+      </div>
+    </div>
+    <div class="hero-card">
+      <h3>DESIGN TOKENS · OBSIDIAN EXECUTIVE</h3>
+      <div class="token-row"><span class="swatch" style="background:#E8C87A"></span><code>astra/gold</code><span>opportunity · brand</span></div>
+      <div class="token-row"><span class="swatch" style="background:#5EEAD4"></span><code>signal/teal</code><span>evidence · links</span></div>
+      <div class="token-row"><span class="swatch" style="background:#34D399"></span><code>go/emerald</code><span>eligible · trusted</span></div>
+      <div class="token-row"><span class="swatch" style="background:#7DD3FC"></span><code>intel/sky</code><span>change · surfaces</span></div>
+      <div class="token-row"><span class="swatch" style="background:#FBBF24"></span><code>caution/amber</code><span>pending · floor</span></div>
+      <div class="token-row"><span class="swatch" style="background:#FB7185"></span><code>critical/rose</code><span>degraded · veto</span></div>
+      <div class="token-row"><span class="swatch" style="background:#05070D;border-color:rgba(232,200,122,.4)"></span><code>void/obsidian</code><span>canvas #05070D</span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="nav">
+      <h4>COMMAND ATLAS</h4>
+      <button data-screen="scan-live" class="active"><span class="n">01</span>scan — live<span class="k">1</span></button>
+      <button data-screen="scan-report"><span class="n">02</span>scan — verdict<span class="k">2</span></button>
+      <button data-screen="programs"><span class="n">03</span>programs<span class="k">3</span></button>
+      <button data-screen="explain"><span class="n">04</span>explain<span class="k">4</span></button>
+      <button data-screen="windows"><span class="n">05</span>windows<span class="k">5</span></button>
+      <button data-screen="alerts"><span class="n">06</span>alerts<span class="k">6</span></button>
+      <button data-screen="validate"><span class="n">07</span>validate<span class="k">7</span></button>
+      <button data-screen="help"><span class="n">08</span>help<span class="k">8</span></button>
+      <div class="sep"></div>
+      <div class="foot"><b>Exit codes</b> — 0 ok · 1 fail · 2 config · 3 degraded<br><b>Flags</b> — --json · --no-color · --quiet</div>
+    </div>
+
+    <div class="term">
+      <div class="term-bar">
+        <div class="lights"><i></i><i></i><i></i></div>
+        <div class="term-title"><b>◈</b><span id="tabTitle">reliastra scan — live operation</span></div>
+        <div class="term-actions">
+          <button class="tbtn primary" id="replayBtn">▶ replay</button>
+          <button class="tbtn" onclick="cycleScreen(1)">next →</button>
+        </div>
+      </div>
+      <div class="term-body">
+
+        <!-- ═════════ 01 SCAN LIVE ═════════ -->
+        <div class="screen active" id="s-scan-live">
+          <div class="prompt"><span class="u">operator</span><span class="p">@reliastra-pro ── </span><span class="c">reliastra</span> <span class="a">scan</span> --profile personal <span class="cursor"></span></div>
+          <div class="band"><span class="logo">◈</span><span class="t">RELIASTRA <small>opportunity sweep · profile</small> personal</span>
+            <span class="meta"><span>source <b>hackenproof</b></span><span>scan <b id="liveScanId">20261006T191500Z</b></span><span class="pill p-new">● LIVE</span></span></div>
+          <div id="phaseRail">
+            <div class="phase"><span class="pn"><b>01</b> · DISCOVER</span><div class="pbar"><i data-w="100"></i></div><span class="st done">✓ DONE</span></div>
+            <div class="phase"><span class="pn"><b>02</b> · FETCH detail</span><div class="pbar"><i data-w="72"></i></div><span class="st run">◌ 54/75</span></div>
+            <div class="phase"><span class="pn"><b>03</b> · DIFF</span><div class="pbar"><i data-w="41"></i></div><span class="st run">◌ ACTIVE</span></div>
+            <div class="phase"><span class="pn"><b>04</b> · POLICY</span><div class="pbar"><i data-w="30"></i></div><span class="st wait">… QUEUED</span></div>
+            <div class="phase"><span class="pn"><b>05</b> · SCORE</span><div class="pbar"><i data-w="12"></i></div><span class="st wait">… QUEUED</span></div>
+            <div class="phase"><span class="pn"><b>06</b> · ALERT</span><div class="pbar"><i data-w="0"></i></div><span class="st wait">… QUEUED</span></div>
+            <div class="phase"><span class="pn"><b>07</b> · PERSIST</span><div class="pbar"><i data-w="0"></i></div><span class="st wait">… QUEUED</span></div>
+          </div>
+          <div class="slabel">LIVE COUNTERS</div>
+          <div class="mgrid">
+            <div class="m" style="--ac:#7DD3FC"><div class="k">DISCOVERED</div><div class="v"><span class="count" data-to="324">0</span></div><div class="d">33 pages · 4.2s</div></div>
+            <div class="m" style="--ac:#34D399"><div class="k">ELIGIBLE</div><div class="v green"><span class="count" data-to="156">0</span></div><div class="d">profile: personal</div></div>
+            <div class="m" style="--ac:#E8C87A"><div class="k">NEW · CHANGED</div><div class="v"><span class="gold count" data-to="1">0</span><span class="faint"> / </span><span class="sky count" data-to="4">0</span></div><div class="d">fresh evidence</div></div>
+            <div class="m hl" style="--ac:#E8C87A"><div class="k">ALERTS ARMED</div><div class="v gold"><span class="count" data-to="1">0</span></div><div class="d">delivery: smtp ready</div></div>
+          </div>
+          <div class="hint"><span class="spin">◌</span> <span class="dim">polite pacing 750ms · 4 workers · detail refresh ≤ 24h ·</span> esc <kbd>aborts cleanly</kbd> — state is never half-written</div>
+        </div>
+
+        <!-- ═════════ 02 SCAN REPORT ═════════ -->
+        <div class="screen" id="s-scan-report">
+          <div class="prompt"><span class="u">operator</span><span class="p">@reliastra-pro ── </span><span class="c">reliastra</span> <span class="a">scan</span> <span class="faint">— completed in 38.8s</span></div>
+          <div class="verdict gold"><span style="font-size:22px">◈</span><div><div class="big">1 ACTIONABLE OPPORTUNITY</div><div class="sub">delivered <b>1/1</b> · suppressed duplicates <b>0</b> · coverage <b>324/324 · 100% · TRUSTED</b> · exit <b>0</b></div></div>
+            <div class="right"><span>scan<b>191500Z</b></span><span>duration<b>38.8s</b></span></div></div>
+          <div class="mgrid">
+            <div class="m" style="--ac:#7DD3FC"><div class="k">EVALUATED</div><div class="v">324</div><div class="d">fetched 41 · listing 283</div></div>
+            <div class="m" style="--ac:#34D399"><div class="k">ELIGIBLE</div><div class="v green">156</div><div class="d">rejected 168 · quarantined 0</div></div>
+            <div class="m" style="--ac:#E8C87A"><div class="k">FRESH</div><div class="v"><span class="gold">1</span><span class="faint"> new · </span><span class="sky">4</span><span class="faint"> chg</span></div><div class="d">minor 11 (not surfaced)</div></div>
+            <div class="m" style="--ac:#FB7185"><div class="k">ERRORS</div><div class="v">0</div><div class="d">fetch_failed 0</div></div>
+          </div>
+          <div class="slabel">COVERAGE — DID THIS SWEEP ACTUALLY SEE THE PLATFORM?</div>
+          <div class="cov"><span class="green"><b>● 100.0%</b></span><div class="track"><div class="fill" style="width:100%"></div><div class="floor" style="left:90%"></div></div><span class="dim">324 observed / 324 expected · absent 0 · departed 2</span></div>
+          <div class="slabel">ALERT DISPATCHED</div>
+          <div class="acard"><div class="ring"><b>87</b></div>
+            <div><h5><span class="pill p-new">NEW MATCH</span> &nbsp;Swisstronik Blockchain Stability</h5>
+            <div class="s">launched <b>3y ago</b> · detected <b>&lt;1m</b> · ceiling <b>$500</b> · competition <b>4 submissions</b> · <span class="tag">web2</span><span class="tag">web_application</span></div>
+            <div class="s faint">why: no reputation gate · no fee · no KYC · 6 in-scope assets · crypto_platform</div></div>
+            <div class="go"><div class="bounty">$500</div>ceiling<br><span class="pill p-live" style="margin-top:6px">✓ DELIVERED</span></div></div>
+          <div class="slabel">ELIGIBLE · TOP 5 BY ATTENTION PRIORITY</div>
+          <table class="t"><tr><th>PROGRAM</th><th class="num">SCORE</th><th class="num">AGE</th><th>TOP REASON</th></tr>
+            <tr><td><span class="gold">◆</span> Ternoa Web and Apps</td><td class="num score"><span class="microbar"><i style="width:89%"></i></span>89</td><td class="num dim">4y</td><td class="dim">ceiling $50,000 · 10 assets</td></tr>
+            <tr><td><span class="gold">◆</span> Sweed Web</td><td class="num score"><span class="microbar"><i style="width:88%"></i></span>88</td><td class="num dim">1y</td><td class="dim">23 in-scope assets · infra+web</td></tr>
+            <tr><td><span class="gold">◆</span> Avalanche Websites and APIs</td><td class="num score"><span class="microbar"><i style="width:87%"></i></span>87</td><td class="num dim">5y</td><td class="dim">api · web · $10k ceiling</td></tr>
+            <tr><td><span class="gold">◆</span> Swisstronik Blockchain Stability</td><td class="num score"><span class="microbar"><i style="width:87%"></i></span>87</td><td class="num dim">3y</td><td class="dim">4 submissions · low competition</td></tr>
+            <tr><td><span class="teal">◆</span> 1inch Business</td><td class="num score"><span class="microbar"><i style="width:84%"></i></span>84</td><td class="num dim">1y</td><td class="dim">api.1inch.com · SaaS platform</td></tr>
+          </table>
+          <div class="hint faint">+ 151 more eligible · <span class="teal">reliastra programs --eligible</span> for the full ledger · machine-readable: <span class="teal">--json</span></div>
+        </div>
+
+        <!-- ═════════ 03 PROGRAMS ═════════ -->
+        <div class="screen" id="s-programs">
+          <div class="prompt"><span class="u">operator</span><span class="p">@reliastra-pro ── </span><span class="c">reliastra</span> <span class="a">programs</span> --eligible --limit 8</div>
+          <div class="band"><span class="logo">▦</span><span class="t">PROGRAM LEDGER <small>· 156 eligible of 324 known · last scan 20261006T191500Z</small></span><span class="meta"><span class="pill p-live">PROFILE · PERSONAL</span></span></div>
+          <table class="t"><tr><th>PROGRAM</th><th>STATE</th><th class="num">SCORE</th><th class="num">LAUNCHED</th><th class="num">SEEN</th><th>SURFACES</th></tr>
+            <tr><td><b>1inch Business</b><br><span class="faint" style="font-size:10.5px">up to $100,000 · 163 reports</span></td><td><span class="pill p-live">● LIVE</span></td><td class="num score">84</td><td class="num dim">1y</td><td class="num dim">3d</td><td><span class="tag">api</span><span class="tag">web_app</span></td></tr>
+            <tr><td><b>Aurora Web</b><br><span class="faint" style="font-size:10.5px">up to $100,000 · 124 reports</span></td><td><span class="pill p-live">● LIVE</span></td><td class="num score">82</td><td class="num dim">3y</td><td class="num dim">3d</td><td><span class="tag">web2</span><span class="tag">web_app</span></td></tr>
+            <tr><td><b>Ult: Trade Stocks &amp; Crypto</b><br><span class="faint" style="font-size:10.5px">up to $20,000 · 74 reports</span></td><td><span class="pill p-new">◆ NEW</span></td><td class="num score">81</td><td class="num dim">8d</td><td class="num dim">3d</td><td><span class="tag">api</span><span class="tag">mobile</span></td></tr>
+            <tr><td><b>WEEX Web &amp; App</b><br><span class="faint" style="font-size:10.5px">up to $10,000 · 379 reports</span></td><td><span class="pill p-live">● LIVE</span></td><td class="num score">79</td><td class="num dim">1y</td><td class="num dim">3d</td><td><span class="tag">web_app</span><span class="tag">mobile</span></td></tr>
+            <tr><td><b>WhiteBIT</b><br><span class="faint" style="font-size:10.5px">up to $10,000 · 297 reports</span></td><td><span class="pill p-live">● LIVE</span></td><td class="num score">78</td><td class="num dim">5y</td><td class="num dim">3d</td><td><span class="tag">api</span><span class="tag">web_app</span></td></tr>
+            <tr><td><b>Astros Web</b><br><span class="faint" style="font-size:10.5px">up to $5,000 · 58 reports</span></td><td><span class="pill p-info">◐ SCOPE+</span></td><td class="num score">76</td><td class="num dim">11m</td><td class="num dim">3d</td><td><span class="tag">web_app</span></td></tr>
+            <tr><td><b>ZetaChain Web Apps</b><br><span class="faint" style="font-size:10.5px">up to $500 · 44 reports</span></td><td><span class="pill p-live">● LIVE</span></td><td class="num score">71</td><td class="num dim">2y</td><td class="num dim">3d</td><td><span class="tag">web2</span><span class="tag">web_app</span></td></tr>
+            <tr><td><b>Walrus Protocol</b><br><span class="faint" style="font-size:10.5px">up to $100,000 · 273 reports</span></td><td><span class="pill p-paused">❚❚ PAUSED</span></td><td class="num score">64</td><td class="num dim">1y</td><td class="num dim">3d</td><td><span class="tag">infra</span><span class="tag">protocol</span></td></tr>
+          </table>
+          <div class="hint faint">8 of 156 shown · launch age ≠ seen age — a 5-year-old program with a fresh scope change still surfaces · <span class="teal">reliastra explain &lt;id&gt;</span> opens the dossier</div>
+        </div>
+
+        <!-- ═════════ 04 EXPLAIN ═════════ -->
+        <div class="screen" id="s-explain">
+          <div class="prompt"><span class="u">operator</span><span class="p">@reliastra-pro ── </span><span class="c">reliastra</span> <span class="a">explain</span> 1inch-business</div>
+          <div class="verdict ok"><span style="font-size:22px">✓</span><div><div class="big">ELIGIBLE — 1INCH BUSINESS</div><div class="sub">hackenproof · <span class="teal">hackenproof.com/programs/1inch-business</span> · state <b>live</b> · confidence <b>high</b></div></div>
+            <div class="right"><span>priority<b class="gold">84 / 100</b></span><span>bounty<b>$100,000</b></span></div></div>
+          <div class="dossier">
+            <div class="panel"><h6>ACCESS — CAN YOU REACH IT?</h6>
+              <div class="kv"><span>reputation</span><b class="green">✓ none required</b></div>
+              <div class="kv"><span>submission fee</span><b class="green">✓ none</b></div>
+              <div class="kv"><span>KYC</span><b class="green">✓ not required</b></div>
+              <div class="kv"><span>proof of concept</span><b class="green">✓ accepted</b></div>
+              <div class="kv"><span>paid to date</span><b>$34,200 · 163 reports</b></div></div>
+            <div class="panel"><h6>ATTACK SURFACE — 4 TARGETS</h6>
+              <div style="margin-bottom:8px"><span class="tag">api</span><span class="tag">web2</span><span class="tag">web_application</span></div>
+              <div class="kv"><span class="green">+ [api]</span><span>api.1inch.com</span></div>
+              <div class="kv"><span class="green">+ [web]</span><span>business.1inch.com + portal</span></div>
+              <div class="kv"><span>capabilities</span><span class="dim">auth · accounts · trading</span></div></div>
+            <div class="panel full"><h6>CRYPTO CLASSIFICATION — PLATFORM, NOT PROTOCOL</h6>
+              <div class="kv"><span>kind</span><b class="teal">◆ crypto_platform — ordinary software work (auth, sessions, payments)</b></div>
+              <div class="kv"><span>traits</span><span><span class="tag">crypto_api</span><span class="tag">crypto_platform</span><span class="tag">crypto_web_application</span></span></div>
+              <div class="kv"><span>dominance veto</span><b class="green">✓ no excluded traits · 0% &lt; 60% threshold</b></div></div>
+            <div class="panel full"><h6>POLICY CHECKS — 10 / 10 EXPLAINED</h6>
+              <div class="check"><span class="ck pass">PASS</span><span><b>access.reputation</b> <span class="faint">—</span> <span class="dim">no reputation required (≤ 80 allowed)</span></span></div>
+              <div class="check"><span class="ck pass">PASS</span><span><b>access.kyc</b> <span class="faint">—</span> <span class="dim">KYC not required</span></span></div>
+              <div class="check"><span class="ck pass">PASS</span><span><b>state.allowed</b> <span class="faint">—</span> <span class="dim">live ∈ {live, new}</span></span></div>
+              <div class="check"><span class="ck pass">PASS</span><span><b>surface.match</b> <span class="faint">—</span> <span class="dim">exposes api, web2, web_application</span></span></div>
+              <div class="check"><span class="ck pass">PASS</span><span><b>crypto.allow</b> <span class="faint">—</span> <span class="dim">carries crypto_platform + crypto_api</span></span></div>
+              <div class="check"><span class="ck info">INFO</span><span><b>timing.launch</b> <span class="faint">—</span> <span class="dim">launched 1y ago · change window still evaluable</span></span></div></div>
+            <div class="panel full"><h6>ATTENTION PRIORITY — ORDERING AID, NOT A SUCCESS ESTIMATE</h6>
+              <div class="pledger"><span class="dim">freshness</span><span class="pv">100</span><div class="bar teal"><i style="width:100%"></i></div></div>
+              <div class="pledger"><span class="dim">surface relevance</span><span class="pv">100</span><div class="bar teal"><i style="width:100%"></i></div></div>
+              <div class="pledger"><span class="dim">eligibility</span><span class="pv">90</span><div class="bar green"><i style="width:90%"></i></div></div>
+              <div class="pledger"><span class="dim">bounty</span><span class="pv">85</span><div class="bar"><i style="width:85%"></i></div></div>
+              <div class="pledger"><span class="dim">low competition</span><span class="pv">46</span><div class="bar"><i style="width:46%"></i></div></div></div>
+          </div>
+        </div>
+
+        <!-- ═════════ 05 WINDOWS ═════════ -->
+        <div class="screen" id="s-windows">
+          <div class="prompt"><span class="u">operator</span><span class="p">@reliastra-pro ── </span><span class="c">reliastra</span> <span class="a">windows</span> --open</div>
+          <div class="band"><span class="logo">◐</span><span class="t">RESEARCH WINDOWS <small>· 2 open · bounded intervals, never point-estimates</small></span><span class="meta"><span>max age <b>168h</b></span><span class="pill p-new">2 OPEN</span></span></div>
+          <div class="wcard open">
+            <div class="wh"><span class="pill p-new">◐ OPEN</span><b>Astros Web — scope expansion</b><span class="faint">· window 8f3a…c1 · program astros-web</span></div>
+            <div class="kv"><span>observed interval</span><b class="gold">between 42m and 47m ago</b> <span class="faint">— opened by scan 191500Z</span></div>
+            <div class="kv"><span>triggers</span><span><span class="pill p-info">SCOPE_EXPANSION</span> <span class="pill p-teal">TARGET_ADDED</span></span></div>
+            <div style="margin-top:8px"><div class="delta"><b>+ api.astros.ag</b> entered scope <span class="faint">[api]</span></div>
+            <div class="delta"><b>reward ceiling</b> $3,000 → <b>$5,000</b></div></div>
+            <div class="kv" style="margin-top:8px"><span>submissions reported</span><b>baseline 58 · current 58 · <span class="green">+0 — uncrowded</span></b></div>
+          </div>
+          <div class="wcard open">
+            <div class="wh"><span class="pill p-new">◐ OPEN</span><b>Ult: Trade Stocks &amp; Crypto — newly eligible</b><span class="faint">· window 41bd…9e · program ult-trade</span></div>
+            <div class="kv"><span>observed interval</span><b class="gold">between 3h and 3h 05m ago</b> <span class="faint">— launch-gated, source-reported</span></div>
+            <div class="kv"><span>triggers</span><span><span class="pill p-new">NEW_PROGRAM</span> <span class="pill p-teal">NEWLY_ELIGIBLE</span></span></div>
+            <div style="margin-top:8px"><div class="delta"><b>first observed</b> on listing page 1 · status <b>NEW</b></div>
+            <div class="delta"><b>access resolved:</b> no gates · KYC required for payout only</div></div>
+            <div class="kv" style="margin-top:8px"><span>submissions reported</span><b>baseline 70 · current 74 · <span class="amber">+4 — warming</span></b></div>
+          </div>
+          <div class="hint faint">closed windows stay queryable — <span class="teal">reliastra windows --program astros-web</span> · <span class="teal">reliastra replay &lt;id&gt;</span> renders the full read-only timeline</div>
+        </div>
+
+        <!-- ═════════ 06 ALERTS ═════════ -->
+        <div class="screen" id="s-alerts">
+          <div class="prompt"><span class="u">operator</span><span class="p">@reliastra-pro ── </span><span class="c">reliastra</span> <span class="a">alerts</span> --limit 6</div>
+          <div class="band"><span class="logo">✉</span><span class="t">DELIVERY LEDGER <small>· every alert recorded, deduplicated by fingerprint</small></span><span class="meta"><span>channel <b>smtp · ready</b></span><span class="pill p-live">✓ 5 / 6 DELIVERED</span></span></div>
+          <table class="t"><tr><th>WHEN (UTC)</th><th>KIND</th><th>STATUS</th><th class="num">PRIO</th><th>SUBJECT</th></tr>
+            <tr><td class="dim">10-06 19:15:38</td><td><span class="pill p-new">NEW MATCH</span></td><td><span class="pill p-live">✓ SENT</span></td><td class="num score">87</td><td>Swisstronik Blockchain Stability — Web — &lt;1m</td></tr>
+            <tr><td class="dim">10-03 19:25:58</td><td><span class="pill p-new">NEW MATCH</span></td><td><span class="pill p-live">✓ SENT</span></td><td class="num score">88</td><td>Sweed Web — infra+web · 23 assets</td></tr>
+            <tr><td class="dim">10-03 19:13:15</td><td><span class="pill p-info">SCOPE +</span></td><td><span class="pill p-live">✓ SENT</span></td><td class="num score">86</td><td>Astros Web — target added: api.astros.ag</td></tr>
+            <tr><td class="dim">10-03 19:12:40</td><td><span class="pill p-new">NEW MATCH</span></td><td><span class="pill p-live">✓ SENT</span></td><td class="num score">89</td><td>Ternoa Web and Apps — $50k ceiling</td></tr>
+            <tr><td class="dim">10-02 21:48:40</td><td><span class="pill p-info">SCOPE +</span></td><td><span class="pill p-live">✓ SENT</span></td><td class="num score">84</td><td>1inch Business — portal docs in scope</td></tr>
+            <tr><td class="dim">10-02 21:44:39</td><td><span class="pill p-violet">RE-ACTIVATED</span></td><td><span class="pill p-warn">◌ RETRY 2</span></td><td class="num score">72</td><td>Zest Protocol — listing republished</td></tr>
+          </table>
+          <div class="hint faint">retry row: <span class="amber">last error: 421 smtp busy — next attempt in 5m</span> · <span class="teal">reliastra alerts --undelivered</span> isolates pending · nothing is ever announced twice</div>
+        </div>
+
+        <!-- ═════════ 07 VALIDATE ═════════ -->
+        <div class="screen" id="s-validate">
+          <div class="prompt"><span class="u">operator</span><span class="p">@reliastra-pro ── </span><span class="c">reliastra</span> <span class="a">validate-config</span></div>
+          <div class="verdict ok"><span style="font-size:22px">◈</span><div><div class="big">PROFILE ATTESTED — PERSONAL</div><div class="sub">configs/profiles/personal.yaml · <b>14 / 14</b> thresholds verified · exit <b>0</b></div></div></div>
+          <div class="dossier">
+            <div class="panel"><h6>ATTESTATION</h6>
+              <div class="check"><span class="ck pass">PASS</span><span class="dim">sources · hackenproof enabled</span></div>
+              <div class="check"><span class="ck pass">PASS</span><span class="dim">access gates · rep ≤ 80 · fee ≤ $5 · no KYC</span></div>
+              <div class="check"><span class="ck pass">PASS</span><span class="dim">crypto mode auto · 8 allowed · 5 excluded · veto ≥ 60%</span></div>
+              <div class="check"><span class="ck pass">PASS</span><span class="dim">coverage floor 90% · grace 2 sweeps</span></div>
+              <div class="check"><span class="ck pass">PASS</span><span class="dim">windows · new 24h · change 72h · max age 168h</span></div></div>
+            <div class="panel"><h6>PROFILE LEDGER</h6>
+              <div class="kv"><span>target domains</span><b>7 included</b></div>
+              <div class="kv"><span>accepted states</span><b>live · new</b></div>
+              <div class="kv"><span>min alert severity</span><b class="amber">medium</b></div>
+              <div class="kv"><span>require eligible</span><b class="green">✓ hard gate</b></div>
+              <div class="kv"><span>notifications</span><b class="green">✓ enabled · cap 10/scan</b></div>
+              <div class="kv"><span>pacing</span><b>750ms · 4 workers · 45s timeout</b></div></div>
+          </div>
+          <div class="hint faint">a degraded sweep can always be traced to the threshold it failed — the floor is printed here, not buried in YAML</div>
+        </div>
+
+        <!-- ═════════ 08 HELP ═════════ -->
+        <div class="screen" id="s-help">
+          <div class="prompt"><span class="u">operator</span><span class="p">@reliastra-pro ── </span><span class="c">reliastra</span> <span class="a">help</span></div>
+          <div class="band"><span class="logo">◈</span><span class="t">RELIASTRA <small>signal over noise · hunter engine inside · v2.0.0</small></span><span class="meta"><span class="pill p-teal">ZERO-DEPS BINARY</span></span></div>
+          <div class="slabel">OPERATE</div>
+          <div class="cmds">
+            <div class="cmd"><b>scan</b> <code>[--dry-run] [--no-details]</code><p>Discover → evaluate → alert in one pass. The only command the scheduler needs.</p></div>
+            <div class="cmd"><b>sync</b><p>Alias for scan — the human, manual-run spelling.</p></div>
+          </div>
+          <div class="slabel">INVESTIGATE</div>
+          <div class="cmds">
+            <div class="cmd"><b>programs</b> <code>[--eligible] [--new] [--changed]</code><p>The ledger. Launch age and seen age stay separate columns.</p></div>
+            <div class="cmd"><b>explain</b> <code>&lt;id&gt;</code><p>The dossier — every policy check, with its reason, on one screen.</p></div>
+            <div class="cmd"><b>history</b> <code>&lt;id&gt;</code><p>Material changes for one program, oldest first.</p></div>
+            <div class="cmd"><b>replay</b> <code>&lt;id&gt; [--limit n]</code><p>Read-only timeline: history + windows merged, decisions frozen.</p></div>
+            <div class="cmd"><b>windows</b> <code>[--open] [--program id]</code><p>Opportunity windows with bounded intervals and delta evidence.</p></div>
+            <div class="cmd"><b>alerts</b> <code>[--undelivered]</code><p>Delivery ledger — what was announced, what is still pending.</p></div>
+          </div>
+          <div class="slabel">ADMINISTER</div>
+          <div class="cmds">
+            <div class="cmd"><b>validate-config</b><p>Attest the profile before anything else runs. 14 checks.</p></div>
+            <div class="cmd"><b>test-email</b> <code>[id]</code><p>Send one rendered sample so the email layout can be checked.</p></div>
+            <div class="cmd"><b>version</b><p>Build version, linker-stamped.</p></div>
+          </div>
+          <div class="hint faint">global: <kbd>--profile</kbd> <kbd>--state</kbd> <kbd>--log-level</kbd> <kbd>--json</kbd> <kbd>--no-color</kbd> <kbd>--quiet</kbd> &nbsp;·&nbsp; exit 0 ok · 1 fail · 2 config · 3 degraded</div>
+        </div>
+
+      </div>
+      <div class="statusbar">
+        <span class="sb"><span class="ok">●</span> pipeline healthy</span>
+        <span class="sb"><span class="g">◈</span> profile personal</span>
+        <span class="sb">smtp ready</span>
+        <span class="right"><span>exit 0</span><span>utf-8 · ansi</span><span id="clock">--:--:--</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><div class="ni">◈</div><h4>Why this isn't a generic CLI skin</h4><p>Generic CLIs print tables. Reliastra renders <b style="color:var(--gold)">verdicts</b> — a gold banner answers "is there anything worth my evening?" in under a second, then evidence unfolds below. Coverage is always on screen, so trust is continuously earned, never assumed.</p></div>
+    <div class="note"><div class="ni">⬢</div><h4>Enterprise constraints, honored</h4><p>No new dependencies — the theme engine is <code>internal/tui/theme.go</code> in stdlib ANSI. <code>NO_COLOR</code> + dumb-terminal fallback. <code>--json</code> output is byte-identical. Styling lives only in render code, never in policy.</p></div>
+    <div class="note"><div class="ni">◎</div><h4>What happens next</h4><p>Approve this direction and we implement it command by command behind a <code>--theme obsidian|plain</code> flag, starting with <code>scan</code>. Plain stays default in CI; Obsidian activates on TTY. Screenshots in this demo become golden tests.</p></div>
+  </div>
+
+  <div class="footer"><span>◈ RELIASTRA · OBSIDIAN EXECUTIVE · pre-development demo — <b>no engine code changed</b></span><span>render this file anywhere · zero build step</span></div>
+</div>
+
+<script>
+const titles={'scan-live':'reliastra scan — live operation','scan-report':'reliastra scan — verdict report','programs':'reliastra programs --eligible','explain':'reliastra explain 1inch-business','windows':'reliastra windows --open','alerts':'reliastra alerts','validate':'reliastra validate-config','help':'reliastra help'};
+const order=['scan-live','scan-report','programs','explain','windows','alerts','validate','help'];
+let current='scan-live';
+function go(id){
+  current=id;
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id==='s-'+id));
+  document.getElementById('tabTitle').textContent=titles[id];
+  if(id==='scan-live') animateLive();
+}
+function cycleScreen(d){go(order[(order.indexOf(current)+d+order.length)%order.length]);}
+document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.screen)));
+document.addEventListener('keydown',e=>{const i=parseInt(e.key);if(i>=1&&i<=8)go(order[i-1]);if(e.key==='ArrowRight')cycleScreen(1);if(e.key==='ArrowLeft')cycleScreen(-1);});
+document.getElementById('replayBtn').addEventListener('click',()=>{go('scan-live');});
+function animateLive(){
+  document.querySelectorAll('#s-scan-live .pbar i').forEach(el=>{const w=el.dataset.w;el.style.transition='none';el.style.width='0%';requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.transition='width 1.4s cubic-bezier(.2,.8,.2,1)';el.style.width=w+'%';}));});
+  document.querySelectorAll('#s-scan-live .count').forEach(el=>{const to=+el.dataset.to;const t0=performance.now();const dur=1300;function tick(t){const p=Math.min(1,(t-t0)/dur);el.textContent=Math.round(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(tick);}requestAnimationFrame(tick);});
+}
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toISOString().slice(11,19)+' UTC';},500);
+animateLive();
+</script>
+</body>
+</html>

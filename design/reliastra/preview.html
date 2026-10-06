@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reliastra CLI — Exact Terminal Captures · Obsidian Executive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#E8C87A;--muted:#8B94A9;--faint:#4A5468}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#04060B;color:#E8ECF4;font-family:Inter,system-ui,sans-serif;padding:0 0 80px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+header{padding:52px 0 10px}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.3em;color:var(--gold);margin-bottom:14px}
+h1{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--gold)}
+.sub{color:var(--muted);margin-top:12px;line-height:1.7;max-width:760px;font-size:14.5px}
+.sub code,.run code{font-family:'JetBrains Mono',monospace;font-size:12px;color:#5EEAD4;background:rgba(94,234,212,.08);padding:1px 7px;border-radius:6px}
+.run{margin:22px 0 6px;border:1px solid rgba(232,200,122,.2);border-radius:12px;padding:16px 20px;background:rgba(232,200,122,.04);font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:2}
+.run .c{color:var(--faint)}
+nav{position:sticky;top:0;z-index:5;display:flex;gap:8px;flex-wrap:wrap;padding:14px 0;background:rgba(4,6,11,.92);backdrop-filter:blur(10px);border-bottom:1px solid rgba(232,200,122,.12);margin-top:18px}
+nav a{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-decoration:none;border:1px solid rgba(139,148,169,.25);border-radius:8px;padding:6px 11px}
+nav a:hover{color:var(--gold);border-color:rgba(232,200,122,.4)}
+section{margin-top:34px}
+.shead{display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+.stitle{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.14em;color:var(--gold);font-weight:700}
+.shead code{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted)}
+pre{background:#05070D;border:1px solid rgba(232,200,122,.16);border-radius:14px;padding:22px 24px;font-family:'JetBrains Mono','SF Mono',Menlo,monospace;font-size:12.3px;line-height:1.72;overflow-x:auto;color:#E6EAF2;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+footer{margin-top:44px;color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:11px;line-height:2}
+footer b{color:var(--gold)}
+</style></head>
+<body><div class="wrap">
+<header>
+<div class="eyebrow">RELIASTRA CLI · OBSIDIAN EXECUTIVE · TERMINAL UI</div>
+<h1>Exactly what developers <em>see in their terminal.</em></h1>
+<p class="sub">Every block below is a <b>byte-exact capture</b> of the real renderer output — same SGR codes, same
+glyphs, same 96-column math as <code>internal/tui</code> + the <code>demo</code> command. Nothing is mocked in HTML.
+Screen 09 proves the degradation path: with <code>NO_COLOR</code> / <code>TERM=dumb</code> / <code>--ascii</code>,
+output is pure 7-bit ASCII — pills become <code>[LABELS]</code>, boxes become <code>+--+</code>.</p>
+<div class="run">
+<span class="c"># run the real thing (Go 1.26+, zero new deps):</span><br>
+go run ./cmd/hunter demo <span class="c"># all 8 screens</span><br>
+go run ./cmd/hunter demo --screen scan-report<br>
+go run ./cmd/hunter demo --animate <span class="c"># replay the live phase rail</span><br>
+go run ./cmd/hunter demo --screen scan-report --no-color --ascii <span class="c"># screen 09</span>
+</div>
+</header>
+<nav><a href="#scan-live">01</a><a href="#scan-report">02</a><a href="#programs">03</a><a href="#explain">04</a><a href="#windows">05</a><a href="#alerts">06</a><a href="#validate">07</a><a href="#help">08</a><a href="#scan-report.plain">09</a></nav>
+<section id="scan-live"><div class="shead"><span class="stitle">01 · scan — live operation</span><code>reliastra scan --profile personal</code></div><pre><span style="color:rgb(74,84,104)">$ </span><span style="font-weight:700">reliastra</span> <span style="color:rgb(232,200,122)">scan</span><span style="color:rgb(139,148,169)"> --profile personal</span>
+<span style="color:rgb(232,200,122)">┌─ </span><span style="color:rgb(232,200,122)">◈ RELIASTRA — OPPORTUNITY SWEEP</span><span style="color:rgb(232,200,122)"> ────────────────────────────────────────────────────────────┐</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">profile </span>personal<span style="color:rgb(139,148,169)"> · source </span>hackenproof<span style="color:rgb(139,148,169)"> · scan </span>20261006T191500Z  <span style="color:rgb(8,10,16);background:rgb(232,200,122);border-radius:3px"> LIVE </span>                       <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+  <span style="font-weight:700">DISCOVER</span>   <span style="color:rgb(232,200,122)">████████████████</span> <span style="color:rgb(139,148,169)">324/324 · 33 pages · 4.2s</span>                           <span style="color:rgb(52,211,153)">✓ DONE</span>        
+  <span style="font-weight:700">FETCH</span>      <span style="color:rgb(232,200,122)">████████████░░░░</span> <span style="color:rgb(139,148,169)">72% · 54/75 · catch-up · polite 750ms</span>               <span style="color:rgb(232,200,122)">● LIVE</span>        
+  <span style="font-weight:700">DIFF</span>       <span style="color:rgb(232,200,122)">███████░░░░░░░░░</span> <span style="color:rgb(139,148,169)">41% · 5 material · 11 minor</span>                         <span style="color:rgb(232,200,122)">● LIVE</span>        
+  <span style="font-weight:700">POLICY</span>     <span style="color:rgb(232,200,122)">█████░░░░░░░░░░░</span> <span style="color:rgb(139,148,169)">30% · 156 eligible · 168 rejected</span>                   <span style="color:rgb(232,200,122)">● LIVE</span>        
+  <span style="font-weight:700">SCORE</span>      <span style="color:rgb(232,200,122)">██░░░░░░░░░░░░░░</span> <span style="color:rgb(139,148,169)">12% · priority 0-89</span>                                 <span style="color:rgb(232,200,122)">● LIVE</span>        
+  <span style="font-weight:700">ALERT</span>      <span style="color:rgb(232,200,122)">░░░░░░░░░░░░░░░░</span> <span style="color:rgb(139,148,169)">queued</span>                                              <span style="color:rgb(74,84,104)">QUEUED</span>        
+  <span style="font-weight:700">PERSIST</span>    <span style="color:rgb(232,200,122)">░░░░░░░░░░░░░░░░</span> <span style="color:rgb(139,148,169)">queued</span>                                              <span style="color:rgb(74,84,104)">QUEUED</span>        
+<span style="color:rgb(74,84,104)">LIVE COUNTERS </span><span style="color:rgb(110,95,60)">──────────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(74,84,104)">┌─ </span><span style="color:rgb(74,84,104)">COUNTERS</span><span style="color:rgb(74,84,104)"> ───────────────────────────────────────────────────────────────────────────────────┐</span>
+<span style="color:rgb(74,84,104)">│ </span><span style="color:rgb(139,148,169)">DISCOVERED </span><span style="color:rgb(125,211,252)">324</span>      <span style="color:rgb(74,84,104)"> │ </span><span style="color:rgb(139,148,169)">ELIGIBLE </span><span style="color:rgb(52,211,153)">156</span>        <span style="color:rgb(74,84,104)"> │ </span><span style="color:rgb(139,148,169)">NEW·CHG </span><span style="color:rgb(232,200,122)">1·4</span>         <span style="color:rgb(74,84,104)"> │ </span><span style="color:rgb(139,148,169)">ARMED </span><span style="color:rgb(232,200,122)">1</span>                <span style="color:rgb(74,84,104)"> │</span>
+<span style="color:rgb(74,84,104)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(74,84,104)">● polite 750ms · 4 workers · esc aborts cleanly — state is never half-written</span></pre></section>
+<section id="scan-report"><div class="shead"><span class="stitle">02 · scan — verdict report</span><code>reliastra scan</code></div><pre><span style="color:rgb(74,84,104)">$ </span><span style="font-weight:700">reliastra</span> <span style="color:rgb(232,200,122)">scan</span><span style="color:rgb(139,148,169)"></span>
+<span style="color:rgb(232,200,122)">┌─ </span><span style="color:rgb(232,200,122)">◈ VERDICT</span><span style="color:rgb(232,200,122)"> ──────────────────────────────────────────────────────────────────────────────────┐</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(232,200,122);font-weight:700">◆ 1 ACTIONABLE OPPORTUNITY</span>                                                                  <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span>delivered <span style="font-weight:700">1/1</span><span style="color:rgb(139,148,169)"> · suppressed 0 · errors 0 · exit </span><span style="font-weight:700">0</span><span style="color:rgb(139,148,169)"> · coverage </span><span style="color:rgb(52,211,153);font-weight:700">100% TRUSTED</span>                    <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span>scan 20261006T191500Z<span style="color:rgb(139,148,169)"> · 38.8s · source hackenproof</span>                                          <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(74,84,104)">┌─ </span><span style="color:rgb(74,84,104)">SWEEP</span><span style="color:rgb(74,84,104)"> ──────────────────────────────────────────────────────────────────────────────────────┐</span>
+<span style="color:rgb(74,84,104)">│ </span><span style="color:rgb(139,148,169)">EVALUATED </span><span style="color:rgb(125,211,252)">324</span>       <span style="color:rgb(74,84,104)"> │ </span><span style="color:rgb(139,148,169)">ELIGIBLE </span><span style="color:rgb(52,211,153)">156</span>        <span style="color:rgb(74,84,104)"> │ </span><span style="color:rgb(139,148,169)">NEW·CHG·MIN </span><span style="color:rgb(232,200,122)">1·4·11</span>  <span style="color:rgb(74,84,104)"> │ </span><span style="color:rgb(139,148,169)">ERRORS </span><span style="color:rgb(230,234,242)">0</span>               <span style="color:rgb(74,84,104)"> │</span>
+<span style="color:rgb(74,84,104)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(74,84,104)">COVERAGE — DID THIS SWEEP SEE THE PLATFORM? </span><span style="color:rgb(110,95,60)">────────────────────────────────────────────────────</span>
+<span style="color:rgb(52,211,153);font-weight:700">● 100.0%</span> <span style="color:rgb(52,211,153)">██████████████████████████████████████</span>  <span style="color:rgb(139,148,169)">324/324 · floor 90% · absent 0 · departed 2</span>
+<span style="color:rgb(74,84,104)">ALERT DISPATCHED </span><span style="color:rgb(110,95,60)">───────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(232,200,122)">┌─ </span><span style="color:rgb(8,10,16);background:rgb(232,200,122);border-radius:3px"> NEW MATCH </span> <span style="color:rgb(139,148,169)">PRIO 87/100 · $500 CEILING</span><span style="color:rgb(232,200,122)"> ─────────────────────────────────────────────────────┐</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="font-weight:700">Swisstronik Blockchain Stability</span>                                                            <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">launched 3y ago · detected &lt;1m · 4 submissions · low competition</span>                            <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(125,211,252)">web2 · web_application · 6 in-scope assets</span>                                                  <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">why: no reputation gate · no fee · no KYC · crypto_platform</span>                                 <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> SENT </span>  <span style="color:rgb(94,234,212)">hackenproof.com/programs/swisstronik-blockchain-stability</span>                           <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(74,84,104)">ELIGIBLE · TOP 5 BY ATTENTION PRIORITY </span><span style="color:rgb(110,95,60)">─────────────────────────────────────────────────────────</span>
+<span style="color:rgb(74,84,104)">PROGRAM</span>                             <span style="color:rgb(74,84,104)">SCORE</span>         <span style="color:rgb(74,84,104)">AGE</span>   <span style="color:rgb(74,84,104)">TOP REASON</span>                              
+<span style="color:rgb(232,200,122)">◆</span> Ternoa Web and Apps               <span style="color:rgb(232,200,122)">███████░</span> <span style="color:rgb(232,200,122);font-weight:700">89</span>   <span style="color:rgb(139,148,169)">4y</span>    <span style="color:rgb(139,148,169)">ceiling $50,000 · 10 assets</span>
+<span style="color:rgb(232,200,122)">◆</span> Sweed Web                         <span style="color:rgb(232,200,122)">███████░</span> <span style="color:rgb(232,200,122);font-weight:700">88</span>   <span style="color:rgb(139,148,169)">1y</span>    <span style="color:rgb(139,148,169)">23 in-scope assets · infra+web</span>
+<span style="color:rgb(232,200,122)">◆</span> Avalanche Websites and APIs       <span style="color:rgb(232,200,122)">███████░</span> <span style="color:rgb(232,200,122);font-weight:700">87</span>   <span style="color:rgb(139,148,169)">5y</span>    <span style="color:rgb(139,148,169)">api · web · $10k ceiling</span>
+<span style="color:rgb(232,200,122)">◆</span> Swisstronik Blockchain Stability  <span style="color:rgb(232,200,122)">███████░</span> <span style="color:rgb(232,200,122);font-weight:700">87</span>   <span style="color:rgb(139,148,169)">3y</span>    <span style="color:rgb(139,148,169)">4 submissions · low competition</span>
+<span style="color:rgb(232,200,122)">◆</span> 1inch Business                    <span style="color:rgb(232,200,122)">███████░</span> <span style="color:rgb(232,200,122);font-weight:700">84</span>   <span style="color:rgb(139,148,169)">1y</span>    <span style="color:rgb(139,148,169)">api.1inch.com · SaaS platform</span>
+<span style="color:rgb(74,84,104)">+ 151 more eligible · reliastra programs --eligible · machine-readable: --json</span></pre></section>
+<section id="programs"><div class="shead"><span class="stitle">03 · programs — the ledger</span><code>reliastra programs --eligible --limit 6</code></div><pre><span style="color:rgb(74,84,104)">$ </span><span style="font-weight:700">reliastra</span> <span style="color:rgb(232,200,122)">programs</span><span style="color:rgb(139,148,169)"> --eligible --limit 6</span>
+<span style="color:rgb(232,200,122)">┌─ </span><span style="color:rgb(232,200,122)">◈ PROGRAM LEDGER</span><span style="color:rgb(232,200,122)"> ───────────────────────────────────────────────────────────────────────────┐</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">profile personal · 156 eligible of 324 known · scan 20261006T191500Z</span>                        <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(74,84,104)">PROGRAM</span>                             <span style="color:rgb(74,84,104)">STATE</span>        <span style="color:rgb(74,84,104)">SCORE</span>  <span style="color:rgb(74,84,104)">LAUNCH/SEE</span>  <span style="color:rgb(74,84,104)">SURFACES</span>                    
+<span style="font-weight:700">1inch Business</span>                      <span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> LIVE </span>       <span style="color:rgb(232,200,122);font-weight:700">84</span>     <span style="color:rgb(139,148,169)">1y / 3d</span>     <span style="color:rgb(125,211,252)">api · web_app</span>
+<span style="color:rgb(74,84,104)">  up to $100,000 · 163 reports</span>
+<span style="font-weight:700">Aurora Web</span>                          <span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> LIVE </span>       <span style="color:rgb(232,200,122);font-weight:700">82</span>     <span style="color:rgb(139,148,169)">3y / 3d</span>     <span style="color:rgb(125,211,252)">web2 · web_app</span>
+<span style="color:rgb(74,84,104)">  up to $100,000 · 124 reports</span>
+<span style="font-weight:700">Ult: Trade Stocks &amp; Crypto</span>          <span style="color:rgb(8,10,16);background:rgb(232,200,122);border-radius:3px"> NEW </span>        <span style="color:rgb(232,200,122);font-weight:700">81</span>     <span style="color:rgb(139,148,169)">8d / 3d</span>     <span style="color:rgb(125,211,252)">api · mobile</span>
+<span style="color:rgb(74,84,104)">  up to $20,000 · 74 reports</span>
+<span style="font-weight:700">WEEX Web &amp; App</span>                      <span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> LIVE </span>       <span style="color:rgb(232,200,122);font-weight:700">79</span>     <span style="color:rgb(139,148,169)">1y / 3d</span>     <span style="color:rgb(125,211,252)">web_app · mobile</span>
+<span style="color:rgb(74,84,104)">  up to $10,000 · 379 reports</span>
+<span style="font-weight:700">WhiteBIT</span>                            <span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> LIVE </span>       <span style="color:rgb(232,200,122);font-weight:700">78</span>     <span style="color:rgb(139,148,169)">5y / 3d</span>     <span style="color:rgb(125,211,252)">api · web_app</span>
+<span style="color:rgb(74,84,104)">  up to $10,000 · 297 reports</span>
+<span style="font-weight:700">Astros Web</span>                          <span style="color:rgb(8,10,16);background:rgb(125,211,252);border-radius:3px"> SCOPE+ </span>     <span style="color:rgb(232,200,122);font-weight:700">76</span>     <span style="color:rgb(139,148,169)">11m / 3d</span>    <span style="color:rgb(125,211,252)">web_app</span>
+<span style="color:rgb(74,84,104)">  up to $5,000 · 58 reports</span>
+<span style="color:rgb(74,84,104)">6 of 156 shown · reliastra explain &lt;id&gt; opens the dossier</span></pre></section>
+<section id="explain"><div class="shead"><span class="stitle">04 · explain — the dossier</span><code>reliastra explain 1inch-business</code></div><pre><span style="color:rgb(74,84,104)">$ </span><span style="font-weight:700">reliastra</span> <span style="color:rgb(232,200,122)">explain</span><span style="color:rgb(139,148,169)"> 1inch-business</span>
+<span style="color:rgb(52,211,153)">┌─ </span><span style="color:rgb(52,211,153)">✓ DOSSIER · 1INCH BUSINESS</span><span style="color:rgb(52,211,153)"> ─────────────────────────────────────────────────────────────────┐</span>
+<span style="color:rgb(52,211,153)">│ </span><span style="color:rgb(52,211,153);font-weight:700">ELIGIBLE</span><span style="color:rgb(139,148,169)"> · hackenproof · state live · confidence high</span>                                       <span style="color:rgb(52,211,153)"> │</span>
+<span style="color:rgb(52,211,153)">│ </span><span style="color:rgb(139,148,169)">priority </span><span style="color:rgb(232,200,122);font-weight:700">84/100</span><span style="color:rgb(139,148,169)"> · bounty $100,000 · paid $34,200 · 163 reports</span>                              <span style="color:rgb(52,211,153)"> │</span>
+<span style="color:rgb(52,211,153)">│ </span><span style="color:rgb(94,234,212)">hackenproof.com/programs/1inch-business</span>                                                     <span style="color:rgb(52,211,153)"> │</span>
+<span style="color:rgb(52,211,153)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(74,84,104)">ACCESS — CAN YOU REACH IT? </span><span style="color:rgb(110,95,60)">─────────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(139,148,169)">reputation</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> <span style="color:rgb(52,211,153)">✓ </span>none required (&lt;= 80 allowed)
+<span style="color:rgb(139,148,169)">submission fee</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> <span style="color:rgb(52,211,153)">✓ </span>none
+<span style="color:rgb(139,148,169)">kyc</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> <span style="color:rgb(52,211,153)">✓ </span>not required
+<span style="color:rgb(139,148,169)">proof of concept</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> <span style="color:rgb(52,211,153)">✓ </span>accepted
+<span style="color:rgb(139,148,169)">paid to date</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> $34,200 · 163 reports
+<span style="color:rgb(74,84,104)">ATTACK SURFACE — 4 TARGETS </span><span style="color:rgb(110,95,60)">─────────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(125,211,252)">api · web2 · web_application</span><span style="color:rgb(139,148,169)"> · capabilities: auth · accounts · trading</span>
+<span style="color:rgb(52,211,153)">+ [api]</span> api.1inch.com
+<span style="color:rgb(52,211,153)">+ [web]</span> business.1inch.com + /portal + /portal/documentation
+<span style="color:rgb(74,84,104)">CRYPTO — PLATFORM, NOT PROTOCOL </span><span style="color:rgb(110,95,60)">────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(139,148,169)">kind</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> <span style="color:rgb(94,234,212);font-weight:700">crypto_platform</span><span style="color:rgb(139,148,169)"> · ordinary software work</span>
+<span style="color:rgb(139,148,169)">traits</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> <span style="color:rgb(125,211,252)">crypto_api · crypto_platform · crypto_web_application</span>
+<span style="color:rgb(139,148,169)">dominance veto</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> <span style="color:rgb(52,211,153)">✓ no excluded traits · 0% &lt; 60% threshold</span>
+<span style="color:rgb(74,84,104)">POLICY CHECKS — EXPLAINED </span><span style="color:rgb(110,95,60)">──────────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> PASS </span> <span style="font-weight:700">access.reputation</span>   <span style="color:rgb(139,148,169)">no reputation required (&lt;= 80 allowed)</span>
+<span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> PASS </span> <span style="font-weight:700">access.kyc</span>          <span style="color:rgb(139,148,169)">KYC not required</span>
+<span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> PASS </span> <span style="font-weight:700">state.allowed</span>       <span style="color:rgb(139,148,169)">live in {live, new}</span>
+<span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> PASS </span> <span style="font-weight:700">surface.match</span>       <span style="color:rgb(139,148,169)">exposes api, web2, web_application</span>
+<span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> PASS </span> <span style="font-weight:700">crypto.allow</span>        <span style="color:rgb(139,148,169)">carries crypto_platform + crypto_api</span>
+<span style="color:rgb(8,10,16);background:rgb(125,211,252);border-radius:3px"> INFO </span> <span style="font-weight:700">timing.launch</span>       <span style="color:rgb(139,148,169)">launched 1y ago · change window still evaluable</span>
+<span style="color:rgb(74,84,104)">ATTENTION PRIORITY — ORDERING AID </span><span style="color:rgb(110,95,60)">──────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(139,148,169)">freshness</span>          <span style="color:rgb(232,200,122);font-weight:700">100</span> <span style="color:rgb(94,234,212)">████████████████████████████</span> <span style="color:rgb(74,84,104)">first seen just now</span>
+<span style="color:rgb(139,148,169)">surface relevance</span>  <span style="color:rgb(232,200,122);font-weight:700">100</span> <span style="color:rgb(94,234,212)">████████████████████████████</span> <span style="color:rgb(74,84,104)">matches api, web2, web_application</span>
+<span style="color:rgb(139,148,169)">eligibility</span>        <span style="color:rgb(232,200,122);font-weight:700">90</span>  <span style="color:rgb(94,234,212)">█████████████████████████░░░</span> <span style="color:rgb(74,84,104)">9 of 10 requirements satisfied</span>
+<span style="color:rgb(139,148,169)">bounty</span>             <span style="color:rgb(232,200,122);font-weight:700">85</span>  <span style="color:rgb(232,200,122)">████████████████████████░░░░</span> <span style="color:rgb(74,84,104)">ceiling $100,000</span>
+<span style="color:rgb(139,148,169)">low competition</span>    <span style="color:rgb(232,200,122);font-weight:700">46</span>  <span style="color:rgb(232,200,122)">█████████████░░░░░░░░░░░░░░░</span> <span style="color:rgb(74,84,104)">163 submissions reported</span>
+<span style="color:rgb(74,84,104)">fingerprints scope 57faf179… · requirements 4c6caf74… · metadata 50a06a51…</span></pre></section>
+<section id="windows"><div class="shead"><span class="stitle">05 · windows — open research windows</span><code>reliastra windows --open</code></div><pre><span style="color:rgb(74,84,104)">$ </span><span style="font-weight:700">reliastra</span> <span style="color:rgb(232,200,122)">windows</span><span style="color:rgb(139,148,169)"> --open</span>
+<span style="color:rgb(232,200,122)">┌─ </span><span style="color:rgb(232,200,122)">◐ OPEN · ASTROS WEB — SCOPE EXPANSION</span><span style="color:rgb(232,200,122)"> ──────────────────────────────────────────────────────┐</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">observed </span><span style="color:rgb(232,200,122);font-weight:700">between 42m and 47m ago</span><span style="color:rgb(139,148,169)"> · opened by scan 20261006T191500Z</span>                          <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">triggers </span><span style="color:rgb(8,10,16);background:rgb(125,211,252);border-radius:3px"> SCOPE_EXPANSION </span> <span style="color:rgb(8,10,16);background:rgb(94,234,212);border-radius:3px"> TARGET_ADDED </span>                                                   <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(94,234,212)">◆</span> + api.astros.ag entered scope <span style="color:rgb(139,148,169)">[api]</span>                                                       <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(94,234,212)">◆</span> reward ceiling $3,000 <span style="color:rgb(232,200,122)">→</span> $5,000                                                            <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">submissions baseline 58 · current 58 · </span><span style="color:rgb(52,211,153);font-weight:700">+0 — uncrowded</span>                                       <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(232,200,122)">┌─ </span><span style="color:rgb(232,200,122)">◐ OPEN · ULT: TRADE STOCKS &amp; CRYPTO — NEWLY ELIGIBLE</span><span style="color:rgb(232,200,122)"> ───────────────────────────────────────┐</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">observed </span><span style="color:rgb(232,200,122);font-weight:700">between 3h and 3h 05m ago</span><span style="color:rgb(139,148,169)"> · launch-gated, source-reported</span>                          <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">triggers </span><span style="color:rgb(8,10,16);background:rgb(232,200,122);border-radius:3px"> NEW_PROGRAM </span> <span style="color:rgb(8,10,16);background:rgb(94,234,212);border-radius:3px"> NEWLY_ELIGIBLE </span>                                                     <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(94,234,212)">◆</span> first observed on listing page 1 · status NEW                                             <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(94,234,212)">◆</span> access resolved: no gates · KYC for payout only                                           <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">submissions baseline 70 · current 74 · </span><span style="color:rgb(251,191,36);font-weight:700">+4 — warming</span>                                         <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(74,84,104)">2 open · closed windows stay queryable · reliastra replay &lt;id&gt; renders the timeline</span></pre></section>
+<section id="alerts"><div class="shead"><span class="stitle">06 · alerts — delivery ledger</span><code>reliastra alerts --limit 6</code></div><pre><span style="color:rgb(74,84,104)">$ </span><span style="font-weight:700">reliastra</span> <span style="color:rgb(232,200,122)">alerts</span><span style="color:rgb(139,148,169)"> --limit 6</span>
+<span style="color:rgb(232,200,122)">┌─ </span><span style="color:rgb(232,200,122)">◈ DELIVERY LEDGER · 5 OF 6 DELIVERED · SMTP READY</span><span style="color:rgb(232,200,122)"> ──────────────────────────────────────────┐</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">every alert recorded · deduplicated by fingerprint · never announced twice</span>                  <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(74,84,104)">WHEN (UTC)</span>       <span style="color:rgb(74,84,104)">KIND</span>           <span style="color:rgb(74,84,104)">STATUS</span>    <span style="color:rgb(74,84,104)">PRIO</span>  <span style="color:rgb(74,84,104)">SUBJECT</span>                                         
+<span style="color:rgb(139,148,169)">10-06 19:15:38</span>   <span style="color:rgb(8,10,16);background:rgb(232,200,122);border-radius:3px"> NEW MATCH </span>    <span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> SENT </span>    <span style="color:rgb(232,200,122);font-weight:700">87</span>    Swisstronik Blockchain Stability — Web — &lt;1m
+<span style="color:rgb(139,148,169)">10-03 19:25:58</span>   <span style="color:rgb(8,10,16);background:rgb(232,200,122);border-radius:3px"> NEW MATCH </span>    <span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> SENT </span>    <span style="color:rgb(232,200,122);font-weight:700">88</span>    Sweed Web — infra+web · 23 assets
+<span style="color:rgb(139,148,169)">10-03 19:13:15</span>   <span style="color:rgb(8,10,16);background:rgb(125,211,252);border-radius:3px"> SCOPE + </span>      <span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> SENT </span>    <span style="color:rgb(232,200,122);font-weight:700">86</span>    Astros Web — target added: api.astros.ag
+<span style="color:rgb(139,148,169)">10-03 19:12:40</span>   <span style="color:rgb(8,10,16);background:rgb(232,200,122);border-radius:3px"> NEW MATCH </span>    <span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> SENT </span>    <span style="color:rgb(232,200,122);font-weight:700">89</span>    Ternoa Web and Apps — $50k ceiling
+<span style="color:rgb(139,148,169)">10-02 21:48:40</span>   <span style="color:rgb(8,10,16);background:rgb(125,211,252);border-radius:3px"> SCOPE + </span>      <span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> SENT </span>    <span style="color:rgb(232,200,122);font-weight:700">84</span>    1inch Business — portal docs in scope
+<span style="color:rgb(139,148,169)">10-02 21:44:39</span>   <span style="color:rgb(8,10,16);background:rgb(167,139,250);border-radius:3px"> RE-ACTIVATED </span> <span style="color:rgb(8,10,16);background:rgb(251,191,36);border-radius:3px"> RETRY 2 </span> <span style="color:rgb(232,200,122);font-weight:700">72</span>    Zest Protocol — listing republished
+<span style="color:rgb(251,191,36)">last error: 421 smtp busy — next attempt in 5m</span>
+<span style="color:rgb(74,84,104)">reliastra alerts --undelivered isolates pending</span></pre></section>
+<section id="validate"><div class="shead"><span class="stitle">07 · validate-config — attestation</span><code>reliastra validate-config</code></div><pre><span style="color:rgb(74,84,104)">$ </span><span style="font-weight:700">reliastra</span> <span style="color:rgb(232,200,122)">validate-config</span><span style="color:rgb(139,148,169)"></span>
+<span style="color:rgb(52,211,153)">┌─ </span><span style="color:rgb(52,211,153)">◈ PROFILE ATTESTED — PERSONAL</span><span style="color:rgb(52,211,153)"> ──────────────────────────────────────────────────────────────┐</span>
+<span style="color:rgb(52,211,153)">│ </span><span style="color:rgb(52,211,153);font-weight:700">VALID</span><span style="color:rgb(139,148,169)"> · configs/profiles/personal.yaml · 14/14 thresholds verified · exit 0</span>                 <span style="color:rgb(52,211,153)"> │</span>
+<span style="color:rgb(52,211,153)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(74,84,104)">ATTESTATION </span><span style="color:rgb(110,95,60)">────────────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> PASS </span> <span style="color:rgb(139,148,169)">sources · hackenproof enabled</span>
+<span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> PASS </span> <span style="color:rgb(139,148,169)">access gates · rep &lt;= 80 · fee &lt;= $5 · no KYC</span>
+<span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> PASS </span> <span style="color:rgb(139,148,169)">crypto mode auto · 8 allowed · 5 excluded · veto &gt;= 60%</span>
+<span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> PASS </span> <span style="color:rgb(139,148,169)">coverage floor 90% · grace 2 sweeps</span>
+<span style="color:rgb(8,10,16);background:rgb(52,211,153);border-radius:3px"> PASS </span> <span style="color:rgb(139,148,169)">windows · new 24h · change 72h · max age 168h</span>
+<span style="color:rgb(74,84,104)">PROFILE LEDGER </span><span style="color:rgb(110,95,60)">─────────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(139,148,169)">target domains</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> 7 included
+<span style="color:rgb(139,148,169)">accepted states</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> live · new
+<span style="color:rgb(139,148,169)">min alert severity</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> <span style="color:rgb(251,191,36)">medium</span>
+<span style="color:rgb(139,148,169)">require eligible</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> <span style="color:rgb(52,211,153)">✓ hard gate</span>
+<span style="color:rgb(139,148,169)">notifications</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> <span style="color:rgb(52,211,153)">✓ enabled · cap 10/scan</span>
+<span style="color:rgb(139,148,169)">pacing</span> <span style="color:rgb(74,84,104)">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span> 750ms · 4 workers · 45s timeout
+<span style="color:rgb(74,84,104)">the coverage floor is printed here so exit 3 is always traceable</span></pre></section>
+<section id="help"><div class="shead"><span class="stitle">08 · help — command atlas</span><code>reliastra help</code></div><pre><span style="color:rgb(74,84,104)">$ </span><span style="font-weight:700">reliastra</span> <span style="color:rgb(232,200,122)">help</span><span style="color:rgb(139,148,169)"></span>
+<span style="color:rgb(232,200,122)">┌─ </span><span style="color:rgb(232,200,122)">◈ RELIASTRA · SIGNAL OVER NOISE · V2.0.0</span><span style="color:rgb(232,200,122)"> ───────────────────────────────────────────────────┐</span>
+<span style="color:rgb(232,200,122)">│ </span><span style="color:rgb(139,148,169)">hunter engine inside · zero-deps binary · --json stays byte-stable</span>                          <span style="color:rgb(232,200,122)"> │</span>
+<span style="color:rgb(232,200,122)">└──────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+<span style="color:rgb(74,84,104)">OPERATE </span><span style="color:rgb(110,95,60)">────────────────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(232,200,122)">scan</span> <span style="color:rgb(94,234,212)">[--dry-run] [--no-details]</span>           <span style="color:rgb(139,148,169)">Discover, evaluate, alert in one pass.</span>
+<span style="color:rgb(232,200,122)">sync</span>                                      <span style="color:rgb(139,148,169)">Alias for scan — the manual-run spelling.</span>
+<span style="color:rgb(74,84,104)">INVESTIGATE </span><span style="color:rgb(110,95,60)">────────────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(232,200,122)">programs</span> <span style="color:rgb(94,234,212)">[--eligible] [--new] [--changed]</span> <span style="color:rgb(139,148,169)">The ledger of known programs.</span>
+<span style="color:rgb(232,200,122)">explain</span> <span style="color:rgb(94,234,212)">&lt;id&gt;</span>                              <span style="color:rgb(139,148,169)">The dossier — every check with its reason.</span>
+<span style="color:rgb(232,200,122)">history</span> <span style="color:rgb(94,234,212)">&lt;id&gt;</span>                              <span style="color:rgb(139,148,169)">Material changes, oldest first.</span>
+<span style="color:rgb(232,200,122)">replay</span> <span style="color:rgb(94,234,212)">&lt;id&gt; [--limit n]</span>                   <span style="color:rgb(139,148,169)">Read-only timeline; decisions frozen.</span>
+<span style="color:rgb(232,200,122)">windows</span> <span style="color:rgb(94,234,212)">[--open] [--program id]</span>           <span style="color:rgb(139,148,169)">Opportunity windows with bounded intervals.</span>
+<span style="color:rgb(232,200,122)">alerts</span> <span style="color:rgb(94,234,212)">[--undelivered]</span>                    <span style="color:rgb(139,148,169)">Delivery ledger — sent vs pending.</span>
+<span style="color:rgb(74,84,104)">ADMINISTER </span><span style="color:rgb(110,95,60)">─────────────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:rgb(232,200,122)">validate-config</span>                           <span style="color:rgb(139,148,169)">Attest the profile. 14 checks.</span>
+<span style="color:rgb(232,200,122)">test-email</span> <span style="color:rgb(94,234,212)">[id]</span>                           <span style="color:rgb(139,148,169)">Send one rendered sample email.</span>
+<span style="color:rgb(232,200,122)">version</span>                                   <span style="color:rgb(139,148,169)">Build version, linker-stamped.</span>
+<span style="color:rgb(74,84,104)">global: --profile --state --log-level --json --no-color --quiet</span>
+<span style="color:rgb(74,84,104)">exit 0 ok · 1 fail · 2 config · 3 degraded</span></pre></section>
+<section id="scan-report.plain"><div class="shead"><span class="stitle">09 · degradation proof — NO_COLOR + ASCII</span><code>reliastra scan (TERM=dumb)</code></div><pre>$ reliastra scan
++- * VERDICT ----------------------------------------------------------------------------------+
+| * 1 ACTIONABLE OPPORTUNITY                                                                   |
+| delivered 1/1 - suppressed 0 - errors 0 - exit 0 - coverage 100% TRUSTED                     |
+| scan 20261006T191500Z - 38.8s - source hackenproof                                           |
++----------------------------------------------------------------------------------------------+
++- SWEEP --------------------------------------------------------------------------------------+
+| EVALUATED 324        | ELIGIBLE 156         | NEW-CHG-MIN 1-4-11   | ERRORS 0                |
++----------------------------------------------------------------------------------------------+
+COVERAGE - DID THIS SWEEP SEE THE PLATFORM? ----------------------------------------------------
+o 100.0% ######################################  324/324 - floor 90% - absent 0 - departed 2
+ALERT DISPATCHED -------------------------------------------------------------------------------
++- [NEW MATCH] PRIO 87/100 - $500 CEILING -----------------------------------------------------+
+| Swisstronik Blockchain Stability                                                             |
+| launched 3y ago - detected &lt;1m - 4 submissions - low competition                             |
+| web2 - web_application - 6 in-scope assets                                                   |
+| why: no reputation gate - no fee - no KYC - crypto_platform                                  |
+| [SENT]  hackenproof.com/programs/swisstronik-blockchain-stability                            |
++----------------------------------------------------------------------------------------------+
+ELIGIBLE - TOP 5 BY ATTENTION PRIORITY ---------------------------------------------------------
+PROGRAM                             SCORE         AGE   TOP REASON                              
+* Ternoa Web and Apps               #######- 89   4y    ceiling $50,000 - 10 assets
+* Sweed Web                         #######- 88   1y    23 in-scope assets - infra+web
+* Avalanche Websites and APIs       #######- 87   5y    api - web - $10k ceiling
+* Swisstronik Blockchain Stability  #######- 87   3y    4 submissions - low competition
+* 1inch Business                    #######- 84   1y    api.1inch.com - SaaS platform
++ 151 more eligible - reliastra programs --eligible - machine-readable: --json</pre></section>
+<footer>◈ RELIASTRA · <b>internal/tui/tui.go</b> (theme engine) + <b>internal/tui/fold.go</b> (ASCII fold) + <b>internal/cli/demo.go</b> (8 screens) · stdlib only · --json untouched · exit codes frozen<br>
+captures: design/reliastra/screens/*.ansi · regenerate: python3 sim.py && python3 ansi2html.py</footer>
+</div></body></html>

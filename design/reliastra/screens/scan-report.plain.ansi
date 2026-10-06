@@ -1,0 +1,27 @@
+$ reliastra scan
++- * VERDICT ----------------------------------------------------------------------------------+
+| * 1 ACTIONABLE OPPORTUNITY                                                                   |
+| delivered 1/1 - suppressed 0 - errors 0 - exit 0 - coverage 100% TRUSTED                     |
+| scan 20261006T191500Z - 38.8s - source hackenproof                                           |
++----------------------------------------------------------------------------------------------+
++- SWEEP --------------------------------------------------------------------------------------+
+| EVALUATED 324        | ELIGIBLE 156         | NEW-CHG-MIN 1-4-11   | ERRORS 0                |
++----------------------------------------------------------------------------------------------+
+COVERAGE - DID THIS SWEEP SEE THE PLATFORM? ----------------------------------------------------
+o 100.0% ######################################  324/324 - floor 90% - absent 0 - departed 2
+ALERT DISPATCHED -------------------------------------------------------------------------------
++- [NEW MATCH] PRIO 87/100 - $500 CEILING -----------------------------------------------------+
+| Swisstronik Blockchain Stability                                                             |
+| launched 3y ago - detected <1m - 4 submissions - low competition                             |
+| web2 - web_application - 6 in-scope assets                                                   |
+| why: no reputation gate - no fee - no KYC - crypto_platform                                  |
+| [SENT]  hackenproof.com/programs/swisstronik-blockchain-stability                            |
++----------------------------------------------------------------------------------------------+
+ELIGIBLE - TOP 5 BY ATTENTION PRIORITY ---------------------------------------------------------
+PROGRAM                             SCORE         AGE   TOP REASON                              
+* Ternoa Web and Apps               #######- 89   4y    ceiling $50,000 - 10 assets
+* Sweed Web                         #######- 88   1y    23 in-scope assets - infra+web
+* Avalanche Websites and APIs       #######- 87   5y    api - web - $10k ceiling
+* Swisstronik Blockchain Stability  #######- 87   3y    4 submissions - low competition
+* 1inch Business                    #######- 84   1y    api.1inch.com - SaaS platform
++ 151 more eligible - reliastra programs --eligible - machine-readable: --json

@@ -93,6 +93,8 @@ func Run(ctx context.Context, env *Env) int {
 		return cmdTestFixtures(env, rest)
 	case "test-email":
 		return cmdTestEmail(env, rest)
+	case "demo":
+		return cmdDemo(env, rest)
 	case "version":
 		fmt.Fprintln(env.Stdout, version)
 		return exitOK
@@ -252,6 +254,10 @@ Commands:
   validate-config     Parse and validate the profile.
   test-fixtures       Re-parse checked-in fixtures and report what was found.
   test-email [id]     Send one rendered sample so the email layout can be checked.
+  demo                Render the Reliastra theme preview with mock evidence.
+    --screen <name>     One screen (see demo --list), or all.
+    --animate           Replay the scan-live phase rail.
+    --ascii             ASCII glyphs instead of unicode.
   version             Print the build version.
 
 Common flags:

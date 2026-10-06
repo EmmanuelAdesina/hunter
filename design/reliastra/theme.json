@@ -1,0 +1,82 @@
+{
+  "brand": {
+    "name": "Reliastra",
+    "wordmark": "RELIASTRA",
+    "cli": "reliastra",
+    "tagline": "Signal over noise.",
+    "descriptor": "Opportunity Intelligence",
+    "mark": "Eight-pointed Astra star in a hairline orbit ring — signal emerging from noise."
+  },
+  "theme": {
+    "name": "Obsidian Executive",
+    "mode": "dark",
+    "terminal": {
+      "background": "#05070D",
+      "surface": "#0B111E",
+      "surface2": "#0F172A",
+      "hairline": "rgba(232,200,122,0.16)",
+      "text": "#E6EAF2",
+      "muted": "#8B94A9",
+      "faint": "#4A5468"
+    },
+    "accents": {
+      "astraGold": "#E8C87A",
+      "astraGoldDeep": "#B8934A",
+      "signalTeal": "#5EEAD4",
+      "info": "#7DD3FC",
+      "success": "#34D399",
+      "warning": "#FBBF24",
+      "danger": "#FB7185",
+      "violet": "#A78BFA"
+    },
+    "semantics": {
+      "eligible": "#34D399",
+      "ineligible": "#5B6478",
+      "new": "#E8C87A",
+      "changed": "#7DD3FC",
+      "open_window": "#E8C87A",
+      "delivered": "#34D399",
+      "pending": "#FBBF24",
+      "degraded": "#FB7185"
+    },
+    "typography": {
+      "ui": "Inter, SF Pro, system-ui",
+      "mono": "\"JetBrains Mono\", \"SF Mono\", \"Cascadia Code\", Menlo, monospace",
+      "scale": {
+        "prompt": "13px/1.6",
+        "body": "12.5px/1.7",
+        "micro": "11px/1.5"
+      }
+    },
+    "ansi": {
+      "reset": "\\x1b[0m",
+      "gold": "\\x1b[38;2;232;200;122m",
+      "teal": "\\x1b[38;2;94;234;212m",
+      "green": "\\x1b[38;2;52;211;153m",
+      "amber": "\\x1b[38;2;251;191;36m",
+      "rose": "\\x1b[38;2;251;113;133m",
+      "sky": "\\x1b[38;2;125;211;252m",
+      "muted": "\\x1b[38;2;139;148;169m",
+      "faint": "\\x1b[38;2;74;84;104m",
+      "bold": "\\x1b[1m",
+      "dim": "\\x1b[2m"
+    },
+    "rules": [
+      "Zero new dependencies — theme engine is stdlib ANSI in internal/tui/theme.go",
+      "NO_COLOR and --no-color respected; dumb terminals fall back to ASCII",
+      "--json output is byte-stable and never carries styling",
+      "Styling lives only in render layer, never in pipeline/policy",
+      "Every color has a text label — never color-alone semantics",
+      "Exit codes unchanged: 0 ok, 1 failure, 2 bad config, 3 degraded"
+    ]
+  },
+  "commands": {
+    "scan": "Cinematic phased run: header band, live phase rail, counters, verdict banner, coverage gauge, alert cards, top-10 table",
+    "programs": "Ledger table with state pills, score micro-bars, surface tags",
+    "explain": "Verdict dossier: verdict band, access grid, surface map, crypto strip, policy checks, priority ledger",
+    "windows": "Opportunity window cards with interval bound, delta evidence, submission movement",
+    "alerts": "Delivery ledger with kind + status pills",
+    "validate-config": "Attestation checklist + profile ledger",
+    "help": "Grouped command atlas"
+  }
+}
