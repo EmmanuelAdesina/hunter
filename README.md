@@ -199,6 +199,10 @@ profile:
 
   program_states:
     allowed: [live, new]
+    # States worth an alert independently of other changes (e.g., a reactivation).
+    # When set, every alert requires the current state to be listed; when empty,
+    # no additional gating applies beyond the normal eligibility checks.
+    alert_on_state: [live, new, paused, ended]
     # States that independently warrant an alert. Every alert requires the
     # program to currently be in a listed state; an empty list disables the
     # gate. This separates "evaluate and track" (allowed) from "wake the

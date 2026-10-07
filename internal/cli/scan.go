@@ -140,6 +140,15 @@ func cmdScan(ctx context.Context, env *Env, args []string) int {
 		renderScan(env.Stdout, res)
 	}
 
+	// A failed scan must say so loudly, before anything else interprets the
+	// result. The degraded check below fires on any empty result, so without
+	// this a load failure presents as a completed scan that merely found
+	// nothing - which once cost real debugging time against a corrupt state
+	// file, with the actual error silently dropped.
+	if runErr != nil {
+		fmt.Fprintf(env.Stderr, "\nscan error: %v\n", runErr)
+	}
+
 	degraded, why := res.Metrics.Degraded()
 	if degraded {
 		fmt.Fprintf(env.Stderr, "\nscan results are untrustworthy: %s\n", why)
