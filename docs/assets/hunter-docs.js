@@ -163,10 +163,11 @@
 
       window.mermaid.initialize({
         startOnLoad: false,
-        securityLevel: 'strict',
+        securityLevel: 'loose',
         theme: 'base',
         fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-        flowchart: { htmlLabels: true, curve: 'basis', nodeSpacing: 36, rankSpacing: 48, useMaxWidth: false },
+        htmlLabels: true,
+        flowchart: { curve: 'basis', nodeSpacing: 36, rankSpacing: 48, useMaxWidth: false },
         themeVariables: {
           primaryColor: '#f0f5fb',
           primaryTextColor: '#172b43',
