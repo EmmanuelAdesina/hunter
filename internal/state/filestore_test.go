@@ -773,3 +773,44 @@ func TestDeliveredAlertsArePruned(t *testing.T) {
 			len(reloaded.Alerts))
 	}
 }
+
+// TestMaterialDigestIsStableAcrossEmptyAndNilTags is a regression test for a
+// production outage in which every scan failed digest validation. Freshly
+// normalized records carry non-nil empty tag sets (Finalize builds them with
+// NewTags), while file-loaded records carry nil for absent keys. The digest
+// hashed the two forms differently ("SurfaceTags":[] vs "SurfaceTags":null),
+// so any scan that refetched a tagless program poisoned its own digest: the
+// save succeeded, and the very next load failed. The persisted tags no
+// longer use omitempty, so both forms serialize identically and the digest
+// cannot tell them apart.
+func TestMaterialDigestIsStableAcrossEmptyAndNilTags(t *testing.T) {
+	dir := t.TempDir()
+	ctx := context.Background()
+	s := state.NewFileStore(dir)
+
+	tagged := sampleProgram("hackenproof:tagged", "tagged")
+
+	untaggedNil := sampleProgram("hackenproof:untagged-nil", "untagged-nil")
+	untaggedNil.SurfaceTags = nil
+	untaggedNil.ParseIssues = nil
+
+	untaggedEmpty := sampleProgram("hackenproof:untagged-empty", "untagged-empty")
+	untaggedEmpty.SurfaceTags = domain.NewTags()
+	untaggedEmpty.ParseIssues = []string{}
+
+	snap := state.NewSnapshot()
+	snap.Programs[tagged.ID] = tagged
+	snap.Programs[untaggedNil.ID] = untaggedNil
+	snap.Programs[untaggedEmpty.ID] = untaggedEmpty
+	if err := s.Save(ctx, snap); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	reloaded, err := state.NewFileStore(dir).Load(ctx)
+	if err != nil {
+		t.Fatalf("Load after Save with mixed nil/empty tags: %v", err)
+	}
+	if got := reloaded.MaterialDigest(); got != snap.MaterialDigest() {
+		t.Error("material digest changed across a save/load round-trip with mixed nil/empty tags")
+	}
+}

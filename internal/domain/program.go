@@ -168,7 +168,13 @@ type Program struct {
 
 	// SurfaceTags are the technical-surface signals used by policy and
 	// scoring, drawn from the configured target-domain vocabulary.
-	SurfaceTags Tags `json:"surface_tags,omitempty"`
+	// SurfaceTags are the technical-surface signals used by policy and
+	// NOTE: no omitempty, deliberately. The material digest hashes this
+	// field, so its serialized form must round-trip exactly: omitempty
+	// would collapse empty-but-present to absent on write while a fresh
+	// record still hashes the present form, breaking digest validation on
+	// every scan that refetches a tagless program.
+	SurfaceTags Tags `json:"surface_tags"`
 
 	// CapabilityTags capture attack-surface characteristics inferred from
 	// scope text, such as authentication or payments.
@@ -235,7 +241,11 @@ type Program struct {
 	// ParseIssues lists human-readable descriptions of anything the adapter
 	// could not interpret. Order is normalized for stable diffs, but the text
 	// itself is preserved verbatim: these are messages for a person, not tags.
-	ParseIssues []string `json:"parse_issues,omitempty"`
+	//
+	// NOTE: no omitempty, deliberately - same reason as SurfaceTags above. The
+	// material digest hashes this field, so its serialized form must survive a
+	// save/load round-trip bit-for-bit.
+	ParseIssues []string `json:"parse_issues"`
 }
 
 // Absent reports whether the program was missing from the most recent sweep.
