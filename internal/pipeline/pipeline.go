@@ -285,8 +285,15 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 	batch := generated
 	pending, pendingErr := s.pendingAlerts(ctx)
 	if pendingErr != nil {
-		res.Metrics.Errors++
-		res.Errors = append(res.Errors, fmt.Errorf("load pending alerts: %w", pendingErr))
+		// A failed pending-alert retry must not fail an otherwise healthy
+		// observation scan. The scan-start Load is the hard guard against
+		// corrupt state and still fails loudly; by the time execution reaches
+		// here, discovery, evaluation, alerting, and persistence have all
+		// succeeded, and the pending records remain stored for the next scan
+		// to retry. pendingAlerts already logs the failure as a warning, so
+		// the signal is preserved without converting a notification-retry
+		// malfunction into a lost observation cycle.
+		log.Warn("pending alert retry skipped", "phase", obs.PhaseNotify, "error", pendingErr.Error())
 	} else if len(pending) > 0 {
 		batch = mergeAlerts(generated, pending)
 	}
