@@ -318,16 +318,19 @@ func kindSpecific(targets domain.Targets, generic domain.ChangeKind, pairs ...an
 			continue
 		}
 		severity := domain.SeverityMedium
+		direction := domain.DirectionImproved
 		if generic == domain.ChangeTargetRemoved {
 			// Losing scope is less actionable than gaining it.
 			severity = domain.SeverityLow
+			direction = domain.DirectionDegraded
 		}
 		out = append(out, domain.Change{
-			Kind:     event,
-			Severity: severity,
-			Field:    string(kind),
-			Assets:   identifiers(matched),
-			Detail:   string(kind) + " " + verbFor(generic) + " scope",
+			Kind:      event,
+			Severity:  severity,
+			Direction: direction,
+			Field:     string(kind),
+			Assets:    identifiers(matched),
+			Detail:    string(kind) + " " + verbFor(generic) + " scope",
 		})
 	}
 	return out

@@ -292,3 +292,50 @@ func TestEveryKindIsClassified(t *testing.T) {
 		}
 	}
 }
+
+// Kind-specific scope events must carry the same direction as the generic event
+// they refine. An API addition rendered without a direction shows "~" next to
+// a "+" TARGET_ADDED for the same asset in the windows view, which reads as
+// the system disagreeing with itself about whether access improved.
+func TestKindSpecificScopeEventsInheritDirection(t *testing.T) {
+	prev := base("a")
+	cur := prev
+	cur.Targets = append(append(domain.Targets{}, prev.Targets...),
+		domain.Target{Kind: domain.KindAPI, Identifier: "https://api.a.example.com", InScope: true})
+	cur.Finalize()
+
+	added := mustKind(t, compare(prev, cur).Changes, domain.ChangeAPIAdded)
+	if !added.Improved() {
+		t.Errorf("API_ADDED direction = %q, want %q", added.Direction, domain.DirectionImproved)
+	}
+	if !added.Alertable() {
+		t.Error("API_ADDED must be capable of alerting")
+	}
+	generic := mustKind(t, compare(prev, cur).Changes, domain.ChangeTargetAdded)
+	if added.Direction != generic.Direction {
+		t.Errorf("API_ADDED direction = %q, generic TARGET_ADDED = %q; the refinement must agree with its generic",
+			added.Direction, generic.Direction)
+	}
+	// The delta projection is what the windows view renders, so the direction
+	// must survive projection rather than living only on the change.
+	found := false
+	for _, d := range compare(prev, cur).Changes.Deltas() {
+		if d.Kind == domain.ChangeAPIAdded {
+			found = true
+			if !d.Improved() {
+				t.Errorf("API_ADDED delta direction = %q, want %q", d.Direction, domain.DirectionImproved)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("no API_ADDED delta projected")
+	}
+
+	removed := mustKind(t, compare(cur, prev).Changes, domain.ChangeAPIRemoved)
+	if !removed.Degraded() {
+		t.Errorf("API_REMOVED direction = %q, want %q", removed.Direction, domain.DirectionDegraded)
+	}
+	if removed.Alertable() {
+		t.Error("losing an API must never alert on its own")
+	}
+}
