@@ -334,8 +334,9 @@ func TestFetchProgramFixture(t *testing.T) {
 	if raw.POC != domain.TriYes {
 		t.Errorf("POC = %s, want yes", raw.POC)
 	}
-	if raw.Reputation.Present != domain.TriNo {
-		t.Errorf("reputation = %s, want a positively observed absence of a gate", raw.Reputation.Present)
+	if raw.Reputation.Present != domain.TriYes || raw.Reputation.Points != 120 {
+		t.Errorf("reputation = %s %d, want a 120-point requirement (the fixture's minReputation)",
+			raw.Reputation.Present, raw.Reputation.Points)
 	}
 	if raw.Status == "" {
 		t.Error("status was not extracted")
@@ -546,5 +547,94 @@ func TestParsePlatformDateRejectsGarbage(t *testing.T) {
 	}
 	if got.Year() != 2026 || got.Month() != time.September || got.Day() != 28 {
 		t.Errorf("parsed %v, want 2026-09-28", got)
+	}
+}
+
+// TestFetchFlipsterFixture pins a production incident: the Flipster program
+// page demands 100 reputation points, but the adapter read the legacy
+// reputationRequired key (always null) instead of minReputation and reported
+// "no reputation required". Policy then approved a program the profile
+// rejects, and an alert email repeated the false claim. This test replays the
+// captured page and asserts every access fact the email stated.
+func TestFetchFlipsterFixture(t *testing.T) {
+	srv := newFixtureServer(t, map[string]string{
+		"/programs/flipster-web-and-mobile": "program-flipster-web-and-mobile.html",
+	})
+	s := newTestSource(t, srv)
+
+	raw, err := s.Fetch(context.Background(), domain.ProgramRef{
+		Source: AdapterName, ID: "flipster-web-and-mobile", Slug: "flipster-web-and-mobile",
+		URL: "https://hackenproof.com/programs/flipster-web-and-mobile",
+	})
+	if err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if raw.Reputation.Present != domain.TriYes || raw.Reputation.Points != 100 {
+		t.Errorf("reputation = %s %d, want the page's 100-point requirement",
+			raw.Reputation.Present, raw.Reputation.Points)
+	}
+	if raw.KYC != domain.TriNo {
+		t.Errorf("KYC = %s, want no", raw.KYC)
+	}
+	if raw.POC != domain.TriYes {
+		t.Errorf("POC = %s, want yes", raw.POC)
+	}
+	if raw.SubmittedReportsKnown != true || raw.SubmittedReports == nil || *raw.SubmittedReports != 114 {
+		t.Errorf("submissions = %+v, want 114 reported", raw.SubmittedReports)
+	}
+	if raw.MaxBountyRaw == "" {
+		t.Error("max bounty was not extracted")
+	}
+	if raw.RawDates.Start == "" {
+		t.Error("start date was not extracted")
+	}
+}
+
+// TestReputationGateResolution covers the minReputation contract directly:
+// positive means gated, zero means observably gateless, and anything
+// unreadable is unknown rather than silently approved.
+func TestReputationGateResolution(t *testing.T) {
+	cases := map[string]struct {
+		fields  map[string]any
+		present domain.Tri
+		points  int
+	}{
+		"positive requirement": {
+			fields:  map[string]any{"minReputation": 100.0},
+			present: domain.TriYes, points: 100,
+		},
+		"zero means observably gateless": {
+			fields:  map[string]any{"minReputation": 0.0},
+			present: domain.TriNo,
+		},
+		"null requirement is unknown, not absent": {
+			fields:  map[string]any{"minReputation": nil},
+			present: domain.TriUnknown,
+		},
+		"absent requirement is unknown, not absent": {
+			fields:  map[string]any{},
+			present: domain.TriUnknown,
+		},
+		"non-numeric requirement is unknown": {
+			fields:  map[string]any{"minReputation": "100"},
+			present: domain.TriUnknown,
+		},
+		"legacy key is a fallback, not the source": {
+			fields:  map[string]any{"minReputation": nil, "reputationRequired": 75.0},
+			present: domain.TriYes, points: 75,
+		},
+		"legacy null with numeric requirement still resolves": {
+			fields:  map[string]any{"minReputation": 50.0, "reputationRequired": nil},
+			present: domain.TriYes, points: 50,
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			got := reputationGate(tc.fields)
+			if got.Present != tc.present || (tc.present == domain.TriYes && got.Points != tc.points) {
+				t.Errorf("reputationGate(%v) = %s %d, want %s %d",
+					tc.fields, got.Present, got.Points, tc.present, tc.points)
+			}
+		})
 	}
 }

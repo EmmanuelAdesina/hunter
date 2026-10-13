@@ -128,7 +128,7 @@ func capabilities() domain.SourceCapabilities {
 		SupportsIncrementalFetch: false,
 		DetailFields: []string{
 			"slug", "title", "status", "state", "kycRequired", "pocRequired",
-			"reputationRequired", "submissionFee", "minBounty", "maxBounty",
+			"minReputation", "submissionFee", "minBounty", "maxBounty",
 			"scopes", "labels", "startDate", "endDate", "submittedReports",
 		},
 	}
@@ -496,19 +496,25 @@ func boolValue(node devalue.Node) bool {
 
 // reputationGate reads the reputation requirement.
 //
-// The platform expresses "no reputation required" by omitting the field, which
-// decodes to an absent value. That is reported as a positively observed absence
-// of a gate, because the surrounding program object was parsed successfully.
-// Only a missing program object leaves it unknown.
+// The requirement lives in minReputation as a point count: a positive number
+// is a positively observed gate, and zero is a positively observed absence
+// (the page shows no requirement badge). The legacy reputationRequired key is
+// null in every observed payload and is consulted only as a fallback, so that
+// a layout which populates it instead still resolves rather than quarantining
+// the catalogue.
+//
+// An unreadable or absent requirement is unknown, never "none". Reporting a
+// gate the source did not state as absent once approved gated programs
+// wholesale, including one that emailed its researcher as "no reputation
+// required" while the page demanded 100 points.
 func reputationGate(m map[string]any) domain.ReputationGate {
-	node, present := m["reputationRequired"]
-	if !present || node == nil {
-		return domain.ReputationGate{Present: domain.TriNo}
-	}
-	if n, ok := devalue.AsInt(node); ok {
+	if n, ok := devalue.AsInt(m["minReputation"]); ok {
 		if n <= 0 {
 			return domain.ReputationGate{Present: domain.TriNo}
 		}
+		return domain.ReputationGate{Present: domain.TriYes, Points: n}
+	}
+	if n, ok := devalue.AsInt(m["reputationRequired"]); ok && n > 0 {
 		return domain.ReputationGate{Present: domain.TriYes, Points: n}
 	}
 	return domain.ReputationGate{Present: domain.TriUnknown}
