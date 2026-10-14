@@ -22,7 +22,7 @@ func TestDecodeScalarEncodings(t *testing.T) {
 		{"literal bool", `[true]`, true},
 		{"null literal", `[null]`, nil},
 		{"minus one is absent", `[[-1]]`, []any{nil}},
-		{"empty set is transparent", `[["Set"]]`, "Set"},
+		{"empty set decodes to an empty list", `[["Set"]]`, []any{}},
 		{"nested list", `[[1,2],"a","b"]`, []any{"a", "b"}},
 		{"empty list", `[[]]`, []any{}},
 		{"object", `[{"k":2},"x","v"]`, map[string]any{"k": "v"}},
@@ -51,37 +51,48 @@ func TestDecodeScalarEncodings(t *testing.T) {
 	}
 }
 
-// TestDecodeSpecialNumbers verifies the negative-index specials decode to the
-// values they stand for. They appear inside a composite, because that is where
-// a reference is valid.
+// TestDecodeSpecialNumbers verifies the negative-index sentinels decode to the
+// values they stand for, per the encoder's table (-1 undefined, -2 hole, -3
+// NaN, -4 and -5 the infinities, -6 negative zero). They appear inside a
+// composite, because that is where a reference is valid.
 func TestDecodeSpecialNumbers(t *testing.T) {
 	cases := []struct {
 		name    string
 		payload string
 		check   func(t *testing.T, v any)
 	}{
-		{"NaN", `[[-2]]`, func(t *testing.T, v any) {
+		{"undefined is absent", `[[-1]]`, func(t *testing.T, v any) {
+			if v != nil {
+				t.Errorf("got %#v, want nil", v)
+			}
+		}},
+		{"hole is absent", `[[-2]]`, func(t *testing.T, v any) {
+			if v != nil {
+				t.Errorf("got %#v, want nil", v)
+			}
+		}},
+		{"NaN", `[[-3]]`, func(t *testing.T, v any) {
 			f, ok := v.(float64)
 			if !ok || !math.IsNaN(f) {
 				t.Errorf("got %#v, want NaN", v)
 			}
 		}},
-		{"positive infinity", `[[-3]]`, func(t *testing.T, v any) {
+		{"positive infinity", `[[-4]]`, func(t *testing.T, v any) {
 			f, ok := v.(float64)
 			if !ok || !math.IsInf(f, 1) {
 				t.Errorf("got %#v, want +Inf", v)
 			}
 		}},
-		{"negative infinity", `[[-4]]`, func(t *testing.T, v any) {
+		{"negative infinity", `[[-5]]`, func(t *testing.T, v any) {
 			f, ok := v.(float64)
 			if !ok || !math.IsInf(f, -1) {
 				t.Errorf("got %#v, want -Inf", v)
 			}
 		}},
-		{"negative literal reference", `[[-15]]`, func(t *testing.T, v any) {
+		{"negative zero", `[[-6]]`, func(t *testing.T, v any) {
 			f, ok := v.(float64)
-			if !ok || f != -15 {
-				t.Errorf("got %#v, want -15", v)
+			if !ok || f != 0 || !math.Signbit(f) {
+				t.Errorf("got %#v, want -0", v)
 			}
 		}},
 	}
@@ -97,6 +108,123 @@ func TestDecodeSpecialNumbers(t *testing.T) {
 				t.Fatalf("root = %#v, want one-element list", doc.Root)
 			}
 			tc.check(t, list[0])
+		})
+	}
+}
+
+// TestDecodeUnknownSentinelsAreErrors verifies that a negative number inside a
+// composite that is not one of the encoder's sentinels is a malformed payload,
+// reported rather than guessed at. Literal negative values are hoisted as
+// entries (TestHoistedNegativeEntriesAreLiterals); inline they are only ever
+// sentinels.
+func TestDecodeUnknownSentinelsAreErrors(t *testing.T) {
+	for _, in := range []string{
+		`[[-7]]`,  // SPARSE outside a sparse-array entry
+		`[[-8]]`,  // below the sentinel table
+		`[[-15]]`, // far below the sentinel table
+		`[[-1.5]]`,
+		`[[2.5]]`, // a reference must be an integer
+	} {
+		if _, err := Decode([]byte(in), 16); err == nil {
+			t.Errorf("Decode(%q) succeeded, want error", in)
+		}
+	}
+}
+
+// TestHoistedNegativeEntriesAreLiterals pins the mirror image of the sentinel
+// table: a negative number stored as an entry of the hoisted array is a
+// literal value, not a sentinel. The encoder hoists every value, negative
+// ones included, so a page can legitimately carry a field whose value is -3.
+func TestHoistedNegativeEntriesAreLiterals(t *testing.T) {
+	// Entry 0 is a list referencing entries 2 and 3, which hold the literal
+	// numbers -3 and -15.
+	doc, err := Decode([]byte(`[[2,3],0,-3,-15]`), 16)
+	if err != nil {
+		t.Fatalf("Decode: %v", err)
+	}
+	list, ok := AsSlice(doc.Root)
+	if !ok || len(list) != 2 {
+		t.Fatalf("root = %#v, want a two-element list", doc.Root)
+	}
+	if f, ok := list[0].(float64); !ok || f != -3 {
+		t.Errorf("first = %#v, want the literal -3", list[0])
+	}
+	if f, ok := list[1].(float64); !ok || f != -15 {
+		t.Errorf("second = %#v, want the literal -15", list[1])
+	}
+}
+
+// TestSparseArrays verifies the [-7, length, idx, val, ...] encoding decodes
+// to a fixed-length list with nil holes, and that malformed variants are
+// reported rather than guessed at.
+func TestSparseArrays(t *testing.T) {
+	t.Run("listed position decodes, holes are nil", func(t *testing.T) {
+		// Entry 0 is a sparse array of length 5 holding "x" (entry 1) at
+		// index 2.
+		doc, err := Decode([]byte(`[[-7,5,2,1],"x"]`), 16)
+		if err != nil {
+			t.Fatalf("Decode: %v", err)
+		}
+		list, ok := AsSlice(doc.Root)
+		if !ok || len(list) != 5 {
+			t.Fatalf("root = %#v, want a five-element list", doc.Root)
+		}
+		for i, v := range list {
+			if i == 2 {
+				if s, isStr := v.(string); !isStr || s != "x" {
+					t.Errorf("index 2 = %#v, want \"x\"", v)
+				}
+				continue
+			}
+			if v != nil {
+				t.Errorf("index %d = %#v, want a nil hole", i, v)
+			}
+		}
+	})
+	t.Run("all-hole array", func(t *testing.T) {
+		doc, err := Decode([]byte(`[[-7,3]]`), 16)
+		if err != nil {
+			t.Fatalf("Decode: %v", err)
+		}
+		list, ok := AsSlice(doc.Root)
+		if !ok || len(list) != 3 {
+			t.Fatalf("root = %#v, want a three-element list", doc.Root)
+		}
+		for i, v := range list {
+			if v != nil {
+				t.Errorf("index %d = %#v, want a nil hole", i, v)
+			}
+		}
+	})
+	for name, in := range map[string]string{
+		"dangling index":     `[[-7,3,1]]`,
+		"index beyond len":   `[[-7,3,5,1]]`,
+		"negative index":     `[[-7,3,-1,1]]`,
+		"non-integer length": `[[-7,2.5]]`,
+		"bare sentinel":      `[[-7]]`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Decode([]byte(in), 16); err == nil {
+				t.Errorf("Decode(%q) succeeded, want error", in)
+			}
+		})
+	}
+}
+
+// TestEmptyWrapperCollections verifies that a one-element wrapper list, which
+// the encoder emits for an empty collection, decodes to an empty list rather
+// than to the tag name.
+func TestEmptyWrapperCollections(t *testing.T) {
+	for _, in := range []string{`[["Set"]]`, `[["Map"]]`} {
+		t.Run(in, func(t *testing.T) {
+			doc, err := Decode([]byte(in), 16)
+			if err != nil {
+				t.Fatalf("Decode: %v", err)
+			}
+			list, ok := AsSlice(doc.Root)
+			if !ok || len(list) != 0 {
+				t.Errorf("root = %#v, want an empty list", doc.Root)
+			}
 		})
 	}
 }
