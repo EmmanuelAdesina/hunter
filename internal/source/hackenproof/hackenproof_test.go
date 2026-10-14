@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -389,6 +390,18 @@ func TestFetchKYCRequiredFixture(t *testing.T) {
 	if raw.KYC != domain.TriYes {
 		t.Errorf("KYC = %s, want yes", raw.KYC)
 	}
+	// The page states a 5-unit submission fee in the account's currency. A
+	// non-zero fee must be reported as present with an unknown USD amount,
+	// never as "no fee": reading it as absent once cleared a gated program
+	// that charged for submissions.
+	if raw.Fee.Present != domain.TriUnknown {
+		t.Errorf("fee = %s, want present with unknown USD amount (the page's non-zero fee)", raw.Fee.Present)
+	}
+	// The page states a 150-point reputation requirement in minReputation.
+	if raw.Reputation.Present != domain.TriYes || raw.Reputation.Points != 150 {
+		t.Errorf("reputation = %s %d, want a 150-point requirement (the fixture's minReputation)",
+			raw.Reputation.Present, raw.Reputation.Points)
+	}
 	if len(raw.Scopes) == 0 {
 		t.Fatal("no scopes extracted")
 	}
@@ -634,6 +647,74 @@ func TestReputationGateResolution(t *testing.T) {
 			if got.Present != tc.present || (tc.present == domain.TriYes && got.Points != tc.points) {
 				t.Errorf("reputationGate(%v) = %s %d, want %s %d",
 					tc.fields, got.Present, got.Points, tc.present, tc.points)
+			}
+		})
+	}
+}
+
+// TestFeeGateResolution covers the submission-fee contract directly: a
+// positive fee is present with an unknown USD amount, zero (number or string)
+// is a positively observed absence, and anything unreadable is unknown rather
+// than "none".
+func TestFeeGateResolution(t *testing.T) {
+	cases := map[string]struct {
+		fields  map[string]any
+		present domain.Tri
+	}{
+		"numeric fee is present, USD unknown": {
+			fields:  map[string]any{"submissionFee": 5.0},
+			present: domain.TriUnknown,
+		},
+		"zero number means no fee": {
+			fields:  map[string]any{"submissionFee": 0.0},
+			present: domain.TriNo,
+		},
+		"negative zero means no fee": {
+			fields:  map[string]any{"submissionFee": math.Copysign(0, -1)},
+			present: domain.TriNo,
+		},
+		"negative fee is unknown, not free": {
+			fields:  map[string]any{"submissionFee": -3.0},
+			present: domain.TriUnknown,
+		},
+		"NaN fee is unknown": {
+			fields:  map[string]any{"submissionFee": math.NaN()},
+			present: domain.TriUnknown,
+		},
+		"null means no fee": {
+			fields:  map[string]any{"submissionFee": nil},
+			present: domain.TriNo,
+		},
+		"absent field is unknown, not absent": {
+			fields:  map[string]any{},
+			present: domain.TriUnknown,
+		},
+		"zero string means no fee": {
+			fields:  map[string]any{"submissionFee": "0"},
+			present: domain.TriNo,
+		},
+		"numeric string is present, USD unknown": {
+			fields:  map[string]any{"submissionFee": "5.00"},
+			present: domain.TriUnknown,
+		},
+		"non-numeric string is present, USD unknown": {
+			fields:  map[string]any{"submissionFee": "varies"},
+			present: domain.TriUnknown,
+		},
+		"empty string means no fee": {
+			fields:  map[string]any{"submissionFee": ""},
+			present: domain.TriNo,
+		},
+		"uninterpretable value is unknown": {
+			fields:  map[string]any{"submissionFee": true},
+			present: domain.TriUnknown,
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			got := feeGate(tc.fields)
+			if got.Present != tc.present {
+				t.Errorf("feeGate(%v) = %s, want %s", tc.fields, got.Present, tc.present)
 			}
 		})
 	}
