@@ -2,9 +2,10 @@
 // server-side renderer embeds in its HTML.
 //
 // The format is a single JSON array in which every value is hoisted and every
-// composite value is a list of indices into that array. Two scalar encodings
-// matter here: -1 means "absent" rather than zero, and -3 means NaN. Getting
-// those wrong would turn a missing access gate into a zero-point requirement,
+// composite value is a list of indices into that array. Negative numbers
+// inside a composite are sentinels, not references: -1 means "absent" rather
+// than zero, -3 means NaN, and the table below is the complete set. Getting
+// it wrong would turn a missing access gate into a zero-point requirement,
 // which is precisely the failure this system is built to avoid.
 //
 // Decoding is total: any construct the decoder does not recognise is reported
@@ -20,14 +21,22 @@ import (
 )
 
 // Special negative indices used by the format for values that are not
-// references. Getting this table wrong would turn an absent value into a real
-// one, so it is spelled out explicitly rather than derived.
+// references. The table must match the encoder byte for byte: the source
+// renders with Nuxt, whose devalue dependency emits -1 for undefined, -2 for
+// an array hole, -3 for NaN, -4 and -5 for the infinities, -6 for negative
+// zero, and -7 as the head of a sparse-array entry. A negative number stored
+// as a hoisted entry (rather than inlined in a composite) is a literal value,
+// so the table applies to inlined numbers only. Getting this table wrong
+// would turn an absent value into a real one, so it is spelled out explicitly
+// rather than derived.
 const (
 	negUndefined    = -1 // hole / absent
-	negNaN          = -2
-	negInfinity     = -3
-	negNegInfinity  = -4
-	negNegativeZero = -5
+	negHole         = -2
+	negNaN          = -3
+	negInfinity     = -4
+	negNegInfinity  = -5
+	negNegativeZero = -6
+	negSparse       = -7
 )
 
 // wrapperNames are list or object tags that indicate a reactive container
@@ -110,16 +119,29 @@ func (d *decoder) resolve(index int, seen map[int]bool, depth int) (Node, error)
 
 // value interprets a number appearing inside a composite, where it is a
 // reference to another entry or one of the negative special encodings.
+//
+// Inlined negatives are only ever sentinels: literal negative numbers are
+// hoisted as entries of the array, the way every other value is. Anything
+// negative that is not in the table is a malformed payload, and decoding is
+// total, so it is reported rather than guessed at.
 func (d *decoder) value(v any, seen map[int]bool, depth int) (Node, error) {
 	f, ok := v.(float64)
 	if !ok {
 		return nil, fmt.Errorf("devalue: unexpected node type %T", v)
 	}
 	if f < 0 {
+		if f != math.Trunc(f) {
+			return nil, fmt.Errorf("devalue: invalid sentinel %v", f)
+		}
 		switch int(f) {
 		case negUndefined:
 			// An absent value. Returning nil keeps "the source did not say"
 			// distinguishable from "the source said zero".
+			return nil, nil
+		case negHole:
+			// A hole in a sparse array: the position exists and holds nothing.
+			// The reference parser leaves the slot unset; nil is the
+			// tree-shaped form of that absence.
 			return nil, nil
 		case negNaN:
 			return math.NaN(), nil
@@ -130,9 +152,11 @@ func (d *decoder) value(v any, seen map[int]bool, depth int) (Node, error) {
 		case negNegativeZero:
 			return math.Copysign(0, -1), nil
 		default:
-			// Any other negative index is a literal negative number.
-			return f, nil
+			return nil, fmt.Errorf("devalue: unknown sentinel %d", int(f))
 		}
+	}
+	if f != math.Trunc(f) || f > math.MaxInt32 {
+		return nil, fmt.Errorf("devalue: invalid reference %v", f)
 	}
 	return d.resolve(int(f), seen, depth)
 }
@@ -167,6 +191,15 @@ func IsCycle(v Node) bool {
 }
 
 func (d *decoder) list(items []any, seen map[int]bool, depth int) (Node, error) {
+	// A sparse-array entry is headed by the SPARSE sentinel rather than a tag
+	// string: [-7, length, idx, val, idx, val, ...]. The indices are literals
+	// and the values are references, as elsewhere in the format. Positions not
+	// listed are holes, decoded as nil.
+	if len(items) >= 2 {
+		if f, ok := items[0].(float64); ok && f == float64(negSparse) {
+			return d.sparse(items, seen, depth)
+		}
+	}
 	// A two-element list whose head is a known wrapper tag is a transparent
 	// container, not a real sequence. Its payload is a reference.
 	if len(items) == 2 {
@@ -176,14 +209,15 @@ func (d *decoder) list(items []any, seen map[int]bool, depth int) (Node, error) 
 			}
 		}
 	}
-	// A one-element list is transparent only when it merely names a wrapper,
-	// as in ["Set"] for an empty collection. A one-element list holding
-	// anything else is a genuine single-element sequence, which is common in
-	// the source's label lists.
+	// A one-element list that merely names a wrapper is an empty collection,
+	// as in ["Set"] for an empty set: the encoder omits the empty content
+	// list, so the decoded value is an empty list rather than the tag name.
+	// A one-element list holding anything else is a genuine single-element
+	// sequence, which is common in the source's label lists.
 	if len(items) == 1 {
 		if tag, ok := items[0].(string); ok {
 			if _, wrapped := wrapperNames[strings.ToLower(tag)]; wrapped {
-				return tag, nil
+				return []any{}, nil
 			}
 		}
 	}
@@ -195,6 +229,37 @@ func (d *decoder) list(items []any, seen map[int]bool, depth int) (Node, error) 
 			return nil, err
 		}
 		out = append(out, decoded)
+	}
+	return out, nil
+}
+
+// sparseArrayLengthCeiling bounds the allocation a sparse-array entry may
+// force. A page payload is capped at a few megabytes, so any list longer than
+// this is hostile rather than malformed; bounding it keeps a hostile length
+// from turning a parse into an out-of-memory condition.
+const sparseArrayLengthCeiling = 1 << 20
+
+// sparse decodes a [-7, length, idx, val, ...] entry into a fixed-length list
+// whose unlisted positions are nil holes.
+func (d *decoder) sparse(items []any, seen map[int]bool, depth int) (Node, error) {
+	if (len(items)-2)%2 != 0 {
+		return nil, fmt.Errorf("devalue: sparse array has a dangling index")
+	}
+	lf, ok := items[1].(float64)
+	if !ok || lf < 0 || lf != math.Trunc(lf) || lf > sparseArrayLengthCeiling {
+		return nil, fmt.Errorf("devalue: invalid sparse array length %v", items[1])
+	}
+	out := make([]any, int(lf))
+	for i := 2; i < len(items); i += 2 {
+		idx, ok := items[i].(float64)
+		if !ok || idx < 0 || idx != math.Trunc(idx) || idx >= lf {
+			return nil, fmt.Errorf("devalue: invalid sparse array index %v", items[i])
+		}
+		val, err := d.value(items[i+1], seen, depth+1)
+		if err != nil {
+			return nil, err
+		}
+		out[int(idx)] = val
 	}
 	return out, nil
 }

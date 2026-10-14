@@ -520,10 +520,15 @@ func reputationGate(m map[string]any) domain.ReputationGate {
 	return domain.ReputationGate{Present: domain.TriUnknown}
 }
 
-// feeGate reads the submission fee, which is expressed in the account's
-// currency rather than USD. It is left unknown rather than assumed zero,
-// because a fee the researcher cannot see is a fee they may be unwilling to
-// pay.
+// feeGate reads the submission fee, which the platform expresses in the
+// account's currency rather than USD, as a number or a decimal string.
+//
+// A positive fee is a fee: it cannot be converted to USD without the
+// platform's exchange rate, so it is reported as present with an unknown USD
+// amount, never as "no fee". Zero (number or string) is a positively observed
+// absence. A field that cannot be read at all - missing, or a value that
+// cannot be interpreted - is unknown, never "none", because a fee the
+// researcher cannot see is a fee they may be unwilling to pay.
 func feeGate(m map[string]any) domain.FeeGate {
 	node, present := m["submissionFee"]
 	if !present {
@@ -532,13 +537,27 @@ func feeGate(m map[string]any) domain.FeeGate {
 	if node == nil {
 		return domain.FeeGate{Present: domain.TriNo}
 	}
-	s := strings.TrimSpace(devalue.AsString(node))
-	if s == "" {
-		return domain.FeeGate{Present: domain.TriNo}
+	if f, ok := devalue.AsNumber(node); ok {
+		if f == 0 { // A zero fee, including -0, is a positively observed absence.
+			return domain.FeeGate{Present: domain.TriNo}
+		}
+		// Positive, negative, or unreadable (NaN, infinities): a fee that
+		// exists with an amount this system will not state in USD.
+		return domain.FeeGate{Present: domain.TriUnknown}
 	}
-	// A non-zero fee cannot be converted to USD without the platform's
-	// exchange rate, so it is reported as an unknown USD amount rather than
-	// an invented figure.
+	if s, isStr := node.(string); isStr {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			return domain.FeeGate{Present: domain.TriNo}
+		}
+		if v, err := strconv.ParseFloat(s, 64); err == nil && v == 0 {
+			return domain.FeeGate{Present: domain.TriNo}
+		}
+		// Numeric or not: a fee that exists but cannot be priced in USD.
+		return domain.FeeGate{Present: domain.TriUnknown}
+	}
+	// Present but neither a number nor a string: not interpretable, so
+	// unknown rather than "none".
 	return domain.FeeGate{Present: domain.TriUnknown}
 }
 
