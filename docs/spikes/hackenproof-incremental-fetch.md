@@ -1,57 +1,99 @@
 # HackenProof incremental-fetch spike
 
-**Observed:** 2026-10-05 (UTC)
+**Measured:** 2026-10-13 (UTC), live from the deployed host (`vps3602694`,
+same egress Hunter uses, same User-Agent). This supersedes the 2026-10-05
+note below, whose sort-UI claim did not survive byte-level inspection.
 
-**Decision:** do not add listing-driven incremental discovery or conditional HTTP
-requests yet.
+**Decision (unchanged, now with evidence):** do not add listing-driven
+incremental discovery or conditional HTTP requests. Poll everything every
+scan; the adaptive detail-refresh already implemented is the correct
+mechanism, not a changed-set feed.
 
-## Evidence inspected
+## 1. Response validators: absent, not unknown
 
-The three checked-in body fixtures used for this spike are:
+Unauthenticated `HEAD /programs`, `HEAD` + `GET` on a detail URL
+(`/programs/flipster-web-and-mobile`), captured with headers:
 
-| Surface | Fixture | Observation |
-|---|---|---|
-| `/programs` listing | [`listing-page1.html`](../../fixtures/hackenproof/listing-page1.html) | The rendered page exposes `Updated at: Oldest to Newest` and `Updated at: Newest to Oldest`. The captured serialized page data also contains `updated_at`. |
-| Bitrue detail | [`program-bitrue.html`](../../fixtures/hackenproof/program-bitrue.html) | The page links its company label to `/companies/bitrue`. |
-| Starknet Staking detail | [`program-starknet-staking.html`](../../fixtures/hackenproof/program-starknet-staking.html) | The page links its company label to `/companies/starknet`. |
+| Surface | `ETag` | `Last-Modified` | `Cache-Control` | Other |
+|---|---|---|---|---|
+| `GET /programs` | absent | absent | absent | `cf-cache-status: DYNAMIC`, `x-powered-by: Nuxt`, `vary: Accept-Encoding` |
+| `HEAD /programs` | absent | absent | absent | same |
+| `GET` detail | absent | absent | absent | same |
+| `HEAD` detail | absent | absent | absent | same |
 
-The listing therefore exposes an **updated sort** in its UI, but the fixture does
-not establish the exact request contract or that sorting yields a changed-only
-set. The attempted public-page reads with candidate query keys were normalized by
-the page-fetch tool to the same canonical listing and did not reveal which request
-the site's UI sends. A sort also is not itself a filter: even a working descending
-sort would still require proving that the complete ordering is stable enough to
-stop pagination without missing same-day updates.
+There is nothing to validate against, so conditional requests cannot exist
+here. `source.Client.attempt()` returning only a body is therefore not a
+limitation to fix — exposing validators would change the shared HTTP-client
+contract for zero benefit. Do not revisit unless a future header capture
+shows validators.
 
-The two detail pages expose company route slugs, not a durable company ID. The
-slug is useful display/link metadata, but these captures do not prove it is
-immutable or globally unique. `HasStableIDs` should remain false.
+## 2. Updated sort: does not exist on the public listing
 
-## Validator check
+- The listing HTML contains **no** sort control: no "Newest to Oldest" /
+  "Oldest to Newest" text, no sort `<option>`/links, no `sort=`/`order=`/
+  `sort_by=`/`ordering=`/`direction=`/`sortKey` parameters anywhere.
+- The earlier note's claim that the rendered page "exposes" an updated sort
+  came from a page-fetch tool summary, not from the bytes. It is retracted:
+  the sort UI, if it exists at all, is not on the unauthenticated listing.
+- Five candidate sort query strings were fetched live (`?sort=updated_at`,
+  `?order=desc`, `?sort_by=updated_at`, `?ordering=-updated_at`,
+  `?sort=newest`). Initial results *looked* like three of them reordered the
+  listing — but a repeatability check disproved it: two identical
+  `?sort=updated_at` fetches returned **different** orders, and a plain
+  refetch matched one of them exactly. The listing order varies
+  fetch-to-fetch on its own; no parameter is honored.
+- The observed orders are not update-monotonic anyway (e.g. 14 Oct, 28 Sep,
+  14 Sep, 17 Sep, 02 Oct down the first ten rows).
 
-The available page-fetch interface returns rendered page content but not HTTP
-response headers. Direct HTTP access from this sandbox is unavailable, so neither
-`ETag` nor `Last-Modified` nor `Cache-Control: no-store` was observed. This is an
-**unknown**, not evidence that validators are absent. No response-header fixture
-was fabricated.
+Consequences, all already handled by current code and kept as-is:
 
-For a conclusive follow-up, capture unauthenticated `HEAD` and `GET` response
-headers for both `/programs` and one detail URL from the deployed host, using the
-same User-Agent as Hunter. Record status, `ETag`, `Last-Modified`, `Cache-Control`,
-`Vary`, and redirect behavior. Keep cookies out of the capture.
+- Poll-everything-every-scan remains the only complete discovery strategy.
+- The adapter's dedup-by-slug plus unproductive-page cutoff is load-bearing
+  against ordering instability, not optional. Do not "simplify" it.
+- A sort would not have been a filter in any case: stopping pagination early
+  would still require proving stability sufficient to miss no same-day
+  update, which the observed instability directly contradicts.
 
-## Decision
+## 3. Company identifier: does not exist
 
-1. Keep `SupportsIncrementalFetch: false`; keep the current content comparison and
-   bounded periodic detail refresh.
-2. Do not add `If-None-Match` or `If-Modified-Since`. `source.Client.attempt()`
-   currently returns only a body; exposing validators would change the shared
-   HTTP-client contract. That cross-cutting change is not justified until the
-   source is shown to return useful validators.
-3. Revisit listing sort only after capturing the UI's actual request and testing
-   its ordering across pages, ties, and day-resolution updates. Even then, it may
-   be an optimization, not a replacement for periodic detail reads.
+The detail payload carries `companySlug` (e.g. `"flipster"`) and
+`companyName` only. No numeric `companyId` / `orgId` / `organizationId`
+exists in any observed payload. A slug is renameable display metadata, not
+identity — `HasStableIDs` remains false, and organization-level correlation
+stays deferred rather than inferred. No change.
 
-The three fixtures above remain parser fixtures, not validator evidence: they
-contain response bodies only. The spike makes no claim about headers that are not
-stored in them.
+## 4. Incidental confirmations (not decisions)
+
+- Per-program `lastUpdated` (day resolution, e.g. `"14 Oct 2026"`) is present
+  in the listing payload and is already consumed as Hunter's coarse change
+  bound. Unchanged.
+- The listing exposes filter attributes (`by_status`, `by_kyc`, `by_poc`,
+  `reputation_up_to`, `submission_fee_up_to`, `search`). Server-side
+  filtering was not measured; it is out of scope for this spike. If a future
+  spike measures it, the honest questions are whether filters are honored
+  server-side and whether filtered-out programs vanish silently (a coverage
+  interaction), not whether they replace change detection.
+
+## Decision (restated with evidence)
+
+1. Keep `SupportsIncrementalFetch: false`; keep content comparison and the
+   bounded periodic + adaptive detail refresh.
+2. Do not add `If-None-Match` or `If-Modified-Since`, now for a stronger
+   reason than before: measured absence, not unknown.
+3. Do not build an `updated`-sort fast path: there is no sort to use, and
+   the listing order is unstable fetch-to-fetch.
+4. Do not infer organization identity from company slugs.
+
+---
+
+## Appendix: superseded 2026-10-05 note
+
+Retained for provenance; its two load-bearing claims are corrected above
+(sort UI existed only in a tool summary, never in the bytes; validators were
+unknown then, now measured absent).
+
+The three checked-in body fixtures were parser fixtures (response bodies
+only), never validator evidence: they contain no headers. The spike makes no
+claim about headers that are not stored in them. The attempted public-page
+reads with candidate query keys referenced there predate the repeatability
+check that settled the question.
