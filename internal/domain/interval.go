@@ -212,10 +212,17 @@ func (iv ObservationInterval) Humanize(now time.Time) string {
 	if !iv.Known() {
 		return "unknown"
 	}
-	newest := HumanizeQuantity(iv.NewestAge(now))
-	oldest := HumanizeQuantity(iv.OldestAge(now))
+	newestAge, oldestAge := iv.NewestAge(now), iv.OldestAge(now)
+	newest, oldest := HumanizeQuantity(newestAge), HumanizeQuantity(oldestAge)
 	if newest == oldest {
 		return "within the last " + newest
+	}
+	// A sub-minute newest bound renders as "just now", and pairing it with a
+	// range reads as nonsense ("within the last just now-1h"). The honest
+	// single bound is the oldest edge, rounded up so the rendered magnitude
+	// never understates how old the change may still be.
+	if newestAge < time.Minute {
+		return "within the last " + HumanizeQuantityCeiling(oldestAge)
 	}
 	return "within the last " + newest + "-" + oldest
 }

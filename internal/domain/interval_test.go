@@ -132,6 +132,14 @@ func TestIntervalHumanizeShowsTheRange(t *testing.T) {
 	if got, want := tight.Humanize(now), "within the last just now"; got != want {
 		t.Fatalf("Humanize = %q, want %q", got, want)
 	}
+
+	// A sub-minute newest bound paired with an older edge must not render as
+	// "just now-1h" (nonsense), and the single bound must round the oldest
+	// edge UP: a 1h50m window is not "within the last 1h".
+	fresh := NewObservationInterval(at("2026-10-04T12:30:00Z"), at("2026-10-04T14:19:30Z"))
+	if got, want := fresh.Humanize(now), "within the last 2h"; got != want {
+		t.Fatalf("Humanize = %q, want %q", got, want)
+	}
 }
 
 // Alert gating is deliberately asymmetric: a change that might still be fresh is

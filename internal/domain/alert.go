@@ -321,6 +321,27 @@ func HumanizeQuantity(d time.Duration) string {
 	return s
 }
 
+// HumanizeQuantityCeiling renders a duration as a bare magnitude rounded up to
+// the next display bucket.
+//
+// It exists for bounds that must not understate age: a window whose oldest
+// edge is 1h49m must not render as "1h", which would assert the change is at
+// most an hour old when the system has only bounded it below two.
+func HumanizeQuantityCeiling(d time.Duration) string {
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		mins := int((d + time.Minute - 1) / time.Minute)
+		return fmt.Sprintf("%dm", mins)
+	case d < 24*time.Hour:
+		hours := int((d + time.Hour - 1) / time.Hour)
+		return fmt.Sprintf("%dh", hours)
+	default:
+		return HumanizeQuantity(d)
+	}
+}
+
 // JoinNonEmpty joins non-empty strings with sep.
 func JoinNonEmpty(sep string, parts ...string) string {
 	kept := make([]string, 0, len(parts))
