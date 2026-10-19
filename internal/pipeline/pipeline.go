@@ -632,8 +632,18 @@ func (s *Scanner) evaluateListingOnly(ref domain.ProgramRef, prev domain.Program
 	// move a fingerprint and therefore cannot move a change interval. Carrying
 	// them across unchanged is what keeps a reported change attributable to the
 	// window of time it actually happened in.
+	//
+	// Finalize must not be called here. The program is a copy of a loaded
+	// record, and the verbatim text fields that feed the requirement
+	// fingerprint (ProgramRules, ScopeNotes) are deliberately not persisted
+	// (json:"-"): they round-trip as empty strings. Recomputing fingerprints
+	// from that empty text overwrites the stored requirement fingerprint with
+	// the empty-rules hash, so the next detail read sees a fingerprint
+	// mismatch and claims a phantom rules change - on every program, on every
+	// detail refresh, forever. The record was already finalized when it was
+	// first parsed; re-finalizing it from round-trip-incomplete data is
+	// exactly how that corruption begins.
 	carryChangeIntervals(&prev, &program, program.LastSeenAt, true)
-	program.Finalize()
 
 	d := domain.Diff{
 		ProgramID:          program.ID,

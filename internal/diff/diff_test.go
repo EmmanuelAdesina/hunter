@@ -258,7 +258,7 @@ func TestRequirementChanges(t *testing.T) {
 			mutate: func(p *domain.Program) {
 				p.ScopeNotes = "In-scope: IDOR only."
 			},
-			want:    domain.ChangeScopeReviewChanged,
+			want:    domain.ChangeRequirementChanged,
 			wantSev: domain.SeverityMedium,
 		},
 		{
@@ -286,6 +286,46 @@ func TestRequirementChanges(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// A gate movement moves the requirement fingerprint, but it must not also be
+// reported as a wording change: the wording may be untouched, and a phantom
+// "participation rules changed" line buried inside a reputation event is a
+// false claim.
+func TestGateMoveDoesNotClaimWordingChange(t *testing.T) {
+	prev := program()
+	cur := program(func(p *domain.Program) {
+		p.Reputation = domain.ReputationGate{Present: domain.TriYes, Points: 100}
+	})
+
+	got := detector().Compare(prev, cur)
+
+	if !has(got.Changes, domain.ChangeReputationChanged) {
+		t.Fatalf("changes = %v, want REPUTATION_CHANGED", kinds(got.Changes))
+	}
+	if has(got.Changes, domain.ChangeRequirementChanged) {
+		t.Fatalf("changes = %v, must not claim a wording change alongside a gate move",
+			kinds(got.Changes))
+	}
+}
+
+// A record loaded from state carries the verbatim text fields as empty strings
+// (they are json:"-"), while its persisted fingerprints still describe the
+// text that was actually parsed. Comparing a freshly parsed program against
+// that loaded record must be clean: this is the shape every stored program has
+// on every scan, and a comparison that reports a change here is the bug that
+// produced a phantom REQUIREMENT_CHANGED on 311 of 324 programs.
+func TestLoadedRecordWithUnpersistedTextComparesClean(t *testing.T) {
+	parsed := program()
+
+	loaded := parsed
+	loaded.ProgramRules = ""
+	loaded.ScopeNotes = ""
+
+	got := detector().Compare(loaded, parsed)
+	if len(got.Changes) != 0 {
+		t.Fatalf("changes = %v, want none when fingerprints match", kinds(got.Changes))
 	}
 }
 

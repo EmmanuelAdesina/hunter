@@ -377,6 +377,62 @@ func removeAPIScope(src *fakeSource, id string, target string) {
 	src.records[id] = rec
 }
 
+// A cheap listing sweep must leave the content fingerprints exactly as the
+// detail parse recorded them. The verbatim text fields that feed the
+// requirement fingerprint do not round-trip through state (json:"-"), so
+// re-finalizing a loaded record would overwrite the stored requirement
+// fingerprint with the empty-rules hash and make the next detail read claim
+// a phantom wording change. That bug flapped REQUIREMENT_CHANGED and
+// SCOPE_REVIEW_CHANGED on 311 of 324 live programs, on every detail refresh.
+func TestListingSweepPreservesContentFingerprints(t *testing.T) {
+	src := newFakeSource("alpha")
+	dir := t.TempDir()
+
+	base := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	scanAt(t, src, dir, base)
+
+	before := loadProgram(t, dir, "alpha")
+	if before.RequirementFingerprint == "" || before.ScopeFingerprint == "" {
+		t.Fatal("the detail parse must record content fingerprints")
+	}
+
+	for i := 1; i <= 3; i++ {
+		scanListingOnly(t, src, dir, base.Add(time.Duration(i)*time.Hour))
+		p := loadProgram(t, dir, "alpha")
+		if p.RequirementFingerprint != before.RequirementFingerprint {
+			t.Fatalf("sweep %d moved the requirement fingerprint from %s to %s",
+				i, before.RequirementFingerprint, p.RequirementFingerprint)
+		}
+		if p.ScopeFingerprint != before.ScopeFingerprint {
+			t.Fatalf("sweep %d moved the scope fingerprint from %s to %s",
+				i, before.ScopeFingerprint, p.ScopeFingerprint)
+		}
+	}
+}
+
+// The full incident shape, end to end: a detail read, several cheap sweeps,
+// then another detail read. The second detail comparison must be clean. With
+// the fingerprint corruption it claimed REQUIREMENT_CHANGED and
+// SCOPE_REVIEW_CHANGED on every program, on every refresh, forever.
+func TestDetailRefreshAfterListingSweepsClaimsNoPhantomChange(t *testing.T) {
+	src := newFakeSource("alpha")
+	dir := t.TempDir()
+
+	base := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	scanAt(t, src, dir, base)
+	for i := 1; i <= 3; i++ {
+		scanListingOnly(t, src, dir, base.Add(time.Duration(i)*time.Hour))
+	}
+
+	res := scanAt(t, src, dir, base.Add(4*time.Hour))
+	for _, e := range res.Programs {
+		if !e.Diff.IsNew && !e.Diff.Changes.Empty() {
+			t.Fatalf("refresh for %s claimed changes %v although nothing was observed",
+				e.Program.ID, e.Diff.Changes.Kinds())
+		}
+	}
+}
+
 // discardLogger returns a logger that drops everything, for tests that assert on
 // results rather than on output.
 func discardLogger() *obs.Logger { return obs.Discard() }

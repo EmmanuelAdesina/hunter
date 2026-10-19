@@ -116,6 +116,8 @@ func defaultRecord(id string) domain.RawProgram {
 		CategoriesRaw:   []string{"Web", "API"},
 		ProjectTypesRaw: []string{"CEX"},
 		Description:     "A cryptocurrency exchange with a web application and REST API.",
+		ScopeNotes:      "In-scope: IDOR, SSRF. Out-of-scope: social engineering.",
+		Rules:           "No automated scanners. Report within 90 days.",
 		RawDates:        domain.RawDates{Start: "01 Oct 2026"},
 		Scopes: []domain.RawScope{
 			{Title: "Web", Target: "*." + id + ".example.com"},

@@ -353,8 +353,10 @@ func verbFor(kind domain.ChangeKind) string {
 // would leave every consumer to re-derive the sign from two formatted strings.
 func requirementChanges(prev, cur domain.Program) domain.ChangeSet {
 	var out domain.ChangeSet
+	gatesMoved := false
 
 	if prev.Reputation.Present != cur.Reputation.Present || prev.Reputation.Points != cur.Reputation.Points {
+		gatesMoved = true
 		out = append(out, domain.Change{
 			Kind:      domain.ChangeReputationChanged,
 			Severity:  domain.SeverityMedium,
@@ -377,6 +379,7 @@ func requirementChanges(prev, cur domain.Program) domain.ChangeSet {
 		}
 	}
 	if prev.Fee.Present != cur.Fee.Present || prev.Fee.USD != cur.Fee.USD {
+		gatesMoved = true
 		out = append(out, domain.Change{
 			Kind:      domain.ChangeFeeChanged,
 			Severity:  domain.SeverityMedium,
@@ -398,6 +401,7 @@ func requirementChanges(prev, cur domain.Program) domain.ChangeSet {
 		}
 	}
 	if prev.KYC != cur.KYC {
+		gatesMoved = true
 		out = append(out, domain.Change{
 			Kind:      domain.ChangeKYCChanged,
 			Severity:  domain.SeverityMedium,
@@ -426,6 +430,7 @@ func requirementChanges(prev, cur domain.Program) domain.ChangeSet {
 		}
 	}
 	if prev.POC != cur.POC {
+		gatesMoved = true
 		out = append(out, domain.Change{
 			Kind:      domain.ChangePOCChanged,
 			Severity:  domain.SeverityLow,
@@ -450,22 +455,20 @@ func requirementChanges(prev, cur domain.Program) domain.ChangeSet {
 			})
 		}
 	}
-	if prev.ProgramRules != cur.ProgramRules {
+	// ProgramRules and ScopeNotes are verbatim text that is deliberately not
+	// persisted (json:"-"): a record loaded from state carries them as empty
+	// strings, so a direct comparison would report a wording change on every
+	// scan. The requirement fingerprint is the persisted, comparable form of
+	// the same text, and this function runs only when that fingerprint moved.
+	// When no access gate moved, the movement is wording. Wording changes are
+	// recorded, never announced: they open no access and change no bounty.
+	if !gatesMoved {
 		out = append(out, domain.Change{
 			Kind:      domain.ChangeRequirementChanged,
 			Severity:  domain.SeverityMedium,
 			Direction: domain.DirectionUnknown,
 			Field:     "program_rules",
-			Detail:    "participation rules changed",
-		})
-	}
-	if prev.ScopeNotes != cur.ScopeNotes {
-		out = append(out, domain.Change{
-			Kind:      domain.ChangeScopeReviewChanged,
-			Severity:  domain.SeverityMedium,
-			Direction: domain.DirectionUnknown,
-			Field:     "scope_review",
-			Detail:    "the stated in-scope vulnerability list changed; the wording is not classified",
+			Detail:    "participation rules or scope-review wording changed",
 		})
 	}
 	return out
