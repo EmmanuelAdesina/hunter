@@ -225,6 +225,71 @@ func TestUnknownLifecycleStateIsNotAssumedLive(t *testing.T) {
 	}
 }
 
+// TestActivityStatusDecidesWhetherTheProgramIsRunning verifies that a
+// published program whose activity window has closed is ended, not live.
+//
+// The platform keeps the status field at "published" for a program that has
+// left, so the status field alone says only that the page exists. Reading it
+// as "open" is how a program that ended two days ago gets reported as
+// accepting reports.
+func TestActivityStatusDecidesWhetherTheProgramIsRunning(t *testing.T) {
+	p := normalizeWith(baseRaw(func(r *domain.RawProgram) {
+		r.Status = "LIVE"
+		r.State = "published"
+		r.ActivityStatus = "Completed"
+	}))
+	if p.State != domain.StateEnded {
+		t.Errorf("state = %s, want ended", p.State)
+	}
+	if p.AcceptsReports() {
+		t.Error("a completed program was treated as accepting reports")
+	}
+	if p.ActivityStatus != "Completed" {
+		t.Errorf("activity status = %q, want the source vocabulary preserved", p.ActivityStatus)
+	}
+}
+
+// An open program must not be closed by the rule above: "Active" is the
+// platform's word for a running activity window.
+func TestActiveProgramStaysLive(t *testing.T) {
+	p := normalizeWith(baseRaw(func(r *domain.RawProgram) {
+		r.Status = "LIVE"
+		r.State = "published"
+		r.ActivityStatus = "Active"
+	}))
+	if p.State != domain.StateLive {
+		t.Errorf("state = %s, want live", p.State)
+	}
+	if !p.AcceptsReports() {
+		t.Error("an active program was treated as not accepting reports")
+	}
+}
+
+// A paused program is paused whatever its activity window says, and a program
+// with no activity status at all is read from its status field alone. A past
+// end date is not evidence of closure on its own: a paused program keeps its
+// end date while it is paused.
+func TestActivityStatusDoesNotOverridePausedOrAbsent(t *testing.T) {
+	paused := normalizeWith(baseRaw(func(r *domain.RawProgram) {
+		r.Status = "PAUSED"
+		r.State = "paused"
+		r.ActivityStatus = ""
+		r.RawDates.End = "28 Jul 2026"
+	}))
+	if paused.State != domain.StatePaused {
+		t.Errorf("state = %s, want paused", paused.State)
+	}
+
+	absent := normalizeWith(baseRaw(func(r *domain.RawProgram) {
+		r.Status = "LIVE"
+		r.State = "published"
+		r.ActivityStatus = ""
+	}))
+	if absent.State != domain.StateLive {
+		t.Errorf("state = %s, want live", absent.State)
+	}
+}
+
 // TestDateParsing verifies dates are parsed or left absent, never defaulted.
 func TestDateParsing(t *testing.T) {
 	t.Run("recognized format", func(t *testing.T) {

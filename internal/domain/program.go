@@ -93,6 +93,12 @@ type Program struct {
 	RawStatus string `json:"raw_status,omitempty"`
 	RawState  string `json:"raw_state,omitempty"`
 
+	// ActivityStatus is the source's own vocabulary for whether the program is
+	// still running. It is kept because the normalized state has to be
+	// reconcilable with the page a human sees, and because "published" and
+	// "accepting reports" are different questions.
+	ActivityStatus string `json:"activity_status,omitempty"`
+
 	// StartedAt is when the program launched, at the source's resolution.
 	StartedAt *time.Time `json:"started_at,omitempty"`
 
@@ -466,6 +472,21 @@ type ListingSignal struct {
 	// is excluded from the trigger comparison because it rises continuously.
 	SubmissionCount      int  `json:"submission_count"`
 	SubmissionCountKnown bool `json:"submission_count_known"`
+}
+
+// ActivityClosed reports whether a source's activity label says the program
+// has stopped running.
+//
+// The vocabulary belongs to the source, so it is matched case-insensitively
+// and only for the words that unambiguously mean closure. An unknown label is
+// not closure: a program whose activity state cannot be read is not assumed
+// to be closed.
+func ActivityClosed(activity string) bool {
+	switch strings.ToLower(strings.TrimSpace(activity)) {
+	case "completed", "ended", "closed", "expired":
+		return true
+	}
+	return false
 }
 
 // AsListing projects the signal into the comparable Listing shape.

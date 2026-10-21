@@ -61,6 +61,7 @@ func Program(raw domain.RawProgram, opts Options) domain.Program {
 		URL:                   raw.URL,
 		RawStatus:             raw.Status,
 		RawState:              raw.State,
+		ActivityStatus:        raw.ActivityStatus,
 		IsUnending:            raw.RawDates.Unending,
 		Reputation:            raw.Reputation,
 		Fee:                   raw.Fee,
@@ -154,6 +155,17 @@ func Program(raw domain.RawProgram, opts Options) domain.Program {
 // rather than being optimistically read as live: a program whose state the
 // system cannot interpret must not be assumed to be accepting reports.
 func normalizeState(raw domain.RawProgram) domain.ProgramState {
+	// The activity status decides the question that actually matters: is this
+	// program still running? The status field answers a different question -
+	// is it published - and a published program whose activity window has
+	// closed is not accepting reports. A platform that reports a closed
+	// activity window while leaving the status field at "published" would
+	// otherwise be read as live, which is how a program that ended two days
+	// ago gets reported as accepting reports.
+	switch {
+	case domain.ActivityClosed(raw.ActivityStatus):
+		return domain.StateEnded
+	}
 	switch strings.ToUpper(strings.TrimSpace(raw.Status)) {
 	case "NEW":
 		return domain.StateNew

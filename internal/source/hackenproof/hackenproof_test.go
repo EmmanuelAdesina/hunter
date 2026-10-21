@@ -310,6 +310,45 @@ func TestDiscoverRetainsListingFailures(t *testing.T) {
 
 // TestFetchProgramFixture verifies the detail parser extracts the access facts
 // policy depends on, from real upstream output.
+// TestFetchCompletedProgramFixture verifies that a program which has left is
+// read as closed rather than as live.
+//
+// The captured page is the CoinEx program two days after its end date: the
+// page shows "Program left 2 days ago - Ended" and the submit control is
+// disabled, while the payload's status field still reads "LIVE" because that
+// field describes publication, not whether the program is running. The
+// activity status is the field that answers the question that matters.
+func TestFetchCompletedProgramFixture(t *testing.T) {
+	srv := newFixtureServer(t, map[string]string{
+		"/programs/coinex-web-and-mobile": "program-coinex-web-and-mobile.html",
+	})
+	s := newTestSource(t, srv)
+
+	raw, err := s.Fetch(context.Background(), domain.ProgramRef{
+		Source: AdapterName, ID: "coinex-web-and-mobile", Slug: "coinex-web-and-mobile",
+		URL: "https://hackenproof.com/programs/coinex-web-and-mobile",
+	})
+	if err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if !raw.Parsed {
+		t.Fatalf("program not parsed: %v", raw.Issues)
+	}
+	if raw.Status != "LIVE" {
+		t.Errorf("status = %q, want LIVE (the platform keeps publication separate from activity)", raw.Status)
+	}
+	if raw.ActivityStatus != "Completed" {
+		t.Errorf("activity status = %q, want Completed", raw.ActivityStatus)
+	}
+	if raw.RawDates.End != "19 Oct 2026" {
+		t.Errorf("end date = %q, want 19 Oct 2026", raw.RawDates.End)
+	}
+	if raw.RawDates.Unending {
+		t.Error("a program with an end date must not be read as unending")
+	}
+}
+
+// TestFetchProgramFixture verifies the standard program fixture is parsed.
 func TestFetchProgramFixture(t *testing.T) {
 	srv := newFixtureServer(t, map[string]string{
 		"/programs/bitrue": "program-bitrue.html",

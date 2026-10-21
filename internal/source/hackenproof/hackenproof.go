@@ -415,6 +415,15 @@ func (s *Source) parseProgram(body []byte, ref domain.ProgramRef) (domain.RawPro
 	raw.KYC = boolTri(m["kycRequired"])
 	raw.POC = boolTri(m["pocRequired"])
 
+	// The activity status is the platform's own statement about whether the
+	// program is still running. It is captured because the program's status
+	// field only says it is published: a published program whose activity
+	// window has closed is not accepting reports, and reading "published" as
+	// "open" is how a closed program gets reported as live.
+	if activity, ok := devalue.AsMap(m["activityStatus"]); ok {
+		raw.ActivityStatus = strings.TrimSpace(devalue.AsString(activity["name"]))
+	}
+
 	// An absent reputation requirement is a real, meaningful state: the
 	// program does not gate on reputation. It is only left unknown when the
 	// field's container itself is missing, which means the layout changed.

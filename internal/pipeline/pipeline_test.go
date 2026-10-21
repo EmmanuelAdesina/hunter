@@ -390,6 +390,64 @@ func TestListingOnlyDifferenceDoesNotClaimChange(t *testing.T) {
 	}
 }
 
+// TestListingClosureEndsAStoredLiveRecord verifies that a cheap sweep closes
+// a program the platform reports as closed.
+//
+// The listing carries the platform's own activity label. A record left at
+// "live" for a program that ended days ago is what produces alerts claiming
+// that program is accepting reports, and the sweep is the cheapest place to
+// correct it. The correction is one-directional on purpose: a sweep may close
+// a program, never reopen one.
+func TestListingClosureEndsAStoredLiveRecord(t *testing.T) {
+	src := newFakeSource("alpha")
+	dir := t.TempDir()
+	if _, err := runScanner(t, src, dir); err != nil {
+		t.Fatal(err)
+	}
+	if p := loadProgram(t, dir, "alpha"); p.State != domain.StateLive {
+		t.Fatalf("state = %s, want live before the closure", p.State)
+	}
+
+	src.refs[0].Listing.ActivityStatus = "Completed"
+
+	res := scanListingOnly(t, src, dir, time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC))
+
+	p := loadProgram(t, dir, "alpha")
+	if p.State != domain.StateEnded {
+		t.Fatalf("state = %s, want ended once the listing reports the activity closed", p.State)
+	}
+	if p.AcceptsReports() {
+		t.Error("a closed program was treated as accepting reports")
+	}
+	found := false
+	for _, e := range res.Programs {
+		for _, c := range e.Diff.Changes {
+			if c.Kind == domain.ChangeProgramEnded {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("the closure was not recorded as a change")
+	}
+}
+
+// A live program is not closed by a sweep that says nothing about activity.
+func TestListingClosureDoesNotFireForAnOpenProgram(t *testing.T) {
+	src := newFakeSource("alpha")
+	dir := t.TempDir()
+	if _, err := runScanner(t, src, dir); err != nil {
+		t.Fatal(err)
+	}
+
+	src.refs[0].Listing.ActivityStatus = "Active"
+	scanListingOnly(t, src, dir, time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC))
+
+	if p := loadProgram(t, dir, "alpha"); p.State != domain.StateLive {
+		t.Fatalf("state = %s, want live", p.State)
+	}
+}
+
 // TestUnchangedDataDoesNotChurnState verifies a steady scan does not rewrite
 // program content, which would create pointless diffs in version control.
 func TestUnchangedDataDoesNotChurnState(t *testing.T) {

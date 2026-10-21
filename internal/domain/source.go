@@ -127,6 +127,13 @@ type RawProgram struct {
 	State    string   `json:"state,omitempty"`
 	RawDates RawDates `json:"dates"`
 
+	// ActivityStatus is the source's own vocabulary for whether the program's
+	// activity window is open. It is recorded separately from Status because
+	// the two answer different questions: Status says the program is
+	// published, ActivityStatus says whether it is still running. A program
+	// can be published and closed at the same time.
+	ActivityStatus string `json:"activity_status,omitempty"`
+
 	// Access gates. Each is tri-state.
 	Reputation ReputationGate `json:"reputation"`
 	Fee        FeeGate        `json:"fee"`

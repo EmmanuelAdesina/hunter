@@ -628,6 +628,19 @@ func (s *Scanner) evaluateListingOnly(ref domain.ProgramRef, prev domain.Program
 	program.LastSeenAt = s.cfg.Now().UTC()
 	program.Listing = listingSignalFrom(ref)
 
+	// A cheap sweep can still close a program. The listing carries the
+	// platform's own activity label, and a program that has left says so
+	// there. Correcting a stored live record to ended on that evidence is
+	// safe in one direction only: the sweep may close a program, never reopen
+	// one. A stored live record for a program that ended days ago is what
+	// produces alerts about programs that are not accepting reports, and
+	// reopening a program requires a detail read, which is where the gates
+	// and the wording are read again anyway.
+	closedByListing := domain.ActivityClosed(program.Listing.ActivityStatus)
+	if closedByListing && (program.State == domain.StateLive || program.State == domain.StateNew) {
+		program.State = domain.StateEnded
+	}
+
 	// A cheap listing sweep does not read scope or requirements, so it cannot
 	// move a fingerprint and therefore cannot move a change interval. Carrying
 	// them across unchanged is what keeps a reported change attributable to the
@@ -649,6 +662,30 @@ func (s *Scanner) evaluateListingOnly(ref domain.ProgramRef, prev domain.Program
 		ProgramID:          program.ID,
 		PreviousLastSeenAt: prev.LastSeenAt,
 		FirstSeenAt:        prev.FirstSeenAt,
+	}
+
+	// The closure observed on the listing is recorded as a change so that the
+	// history says when the program stopped, instead of the record silently
+	// disagreeing with the platform.
+	if program.State != prev.State {
+		d.Changes = append(d.Changes, domain.Change{
+			Kind:      domain.ChangeProgramEnded,
+			Severity:  domain.SeverityLow,
+			Direction: domain.DirectionDegraded,
+			Field:     "state",
+			Before:    string(prev.State),
+			After:     string(program.State),
+			Detail:    "the platform reports the program's activity as closed",
+		})
+		d.Changes = append(d.Changes, domain.Change{
+			Kind:      domain.ChangeStateChanged,
+			Severity:  domain.SeverityLow,
+			Direction: domain.DirectionUnknown,
+			Field:     "state",
+			Before:    string(prev.State),
+			After:     string(program.State),
+		})
+		d.Changes = domain.SortChanges(d.Changes)
 	}
 
 	// A moving submission count is a genuine observation about competition, and
