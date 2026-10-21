@@ -76,6 +76,11 @@ type Alert struct {
 	// testable without a mail transport.
 	Subject string `json:"subject"`
 	Body    string `json:"body"`
+
+	// Verification is the independent check of this alert, when one was made.
+	// It travels with the alert so that a delivered message and the record of
+	// why it was believed can never be separated.
+	Verification *Verification `json:"verification,omitempty"`
 }
 
 // ComputeFingerprint derives the deterministic alert fingerprint.
@@ -150,6 +155,50 @@ type AlertRecord struct {
 
 	// DeliveredAt records successful delivery.
 	DeliveredAt time.Time `json:"delivered_at,omitempty"`
+
+	// Verification records what an independent check concluded about this
+	// alert, and what it based that conclusion on.
+	//
+	// It is kept even for suppressed alerts, because a withheld alert is a
+	// decision that has to be auditable: a reader must be able to ask what was
+	// withheld, on what evidence, and why.
+	Verification *Verification `json:"verification,omitempty"`
+}
+
+// Verification is the outcome of an independent check of an alert.
+type Verification struct {
+	// Verdict is the check's decision: allow or suppress.
+	Verdict string `json:"verdict"`
+
+	// Reason explains the verdict in the checker's own words.
+	Reason string `json:"reason,omitempty"`
+
+	// Model names the checker.
+	Model string `json:"model,omitempty"`
+
+	// Claims are the assertions the delivered message makes, with the
+	// evidence each one rests on.
+	Claims []VerificationClaim `json:"claims,omitempty"`
+
+	// Unverified is true when the checker could not be reached and the
+	// configured policy allowed the pipeline's own message to be delivered
+	// instead. Such a message carries no verification.
+	Unverified bool `json:"unverified,omitempty"`
+
+	// CheckedAt is when the check happened.
+	CheckedAt time.Time `json:"checked_at,omitempty"`
+}
+
+// VerificationClaim is one asserted statement and the evidence behind it.
+type VerificationClaim struct {
+	// Statement is the assertion as it appears in the message.
+	Statement string `json:"statement"`
+
+	// Verdict is the checker's assessment of the assertion.
+	Verdict string `json:"verdict"`
+
+	// Evidence lists the facts the assertion rests on.
+	Evidence []string `json:"evidence,omitempty"`
 }
 
 // Fingerprint computes the alert fingerprint.

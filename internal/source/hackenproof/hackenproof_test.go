@@ -758,3 +758,54 @@ func TestFeeGateResolution(t *testing.T) {
 		})
 	}
 }
+
+// TestPageMarkersReportWhatThePageShows verifies the human-visible lifecycle
+// statements are captured verbatim.
+//
+// These are the only evidence of what a researcher sees when they open the
+// page. A payload field can say a program is published while the page says it
+// left two days ago, and the page is the one that settles whether a report
+// can be submitted.
+func TestPageMarkersReportWhatThePageShows(t *testing.T) {
+	srv := newFixtureServer(t, map[string]string{
+		"/programs/coinex-web-and-mobile": "program-coinex-web-and-mobile.html",
+	})
+	s := newTestSource(t, srv)
+
+	raw, err := s.Fetch(context.Background(), domain.ProgramRef{
+		Source: AdapterName, ID: "coinex-web-and-mobile", Slug: "coinex-web-and-mobile",
+		URL: "https://hackenproof.com/programs/coinex-web-and-mobile",
+	})
+	if err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if got := raw.PageMarkers["liveness_badge"]; got != "Ended" {
+		t.Errorf("liveness badge = %q, want Ended", got)
+	}
+	if got := raw.PageMarkers["program_left"]; got != "2 days ago" {
+		t.Errorf("program left = %q, want 2 days ago", got)
+	}
+	if got := raw.PageMarkers["contest_notice"]; got != "not active" {
+		t.Errorf("contest notice = %q, want not active", got)
+	}
+}
+
+// A program that is still running shows no departure statement, and none is
+// invented for it.
+func TestPageMarkersAreAbsentForARunningProgram(t *testing.T) {
+	srv := newFixtureServer(t, map[string]string{
+		"/programs/bitrue": "program-bitrue.html",
+	})
+	s := newTestSource(t, srv)
+
+	raw, err := s.Fetch(context.Background(), domain.ProgramRef{
+		Source: AdapterName, ID: "bitrue", Slug: "bitrue",
+		URL: "https://hackenproof.com/programs/bitrue",
+	})
+	if err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if len(raw.PageMarkers) != 0 {
+		t.Errorf("markers = %v, want none for a program that is still running", raw.PageMarkers)
+	}
+}

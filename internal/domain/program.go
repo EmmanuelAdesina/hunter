@@ -99,6 +99,15 @@ type Program struct {
 	// "accepting reports" are different questions.
 	ActivityStatus string `json:"activity_status,omitempty"`
 
+	// PageMarkers holds the human-visible lifecycle statements the program
+	// page shows, such as "Ended" or "Program left 2 days ago".
+	//
+	// They are recorded verbatim because they are the only evidence of what a
+	// researcher sees when they open the page. A payload field can say a
+	// program is published while the page says it left two days ago; only the
+	// second one settles whether reports can be submitted.
+	PageMarkers map[string]string `json:"page_markers,omitempty"`
+
 	// StartedAt is when the program launched, at the source's resolution.
 	StartedAt *time.Time `json:"started_at,omitempty"`
 

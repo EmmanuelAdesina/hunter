@@ -32,6 +32,7 @@ import (
 	"github.com/eadeshina/hunter/internal/scoring"
 	"github.com/eadeshina/hunter/internal/source"
 	"github.com/eadeshina/hunter/internal/state"
+	"github.com/eadeshina/hunter/internal/verify"
 )
 
 // Config wires a scan.
@@ -44,6 +45,14 @@ type Config struct {
 	// Notifier delivers alerts. When nil or unconfigured, alerts are still
 	// generated, scored, and recorded; they are simply not transmitted.
 	Notifier notify.Notifier
+
+	// Verifier checks a candidate alert against the evidence that was
+	// observed, withholds it when the evidence does not support it, and
+	// writes the message when it does.
+	//
+	// When nil, the pipeline's own message is delivered. That is the older
+	// behavior, and it is trusted only when nobody has asked for a check.
+	Verifier verify.Verifier
 
 	// Now supplies the current time, keeping scans reproducible in tests.
 	Now func() time.Time
@@ -98,6 +107,7 @@ type Scanner struct {
 	detector      *diff.Detector
 	generator     *alerts.Generator
 	scorer        *scoring.Scorer
+	verifier      verify.Verifier
 	normalize     normalize.Options
 	catchUpMu     sync.Mutex
 	catchUpBudget int
@@ -133,6 +143,7 @@ func New(cfg Config) (*Scanner, error) {
 		detector:      diff.NewDetector(cfg.Now),
 		generator:     alerts.NewGenerator(cfg.Profile, cfg.Now),
 		scorer:        scoring.New(cfg.Profile, cfg.Now),
+		verifier:      cfg.Verifier,
 		normalize:     normalize.Options{Now: cfg.Now},
 		catchUpBudget: cfg.Profile.MaxCatchUpDetailFetchesPerScan(),
 	}, nil
@@ -263,7 +274,7 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 	}
 
 	// Alert generation.
-	generated, suppressed := s.buildAlerts(evaluated)
+	generated, suppressed := s.buildAlerts(ctx, evaluated)
 	res.Alerts = generated
 	res.Metrics.AlertsGenerated = len(generated)
 	res.Metrics.AlertsSuppressed = suppressed
@@ -990,7 +1001,7 @@ func submissionObservation(p domain.Program) (*int, bool) {
 
 // buildAlerts selects and renders alerts, returning generated and suppressed
 // counts.
-func (s *Scanner) buildAlerts(evaluated []Evaluated) ([]domain.Alert, int) {
+func (s *Scanner) buildAlerts(ctx context.Context, evaluated []Evaluated) ([]domain.Alert, int) {
 	var (
 		out        []domain.Alert
 		suppressed int
@@ -1013,11 +1024,71 @@ func (s *Scanner) buildAlerts(evaluated []Evaluated) ([]domain.Alert, int) {
 			continue
 		}
 		a.ScanID = s.cfg.Now().UTC().Format("20060102T150405Z")
+
+		// An independent check of the claim, and of the message.
+		//
+		// The pipeline's comparison says that something changed. This step asks
+		// whether the evidence supports that, and writes the message when it
+		// does. A withheld alert is counted as suppressed and recorded, so that
+		// a missing notification is a decision that can be audited rather
+		// than a gap.
+		if s.verifier != nil {
+			result, err := s.verifier.Verify(ctx, verify.Request{
+				Program:  e.Program,
+				Changes:  e.Diff.Changes,
+				Decision: e.Decision,
+				Fresh:    e.Fresh,
+				Now:      s.cfg.Now().UTC(),
+			})
+			if err != nil {
+				s.cfg.Logger.Error("verification failed", "phase", obs.PhaseNotify,
+					"program", e.Program.ID, "error", err.Error())
+				suppressed++
+				continue
+			}
+			a.Verification = verificationRecord(result, s.cfg.Now().UTC())
+			if !result.Allowed() {
+				s.cfg.Logger.Info("alert withheld by verification",
+					"phase", obs.PhaseNotify, "program", e.Program.ID,
+					"reason", result.Reason)
+				suppressed++
+				continue
+			}
+			if !result.Unverified {
+				// The message is the checker's, so the rendered HTML that
+				// accompanies the pipeline's own text is dropped: two
+				// messages saying different things would be worse than one.
+				a.Subject = result.Subject
+				a.Body = result.Body
+				a.HTMLBody = ""
+			}
+		}
+
 		out = append(out, *a)
 	}
 
 	capped, dropped := s.generator.CapAlerts(out)
 	return capped, suppressed + dropped
+}
+
+// verificationRecord converts a verification result into the record that is
+// kept with the alert.
+func verificationRecord(result verify.Result, now time.Time) *domain.Verification {
+	rec := &domain.Verification{
+		Verdict:    string(result.Decision),
+		Reason:     result.Reason,
+		Model:      result.Model,
+		Unverified: result.Unverified,
+		CheckedAt:  now,
+	}
+	for _, c := range result.Claims {
+		rec.Claims = append(rec.Claims, domain.VerificationClaim{
+			Statement: c.Statement,
+			Verdict:   c.Verdict,
+			Evidence:  c.Evidence,
+		})
+	}
+	return rec
 }
 
 // shouldHaveAlerted reports whether a candidate met the substantive criteria but
@@ -1061,6 +1132,7 @@ func (s *Scanner) persist(ctx context.Context, snap *state.Snapshot, evaluated [
 			CreatedAt:     a.DetectedAt,
 			Subject:       a.Subject,
 			Body:          a.Body,
+			Verification:  a.Verification,
 			LastAttemptAt: metrics.Started,
 		})
 	}

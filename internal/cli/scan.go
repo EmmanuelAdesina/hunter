@@ -9,10 +9,12 @@ import (
 	"strings"
 
 	"github.com/eadeshina/hunter/internal/alerts"
+	"github.com/eadeshina/hunter/internal/config"
 	"github.com/eadeshina/hunter/internal/domain"
 	"github.com/eadeshina/hunter/internal/notify"
 	"github.com/eadeshina/hunter/internal/obs"
 	"github.com/eadeshina/hunter/internal/pipeline"
+	"github.com/eadeshina/hunter/internal/verify"
 )
 
 // notifierFactory defers notifier construction so that the environment is read
@@ -121,6 +123,17 @@ func cmdScan(ctx context.Context, env *Env, args []string) int {
 		logger.Info("delivery is not configured; alerts will be generated and recorded but not sent",
 			"hint", "set "+notify.EnvSMTPHost+", "+notify.EnvSMTPPort+", "+notify.EnvUsername+
 				", "+notify.EnvPassword+" and "+notify.EnvRecipient+" to enable email")
+	}
+
+	verifier, err := newVerifier(env, profile)
+	if err != nil {
+		fmt.Fprintf(env.Stderr, "scan: %v\n", err)
+		return exitBadConfig
+	}
+	if verifier != nil {
+		cfg.Verifier = verifier
+		logger.Info("verification is on; alerts are checked against the observed evidence before delivery",
+			"verifier", verifier.Name())
 	}
 
 	scanner, err := pipeline.New(cfg)
@@ -453,6 +466,44 @@ var _ = errors.Is
 // the command outright.
 func newNotifier(env *Env) notifierFactory {
 	return func() notify.Notifier { return notifierFromEnv(env) }
+}
+
+// newVerifier builds the verification stage from the profile.
+//
+// The stage is optional in the sense that a profile may not ask for it, but it
+// is not optional in the sense that a profile which asks for it and cannot
+// have it is a configuration error: silently running without a check would
+// look exactly like running with a passing one.
+func newVerifier(env *Env, profile *config.Profile) (verify.Verifier, error) {
+	if !profile.Verify.Enabled {
+		return nil, nil
+	}
+
+	key, ok := env.LookupEnv(profile.Verify.APIKeyEnv)
+	if !ok || strings.TrimSpace(key) == "" {
+		return nil, fmt.Errorf("verification is enabled but %s is not set", profile.Verify.APIKeyEnv)
+	}
+
+	client, err := verify.NewClient(verify.ClientConfig{
+		BaseURL: profile.Verify.BaseURL,
+		Model:   profile.Verify.Model,
+		APIKey:  key,
+		Timeout: profile.Verify.Timeout.Value(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	stage, err := verify.NewStage(verify.StageConfig{
+		Model:          client,
+		SubjectPrefix:  profile.Verify.SubjectPrefix,
+		RepairAttempts: profile.Verify.RepairAttempts,
+		OnUnavailable:  profile.Verify.OnUnavailable,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return stage, nil
 }
 
 // CoverageJSON is the machine-readable coverage accounting for one scan.

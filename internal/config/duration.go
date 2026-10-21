@@ -45,8 +45,12 @@ type stringDurationValue = time.Duration
 // Default operational values. These are documented defaults rather than policy:
 // every one of them can be overridden from the profile.
 const (
-	defaultUserAgent     = "hunter-research-monitor/1.0 (+personal bug-bounty opportunity monitor; contact: researcher)"
-	defaultTimeout       = 20 * time.Second
+	defaultUserAgent = "hunter-research-monitor/1.0 (+personal bug-bounty opportunity monitor; contact: researcher)"
+	defaultTimeout   = 20 * time.Second
+
+	// defaultVerifyTimeout bounds one verification request. It is longer than
+	// a page fetch because a reader has to read a bundle and reason about it.
+	defaultVerifyTimeout = 90 * time.Second
 	defaultRetryBase     = 1 * time.Second
 	defaultMaxRetryDelay = 30 * time.Second
 	defaultMinInterval   = 500 * time.Millisecond

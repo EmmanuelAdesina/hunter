@@ -134,6 +134,11 @@ type RawProgram struct {
 	// can be published and closed at the same time.
 	ActivityStatus string `json:"activity_status,omitempty"`
 
+	// PageMarkers holds the human-visible lifecycle statements the program
+	// page shows, recorded verbatim. They are what a researcher sees, and
+	// they are what settles whether the program is still accepting reports.
+	PageMarkers map[string]string `json:"page_markers,omitempty"`
+
 	// Access gates. Each is tri-state.
 	Reputation ReputationGate `json:"reputation"`
 	Fee        FeeGate        `json:"fee"`

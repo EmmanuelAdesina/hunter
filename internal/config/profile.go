@@ -283,6 +283,46 @@ type ScanConfig struct {
 	UserAgent string `yaml:"user_agent"`
 }
 
+// VerifyConfig configures the verification stage that stands between an
+// observed change and a delivered notification.
+//
+// The stage exists because a mechanical comparison can only be as good as the
+// facts it was handed, and a platform can present facts that agree with each
+// other and still be wrong about whether a program is accepting reports. When
+// the stage is on, a reader checks the claimed change against the observed
+// evidence, withholds the alert when the evidence does not support it, and
+// writes the message itself when it does.
+type VerifyConfig struct {
+	// Enabled turns verification on.
+	Enabled bool `yaml:"enabled"`
+
+	// BaseURL is the API root of an OpenAI-compatible chat endpoint.
+	BaseURL string `yaml:"base_url"`
+
+	// Model names the model to ask.
+	Model string `yaml:"model"`
+
+	// APIKeyEnv names the environment variable holding the API key. The key
+	// itself never lives in the profile, so a profile can be committed.
+	APIKeyEnv string `yaml:"api_key_env"`
+
+	// Timeout bounds one verification request.
+	Timeout stringDuration `yaml:"timeout"`
+
+	// RepairAttempts is how many times the reader may correct an answer that
+	// failed validation. Zero means the first answer is the only answer.
+	RepairAttempts int `yaml:"repair_attempts"`
+
+	// OnUnavailable decides what happens when the reader cannot be reached or
+	// returns something unusable: "suppress" withholds the alert, "deliver"
+	// keeps the pipeline's own message. Suppressing is the default, because an
+	// unverified notification is the failure this stage exists to prevent.
+	OnUnavailable string `yaml:"on_unavailable"`
+
+	// SubjectPrefix is prepended to the subject the reader wrote.
+	SubjectPrefix string `yaml:"subject_prefix"`
+}
+
 // SourceConfig enables and configures individual adapters.
 type SourceConfig struct {
 	// Enabled turns the source on.
@@ -317,6 +357,7 @@ type Profile struct {
 	Coverage      CoverageConfig          `yaml:"coverage"`
 	Notifications NotificationConfig      `yaml:"notifications"`
 	Scan          ScanConfig              `yaml:"scan"`
+	Verify        VerifyConfig            `yaml:"verify"`
 	Platforms     Platforms               `yaml:"platforms"`
 	Sources       map[string]SourceConfig `yaml:"sources"`
 
@@ -509,6 +550,35 @@ func (p *Profile) applyDefaultsAndValidate() error {
 
 	if strings.TrimSpace(p.Name) == "" {
 		fail("profile.name is required")
+	}
+
+	// Verification defaults. An enabled stage with no endpoint is a
+	// configuration error rather than a stage that silently does nothing:
+	// silence would look exactly like "verified", which is the one thing this
+	// stage must never be mistaken for.
+	if p.Verify.Enabled {
+		if strings.TrimSpace(p.Verify.BaseURL) == "" {
+			fail("verify.base_url is required when verification is enabled")
+		}
+		if strings.TrimSpace(p.Verify.Model) == "" {
+			fail("verify.model is required when verification is enabled")
+		}
+		if strings.TrimSpace(p.Verify.APIKeyEnv) == "" {
+			fail("verify.api_key_env is required when verification is enabled")
+		}
+		if p.Verify.Timeout.Value() <= 0 {
+			p.Verify.Timeout = stringDuration(defaultVerifyTimeout)
+		}
+		if p.Verify.RepairAttempts < 0 {
+			fail("verify.repair_attempts must be >= 0")
+		}
+		switch p.Verify.OnUnavailable {
+		case "":
+			p.Verify.OnUnavailable = "suppress"
+		case "suppress", "deliver":
+		default:
+			fail("verify.on_unavailable must be suppress or deliver, got %q", p.Verify.OnUnavailable)
+		}
 	}
 
 	// Access defaults. A zero-value reputation ceiling would reject every

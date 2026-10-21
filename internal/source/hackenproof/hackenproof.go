@@ -424,6 +424,12 @@ func (s *Source) parseProgram(body []byte, ref domain.ProgramRef) (domain.RawPro
 		raw.ActivityStatus = strings.TrimSpace(devalue.AsString(activity["name"]))
 	}
 
+	// The rendered page says what a researcher sees: a liveness badge, how
+	// long ago the program left, and whether the contest is active. Those
+	// statements are recorded verbatim because the payload's status field does
+	// not carry them, and a program that has left is still published.
+	raw.PageMarkers = pageMarkers(body)
+
 	// An absent reputation requirement is a real, meaningful state: the
 	// program does not gate on reputation. It is only left unknown when the
 	// field's container itself is missing, which means the layout changed.

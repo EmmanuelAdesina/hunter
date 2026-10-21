@@ -62,6 +62,7 @@ func Program(raw domain.RawProgram, opts Options) domain.Program {
 		RawStatus:             raw.Status,
 		RawState:              raw.State,
 		ActivityStatus:        raw.ActivityStatus,
+		PageMarkers:           raw.PageMarkers,
 		IsUnending:            raw.RawDates.Unending,
 		Reputation:            raw.Reputation,
 		Fee:                   raw.Fee,
