@@ -485,10 +485,13 @@ func newVerifier(env *Env, profile *config.Profile) (verify.Verifier, error) {
 	}
 
 	client, err := verify.NewClient(verify.ClientConfig{
-		BaseURL: profile.Verify.BaseURL,
-		Model:   profile.Verify.Model,
-		APIKey:  key,
-		Timeout: profile.Verify.Timeout.Value(),
+		BaseURL:   profile.Verify.BaseURL,
+		Model:     profile.Verify.Model,
+		APIKey:    key,
+		Timeout:   profile.Verify.Timeout.Value(),
+		MaxTokens: profile.Verify.MaxTokens,
+		Referer:   profile.Verify.Referer,
+		Title:     profile.Verify.Title,
 	})
 	if err != nil {
 		return nil, err

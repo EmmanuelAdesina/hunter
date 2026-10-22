@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -273,8 +274,10 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 			"phase", obs.PhaseDiscover, "absent", coverage.Absent)
 	}
 
-	// Alert generation.
-	generated, suppressed := s.buildAlerts(ctx, evaluated)
+	// Alert generation. The second slice holds notifications about the
+	// verification stage itself, kept apart so that a broken reader does not
+	// inflate the program-alert counts.
+	generated, operator, suppressed := s.buildAlerts(ctx, evaluated)
 	res.Alerts = generated
 	res.Metrics.AlertsGenerated = len(generated)
 	res.Metrics.AlertsSuppressed = suppressed
@@ -312,6 +315,17 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 	res.Metrics.AlertsSent = delivery.Delivered
 	res.Metrics.AlertsFailed = delivery.Failed
 	res.Metrics.AlertsSkipped = delivery.Skipped
+	// The verification-failure notice is delivered on its own: it is not a
+	// program alert, and it must not wait on the program batch, which may be
+	// empty precisely because the stage it reports about is broken.
+	if len(operator) > 0 {
+		if opDelivery, opErr := s.deliver(ctx, operator); opErr != nil {
+			log.Warn("verification failure notice not delivered", "phase", obs.PhaseNotify, "error", opErr.Error())
+		} else if opDelivery.Delivered == 0 && opDelivery.Skipped == 0 {
+			log.Warn("verification failure notice not delivered", "phase", obs.PhaseNotify,
+				"failed", opDelivery.Failed)
+		}
+	}
 	if deliveryErr != nil {
 		// Send failures are counted below. Any additional dispatcher error is a
 		// bookkeeping or cancellation failure and must independently fail the
@@ -1001,10 +1015,16 @@ func submissionObservation(p domain.Program) (*int, bool) {
 
 // buildAlerts selects and renders alerts, returning generated and suppressed
 // counts.
-func (s *Scanner) buildAlerts(ctx context.Context, evaluated []Evaluated) ([]domain.Alert, int) {
+//
+// The second return value holds notifications about the verification stage
+// itself. They are kept apart from program alerts because they are about the
+// tool, and because a reader that is broken would otherwise show up as a
+// quiet day.
+func (s *Scanner) buildAlerts(ctx context.Context, evaluated []Evaluated) ([]domain.Alert, []domain.Alert, int) {
 	var (
 		out        []domain.Alert
 		suppressed int
+		failures   []verificationFailure
 	)
 
 	for _, e := range evaluated {
@@ -1032,8 +1052,8 @@ func (s *Scanner) buildAlerts(ctx context.Context, evaluated []Evaluated) ([]dom
 		// does. A withheld alert is counted as suppressed and recorded, so that
 		// a missing notification is a decision that can be audited rather
 		// than a gap.
-		if s.verifier != nil {
-			result, err := s.verifier.Verify(ctx, verify.Request{
+		if s.cfg.Verifier != nil {
+			result, err := s.cfg.Verifier.Verify(ctx, verify.Request{
 				Program:  e.Program,
 				Changes:  e.Diff.Changes,
 				Decision: e.Decision,
@@ -1041,8 +1061,16 @@ func (s *Scanner) buildAlerts(ctx context.Context, evaluated []Evaluated) ([]dom
 				Now:      s.cfg.Now().UTC(),
 			})
 			if err != nil {
+				// The reader could not be used. The alert is withheld, and the
+				// operator is told, because a broken reader and a quiet day
+				// look the same from the outside.
 				s.cfg.Logger.Error("verification failed", "phase", obs.PhaseNotify,
 					"program", e.Program.ID, "error", err.Error())
+				failures = append(failures, verificationFailure{
+					programID: e.Program.ID,
+					program:   e.Program.Name,
+					err:       err,
+				})
 				suppressed++
 				continue
 			}
@@ -1068,7 +1096,97 @@ func (s *Scanner) buildAlerts(ctx context.Context, evaluated []Evaluated) ([]dom
 	}
 
 	capped, dropped := s.generator.CapAlerts(out)
-	return capped, suppressed + dropped
+	return capped, s.verificationFailureAlerts(failures), suppressed + dropped
+}
+
+// verificationFailure is one withheld candidate and the reason the reader
+// could not be used.
+type verificationFailure struct {
+	programID string
+	program   string
+	err       error
+}
+
+// verificationFailureAlerts builds the notification that tells the operator
+// the verification stage is not working.
+//
+// It says what failed and what to check. It makes no claim about any program:
+// the programs are named only as the candidates that were withheld, because
+// claiming something about them is exactly what this stage exists to
+// prevent.
+func (s *Scanner) verificationFailureAlerts(failures []verificationFailure) []domain.Alert {
+	if len(failures) == 0 {
+		return nil
+	}
+	if s.cfg.Profile.Verify.NotifyOnFailure != "on" {
+		return nil
+	}
+
+	now := s.cfg.Now().UTC()
+	programs := make([]string, 0, len(failures))
+	signature := ""
+	for _, f := range failures {
+		programs = append(programs, f.programID)
+		if signature == "" {
+			signature = f.err.Error()
+		}
+	}
+
+	// The fingerprint carries the failure and a time bucket, so the same
+	// failure is reported once per window rather than once per scan.
+	window := s.cfg.Profile.Verify.FailureRepeatWindow.Value()
+	if window <= 0 {
+		window = 6 * time.Hour
+	}
+	bucket := now.UTC().Truncate(window).Format(time.RFC3339)
+	fingerprint := domain.ComputeFingerprint(domain.AlertVerificationFailure,
+		"hunter:verification", nil, domain.EligibilityDecision{}, bucket, signature)
+
+	var b strings.Builder
+	b.WriteString("VERIFICATION STAGE UNAVAILABLE\n")
+	b.WriteString("============================\n\n")
+	b.WriteString("Candidate alerts are being withheld, because the reader that checks them\n")
+	b.WriteString("could not be used. No notification was sent about any program, and no\n")
+	b.WriteString("claim was made about any of them.\n\n")
+	b.WriteString("Reader: ")
+	b.WriteString(s.cfg.Verifier.Name())
+	b.WriteString("\nEndpoint: ")
+	b.WriteString(s.cfg.Profile.Verify.BaseURL)
+	b.WriteString("\nModel: ")
+	b.WriteString(s.cfg.Profile.Verify.Model)
+	b.WriteString("\n\nFailure:\n  ")
+	b.WriteString(strings.ReplaceAll(signature, "\n", "\n  "))
+	b.WriteString("\n\nWithheld candidates (")
+	b.WriteString(fmt.Sprintf("%d", len(programs)))
+	b.WriteString("):\n")
+	for _, p := range programs {
+		b.WriteString("  - ")
+		b.WriteString(p)
+		b.WriteString("\n")
+	}
+	b.WriteString("\nWhat to check:\n")
+	b.WriteString("  - the API key in ")
+	b.WriteString(s.cfg.Profile.Verify.APIKeyEnv)
+	b.WriteString(" is valid and has credit\n")
+	b.WriteString("  - the model id in the profile still exists; free models are withdrawn from time to time\n")
+	b.WriteString("  - the endpoint is reachable from this host\n\n")
+	b.WriteString("This notification is repeated at most once every ")
+	b.WriteString(window.String())
+	b.WriteString(" until the failure changes.\n")
+
+	return []domain.Alert{{
+		Fingerprint: fingerprint,
+		Kind:        domain.AlertVerificationFailure,
+		ProgramID:   "hunter:verification",
+		Program: domain.Program{
+			ID:   "hunter:verification",
+			Name: "Hunter verification",
+		},
+		Subject:    "[HUNTER] verification stage unavailable — candidate alerts are being withheld",
+		Body:       b.String(),
+		DetectedAt: now,
+		ScanID:     now.Format("20060102T150405Z"),
+	}}
 }
 
 // verificationRecord converts a verification result into the record that is

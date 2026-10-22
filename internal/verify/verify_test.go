@@ -130,9 +130,9 @@ func TestAllowanceKeepsTheReadersMessage(t *testing.T) {
 	}
 }
 
-// A claim that cites a fact the bundle does not contain is not usable. The
-// model is asked to correct itself once, and if it does not, the alert is
-// withheld.
+// A claim that cites a fact the bundle does not contain is not usable. With
+// no repair configured, that is a reader the tool cannot use: the answer is
+// rejected as an operational failure, not smuggled through as a quiet day.
 func TestUnknownEvidenceKeyIsRejected(t *testing.T) {
 	model := &fakeModel{replies: []string{`{
 		"decision": "allow",
@@ -144,20 +144,17 @@ func TestUnknownEvidenceKeyIsRejected(t *testing.T) {
 		]
 	}`}}
 
-	res, err := stageWith(model, 0).Verify(context.Background(), testRequest())
-	if err != nil {
-		t.Fatalf("Verify: %v", err)
-	}
-	if res.Allowed() {
-		t.Fatal("the alert was allowed although the claim cited a fact that does not exist")
+	_, err := stageWith(model, 0).Verify(context.Background(), testRequest())
+	if err == nil {
+		t.Fatal("an answer citing a fact that does not exist was accepted")
 	}
 	if model.calls != 1 {
 		t.Errorf("calls = %d, want 1 when no repair is configured", model.calls)
 	}
 }
 
-// A message that hedges is withheld. A hedge is a claim the reader could not
-// support, dressed as caution.
+// A message that hedges is not usable. A hedge is a claim the reader could
+// not support, dressed as caution, and the stage refuses to deliver one.
 func TestHedgedMessageIsWithheld(t *testing.T) {
 	model := &fakeModel{replies: []string{`{
 		"decision": "allow",
@@ -169,15 +166,12 @@ func TestHedgedMessageIsWithheld(t *testing.T) {
 		]
 	}`}}
 
-	res, err := stageWith(model, 0).Verify(context.Background(), testRequest())
-	if err != nil {
-		t.Fatalf("Verify: %v", err)
+	_, err := stageWith(model, 0).Verify(context.Background(), testRequest())
+	if err == nil {
+		t.Fatal("a hedged message was accepted")
 	}
-	if res.Allowed() {
-		t.Fatal("a hedged message was delivered")
-	}
-	if !strings.Contains(res.Reason, "hedges") {
-		t.Errorf("reason = %q, want it to name the hedge", res.Reason)
+	if !strings.Contains(err.Error(), "hedges") {
+		t.Errorf("error = %q, want it to name the hedge", err.Error())
 	}
 }
 
@@ -205,13 +199,15 @@ func TestMalformedAnswerIsCorrectedOnce(t *testing.T) {
 }
 
 // The reader is unreachable. The default is to withhold: an unverified
-// notification is the failure this stage exists to prevent.
+// notification is the failure this stage exists to prevent. The error is
+// returned so that the operator can be told, because a broken reader and a
+// quiet day look the same from the outside.
 func TestUnreachableReaderWithholdsByDefault(t *testing.T) {
 	model := &fakeModel{err: errors.New("connection refused")}
 
 	res, err := stageWith(model, 0).Verify(context.Background(), testRequest())
-	if err != nil {
-		t.Fatalf("Verify: %v", err)
+	if err == nil {
+		t.Fatal("an unreachable reader was reported as nothing wrong")
 	}
 	if res.Allowed() {
 		t.Fatal("the alert was allowed although the reader could not be reached")
@@ -222,7 +218,8 @@ func TestUnreachableReaderWithholdsByDefault(t *testing.T) {
 }
 
 // An operator can choose the older behavior, and the record says the message
-// was not verified.
+// was not verified. The failure is still reported: the fallback is a delivery
+// choice, not a claim that nothing is wrong.
 func TestUnreachableReaderCanFallBackWhenConfigured(t *testing.T) {
 	model := &fakeModel{err: errors.New("connection refused")}
 	stage, err := NewStage(StageConfig{Model: model, OnUnavailable: "deliver"})
@@ -231,8 +228,8 @@ func TestUnreachableReaderCanFallBackWhenConfigured(t *testing.T) {
 	}
 
 	res, err := stage.Verify(context.Background(), testRequest())
-	if err != nil {
-		t.Fatalf("Verify: %v", err)
+	if err == nil {
+		t.Fatal("the fallback was delivered without reporting that the reader failed")
 	}
 	if !res.Allowed() {
 		t.Fatal("the alert was suppressed although the fallback is configured")

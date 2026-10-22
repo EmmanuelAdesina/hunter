@@ -32,6 +32,11 @@ type ClientConfig struct {
 	// MaxTokens bounds the answer length.
 	MaxTokens int
 
+	// Referer and Title identify the caller. Several hosted providers use
+	// them for attribution and rate limiting.
+	Referer string
+	Title   string
+
 	// Temperature is fixed at zero for reproducibility unless set.
 	Temperature float64
 
@@ -59,7 +64,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 		cfg.Timeout = 60 * time.Second
 	}
 	if cfg.MaxTokens <= 0 {
-		cfg.MaxTokens = 1200
+		cfg.MaxTokens = 8000
 	}
 	return &Client{cfg: cfg}, nil
 }
@@ -120,6 +125,12 @@ func (c *Client) Complete(ctx context.Context, system, user string) (string, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.cfg.APIKey)
+	if c.cfg.Referer != "" {
+		req.Header.Set("HTTP-Referer", c.cfg.Referer)
+	}
+	if c.cfg.Title != "" {
+		req.Header.Set("X-Title", c.cfg.Title)
+	}
 
 	client := c.cfg.HTTPClient
 	if client == nil {

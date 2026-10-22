@@ -191,6 +191,65 @@ func TestVerifierFailureWithholdsTheAlert(t *testing.T) {
 	}
 }
 
+// When the verifier cannot be used, the operator is told. The notice is
+// about the tool: it names what failed and which candidates were withheld,
+// and it is repeated at most once per failure window rather than once per
+// failing candidate.
+func TestVerificationFailureNotifiesTheOperatorOnce(t *testing.T) {
+	src := newFakeSource("alpha")
+	dir := t.TempDir()
+
+	v := &stubVerifier{err: context.DeadlineExceeded}
+	notifier := &recordingNotifier{}
+	configure := func(c *pipeline.Config) {
+		c.Verifier = v
+		c.Notifier = notifier
+		c.Profile.Verify.NotifyOnFailure = "on"
+	}
+
+	// The very first scan carries the failure, so the only message is the
+	// notice: the candidate it replaced was withheld.
+	res, err := runScanner(t, src, dir, configure)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The candidate was withheld, and the notice took its place.
+	if len(res.Alerts) != 0 {
+		t.Errorf("program alerts = %d, want none when the verifier fails", len(res.Alerts))
+	}
+	if len(notifier.delivered) != 1 {
+		t.Fatalf("notices delivered = %d, want 1", len(notifier.delivered))
+	}
+	notice := notifier.delivered[0]
+	if notice.Kind != domain.AlertVerificationFailure {
+		t.Errorf("kind = %q, want %q", notice.Kind, domain.AlertVerificationFailure)
+	}
+	if !strings.Contains(notice.Subject, "withheld") {
+		t.Errorf("subject = %q, want it to say alerts are withheld", notice.Subject)
+	}
+	if !strings.Contains(notice.Body, "alpha") {
+		t.Errorf("body does not name the withheld candidate: %q", notice.Body)
+	}
+	if !strings.Contains(notice.Body, "claim was made") {
+		t.Errorf("body = %q, want it to state that no claim was made about any program", notice.Body)
+	}
+
+	// A second failing candidate inside the same window is not a second
+	// notification. The failure was already reported.
+	expandScope(src)
+	res2, err := runScanner(t, src, dir, configure)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res2.Alerts) != 0 {
+		t.Errorf("program alerts on the second failure = %d, want none", len(res2.Alerts))
+	}
+	if len(notifier.delivered) != 1 {
+		t.Errorf("notices delivered = %d, want 1: the same failure was reported twice", len(notifier.delivered))
+	}
+}
+
 // Without a verifier the pipeline behaves as it did before.
 func TestNoVerifierKeepsTheRenderedMessage(t *testing.T) {
 	src := newFakeSource("alpha")

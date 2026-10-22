@@ -321,6 +321,28 @@ type VerifyConfig struct {
 
 	// SubjectPrefix is prepended to the subject the reader wrote.
 	SubjectPrefix string `yaml:"subject_prefix"`
+
+	// MaxTokens bounds the reader's answer.
+	//
+	// It has to be generous: a reader that thinks before it answers spends
+	// its budget on thinking, and a budget that is too small produces an
+	// empty answer that looks like a broken model.
+	MaxTokens int `yaml:"max_tokens"`
+
+	// Referer and Title identify this tool to the endpoint. Several hosted
+	// providers use them for attribution and rate limiting, and some free
+	// tiers are stricter without them.
+	Referer string `yaml:"referer"`
+	Title   string `yaml:"title"`
+
+	// NotifyOnFailure sends a notification when the reader cannot be used, so
+	// that a broken configuration is visible instead of looking like a quiet
+	// day. The notification is about the tool, and makes no claim about any
+	// program. It is "on", "off", or empty for the default, which is on.
+	NotifyOnFailure string `yaml:"notify_on_failure"`
+
+	// FailureRepeatWindow is how long the same failure is not repeated.
+	FailureRepeatWindow stringDuration `yaml:"failure_repeat_window"`
 }
 
 // SourceConfig enables and configures individual adapters.
@@ -571,6 +593,22 @@ func (p *Profile) applyDefaultsAndValidate() error {
 		}
 		if p.Verify.RepairAttempts < 0 {
 			fail("verify.repair_attempts must be >= 0")
+		}
+		if p.Verify.MaxTokens <= 0 {
+			p.Verify.MaxTokens = defaultVerifyMaxTokens
+		}
+		if p.Verify.FailureRepeatWindow.Value() <= 0 {
+			p.Verify.FailureRepeatWindow = stringDuration(defaultVerifyFailureRepeat)
+		}
+		if p.Verify.NotifyOnFailure == "" {
+			// The default is on, because a stage that fails silently is
+			// indistinguishable from a stage that is working.
+			p.Verify.NotifyOnFailure = "on"
+		}
+		switch p.Verify.NotifyOnFailure {
+		case "on", "off":
+		default:
+			fail("verify.notify_on_failure must be on or off, got %q", p.Verify.NotifyOnFailure)
 		}
 		switch p.Verify.OnUnavailable {
 		case "":

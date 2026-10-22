@@ -21,6 +21,14 @@ const (
 	AlertNewlyEligible AlertKind = "NEWLY_ELIGIBLE"
 	// AlertScopeExpansion is a qualifying program that gained new surface.
 	AlertScopeExpansion AlertKind = "SCOPE_EXPANSION"
+
+	// AlertVerificationFailure reports that the verification stage could not
+	// be used, so candidate alerts are being withheld.
+	//
+	// It is a notification about the tool rather than about a program: it
+	// makes no claim about any program, and it exists because a silent
+	// withholding looks exactly like a quiet day.
+	AlertVerificationFailure AlertKind = "VERIFICATION_FAILURE"
 )
 
 // Alert is a single notification, fully rendered and independently

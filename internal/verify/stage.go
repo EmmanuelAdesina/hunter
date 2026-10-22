@@ -70,6 +70,13 @@ func (s *Stage) Name() string { return "llm:" + s.cfg.Model.Name() }
 // The reader is asked once. An answer that fails validation is sent back with
 // the specific violations, once, so that a reader which simply misunderstood
 // the shape can correct itself. An answer that still fails is not used.
+//
+// Two outcomes are different in kind and are reported differently. A reader
+// that works and decides the claim is false returns a suppression: the alert
+// is withheld silently, because that is the stage doing its job. A reader
+// that could not be used at all - unreachable, unauthenticated, answering in
+// a shape it was not asked for - returns an error, because that is a broken
+// configuration and the operator has to hear about it.
 func (s *Stage) Verify(ctx context.Context, req Request) (Result, error) {
 	ev := buildEvidence(req)
 	payload, err := renderEvidence(ev)
@@ -83,13 +90,13 @@ func (s *Stage) Verify(ctx context.Context, req Request) (Result, error) {
 	for attempt := 0; attempt < attempts; attempt++ {
 		raw, err := s.cfg.Model.Complete(ctx, systemPrompt, user)
 		if err != nil {
-			return s.unavailable(fmt.Errorf("reader failed: %w", err)), nil
+			return s.unavailable(fmt.Errorf("the reader could not be reached: %w", err))
 		}
 
 		res, parseErr := parseResult(raw)
 		if parseErr != nil {
 			if attempt == attempts-1 {
-				return s.unavailable(parseErr), nil
+				return s.unavailable(parseErr)
 			}
 			user = repairPrompt(payload, []string{parseErr.Error()})
 			continue
@@ -97,7 +104,7 @@ func (s *Stage) Verify(ctx context.Context, req Request) (Result, error) {
 
 		if problems := validate(res, ev); len(problems) > 0 {
 			if attempt == attempts-1 {
-				return s.unavailable(fmt.Errorf("the reader's answer did not hold up: %s", strings.Join(problems, "; "))), nil
+				return s.unavailable(fmt.Errorf("the reader's answer did not hold up: %s", strings.Join(problems, "; ")))
 			}
 			user = repairPrompt(payload, problems)
 			continue
@@ -110,28 +117,28 @@ func (s *Stage) Verify(ctx context.Context, req Request) (Result, error) {
 		return res, nil
 	}
 
-	return s.unavailable(fmt.Errorf("the reader produced no usable answer")), nil
+	return s.unavailable(fmt.Errorf("the reader produced no usable answer"))
 }
 
 // unavailable applies the configured policy for a reader that could not be
 // used.
 //
-// The default withholds the alert and says why, so that a missing
+// The default withholds the alert and reports the failure, so that a missing
 // notification is an auditable decision rather than a gap.
-func (s *Stage) unavailable(cause error) Result {
+func (s *Stage) unavailable(cause error) (Result, error) {
 	if s.cfg.OnUnavailable == "deliver" {
 		return Result{
-			Decision:   DecisionAllow,
-			Reason:     "the reader was unavailable, so the pipeline's own message was kept: " + cause.Error(),
+			Decision:  DecisionAllow,
+			Reason:    "the reader was unavailable, so the pipeline's own message was kept: " + cause.Error(),
 			Unverified: true,
-			Model:      s.cfg.Model.Name(),
-		}
+			Model:     s.cfg.Model.Name(),
+		}, cause
 	}
 	return Result{
 		Decision: DecisionSuppress,
 		Reason:   "withheld because the alert could not be verified: " + cause.Error(),
 		Model:    s.cfg.Model.Name(),
-	}
+	}, cause
 }
 
 // repairPrompt asks the reader to fix an answer that failed validation.

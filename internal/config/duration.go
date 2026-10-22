@@ -51,6 +51,16 @@ const (
 	// defaultVerifyTimeout bounds one verification request. It is longer than
 	// a page fetch because a reader has to read a bundle and reason about it.
 	defaultVerifyTimeout = 90 * time.Second
+
+	// defaultVerifyMaxTokens bounds the reader's answer. It is generous
+	// because a reader that thinks before it answers spends the budget on
+	// thinking, and a truncated answer looks like a broken model.
+	defaultVerifyMaxTokens = 8000
+
+	// defaultVerifyFailureRepeat is how long the same verification failure is
+	// not reported again. A broken endpoint is reported once and then left
+	// alone, because a notification every five minutes is its own outage.
+	defaultVerifyFailureRepeat = 6 * time.Hour
 	defaultRetryBase     = 1 * time.Second
 	defaultMaxRetryDelay = 30 * time.Second
 	defaultMinInterval   = 500 * time.Millisecond
