@@ -27,5 +27,11 @@ Makefile text eol=lf
 # are excluded from any transformation.
 fixtures/** -text
 
+# The same captured pages are third-party content, not source. Excluding them
+# from the language statistics keeps the bar reporting the code rather than the
+# evidence; a repository of Go programs should not present itself as HTML
+# because its tests embed real pages.
+fixtures/** linguist-vendored
+
 # Build output is never tracked; this is belt-and-braces with .gitignore.
 *.exe -text
