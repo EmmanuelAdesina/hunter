@@ -21,6 +21,7 @@ const (
 	ChangeProgramReactivated ChangeKind = "PROGRAM_REACTIVATED"
 	ChangeProgramPaused      ChangeKind = "PROGRAM_PAUSED"
 	ChangeProgramEnded       ChangeKind = "PROGRAM_ENDED"
+	ChangeProgramRenamed     ChangeKind = "PROGRAM_RENAMED"
 	ChangeStateChanged       ChangeKind = "STATE_CHANGED"
 	ChangeScopeChanged       ChangeKind = "SCOPE_CHANGED"
 	ChangeTargetAdded        ChangeKind = "TARGET_ADDED"
@@ -129,7 +130,7 @@ func (k ChangeKind) recordOnly() bool {
 		ChangeReputationRaised, ChangeKYCRequired, ChangeFeeIncreased, ChangeFeeIntroduced,
 		ChangePOCRequired,
 		ChangeBountyLowered,
-		ChangeProgramPaused, ChangeProgramEnded,
+		ChangeProgramPaused, ChangeProgramEnded, ChangeProgramRenamed,
 		ChangeSubmissionsChanged, ChangeFirstSeen,
 		ChangeMetadataChanged, ChangeRequirementChanged,
 		ChangeReputationChanged, ChangeFeeChanged, ChangeKYCChanged,

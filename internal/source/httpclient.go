@@ -145,6 +145,55 @@ func newTransport(cfg ClientConfig) *http.Transport {
 	}
 }
 
+// ProbeWithContext requests a URL and reports the first response's status and
+// Location header without following redirects.
+//
+// It exists so a caller can ask where an address leads rather than what it
+// says: the platform-side evidence that a renamed program's old address now
+// serves the new one. The probe is best-effort by design - it is rate limited
+// like every other request, but a transport failure is returned as such and
+// not retried, because a probe that waits through backoff delays the scan it
+// runs inside for no observational gain.
+func (c *Client) ProbeWithContext(ctx context.Context, url string) (status int, location string, err error) {
+	if err := c.waitForSlot(ctx); err != nil {
+		return 0, "", err
+	}
+
+	reqCtx, cancel := context.WithTimeout(ctx, c.cfg.Timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, "", fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("User-Agent", c.cfg.UserAgent)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	req.Header.Set("Accept-Language", "en")
+
+	// Stop at the first response. A standard *http.Client follows redirects
+	// on its own request path, so it is re-created with the capture policy,
+	// keeping the original transport. Any other doer answers with exactly one
+	// response by contract, so it is used directly.
+	var resp *http.Response
+	if std, ok := c.hc.(*http.Client); ok {
+		nofollow := *std
+		nofollow.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+		resp, err = nofollow.Do(req)
+	} else {
+		resp, err = c.hc.Do(req)
+	}
+	if err != nil {
+		return 0, "", &HTTPStatusError{Status: "transport error", URL: url, Err: errors.Join(ErrUnavailable, err)}
+	}
+	defer func() {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
+		_ = resp.Body.Close()
+	}()
+	return resp.StatusCode, resp.Header.Get("Location"), nil
+}
+
 // GetWithContext fetches a URL and returns the response body.
 //
 // Retries cover transient failures only. A 404, a 403, or a parse failure is

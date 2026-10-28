@@ -72,6 +72,21 @@ type ProgramSource interface {
 	Capabilities() SourceCapabilities
 }
 
+// SlugResolver is an optional source capability: report where a vanished
+// program's address now leads.
+//
+// A platform that renames a program keeps serving the old address as a
+// redirect. Following that redirect is the only deterministic evidence that
+// two slugs are one program; anything else is guesswork from names. The
+// pipeline uses it to carry a renamed program's history over instead of
+// recording a disappearance and a false birth.
+type SlugResolver interface {
+	// ResolveProgramSlug returns the slug the address for oldSlug leads to.
+	// redirected is false when the source still serves the slug directly or
+	// the answer is not a program address.
+	ResolveProgramSlug(ctx Context, oldSlug string) (current string, redirected bool, err error)
+}
+
 // Context is the cancellation and deadline carrier passed to every source
 // operation.
 type Context = context.Context

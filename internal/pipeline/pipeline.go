@@ -257,6 +257,7 @@ func (s *Scanner) Scan(ctx context.Context) (Result, error) {
 	// Coverage accounting runs before alerting so that a sweep which has lost
 	// sight of part of the platform is marked degraded before anything it does
 	// produce is reported as trustworthy.
+	s.resolveRenames(ctx, snap, expectedIDs, seen, evaluated, scanID)
 	coverage := applyCoverage(snap, expectedIDs, seen,
 		s.cfg.Profile.CoverageGraceSweeps(), s.cfg.Profile.EvictDeparted())
 	res.Metrics.MinCoverageRatio = s.cfg.Profile.CoverageMinRatio()
@@ -1426,4 +1427,140 @@ func mergeAlerts(fresh, pending []domain.Alert) []domain.Alert {
 		out = append(out, a)
 	}
 	return out
+}
+
+// resolveRenames follows up on programs the sweep did not see: when a source
+// can show that a vanished program's address now serves another known program,
+// the two are one program that moved, and the record is corrected to say so.
+//
+// # Why a redirect and nothing else
+//
+// A platform that renames a program keeps serving the old address as a
+// redirect. That is the platform asserting the identity; parsing "(ex-X)" out
+// of display names or matching on token overlap is guesswork, and a guessed
+// merge corrupts exactly the history this system exists to keep.
+//
+// # What a resolved rename does
+//
+// The old identity is closed as ended - the address no longer holds a program
+// - and both identities get a history entry carrying the redirect evidence, so
+// a later reader can see that hackenproof:ref-finance and
+// hackenproof:rhea-finance are one program. The surviving program keeps its
+// own state and its own alerting; nothing about it is assumed from the old
+// record.
+//
+// # Cost and failure behavior
+//
+// One probe per absent program per sweep, capped hard, skipped entirely when
+// discovery saw nothing (a listing outage would otherwise turn every known
+// program into a probe). A failed or unresolved probe changes nothing: the
+// program stays absent and the degraded report says so, as before.
+func (s *Scanner) resolveRenames(ctx context.Context, snap *state.Snapshot, expectedIDs []string, seen map[string]struct{}, evaluated []Evaluated, scanID string) {
+	if len(seen) == 0 {
+		// Discovery saw nothing this sweep. Absence carries no information
+		// about any individual program.
+		return
+	}
+
+	// The renamed program may be new this sweep, in which case it is in the
+	// evaluated set but not yet in the snapshot, which is only written out at
+	// the end of the run.
+	fresh := make(map[string]domain.Program, len(evaluated))
+	for _, e := range evaluated {
+		fresh[e.Program.ID] = e.Program
+	}
+
+	log := s.cfg.Logger
+	probes := 0
+	for _, id := range expectedIDs {
+		if probes >= maxRenameProbesPerScan {
+			return
+		}
+		p, held := snap.Program(id)
+		if !held || p.Terminal() {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+
+		resolver, ok := s.sourceFor(p.Source).(domain.SlugResolver)
+		if !ok {
+			continue
+		}
+		probes++
+		newSlug, redirected, err := resolver.ResolveProgramSlug(ctx, renameSlug(p))
+		if err != nil {
+			log.Warn("rename probe failed", "phase", obs.PhaseDiscover, "program", id, "error", err.Error())
+			continue
+		}
+		if !redirected || newSlug == "" {
+			continue
+		}
+
+		newID := p.Source + ":" + newSlug
+		if newID == id {
+			continue
+		}
+		if _, heldInSnap := snap.Program(newID); !heldInSnap {
+			if _, isNew := fresh[newID]; !isNew {
+				// The address leads somewhere this system does not track. That
+				// is not evidence of a rename; absence remains the honest
+				// record.
+				continue
+			}
+		}
+
+		change := domain.Change{
+			Kind:     domain.ChangeProgramRenamed,
+			Severity: domain.SeverityLow,
+			Field:    "identity",
+			Before:   renameSlug(p),
+			After:    newSlug,
+		}
+		entry := state.HistoryEntry{
+			ScanID:  scanID,
+			At:      s.cfg.Now().UTC(),
+			Changes: domain.ChangeSet{change},
+			Kinds:   []string{string(domain.ChangeProgramRenamed)},
+		}
+		if err := s.cfg.Store.AppendHistory(ctx, id, entry); err != nil {
+			log.Warn("rename history not recorded for the departed identity", "phase", obs.PhaseDiscover, "program", id, "error", err.Error())
+		}
+		if err := s.cfg.Store.AppendHistory(ctx, newID, entry); err != nil {
+			log.Warn("rename history not recorded for the surviving identity", "phase", obs.PhaseDiscover, "program", newID, "error", err.Error())
+		}
+
+		was := p.State
+		p.State = domain.StateEnded
+		snap.Programs[id] = p
+		log.Info("program renamed; history carried over", "phase", obs.PhaseDiscover,
+			"program", id, "was", was, "now", newID)
+	}
+}
+
+// maxRenameProbesPerScan bounds the redirect probes a single sweep may spend.
+//
+// A probe exists for the rare case of one renamed program. A sweep that has
+// lost sight of a hundred programs is a discovery problem, and probing each
+// one would turn a degraded sweep into a request storm.
+const maxRenameProbesPerScan = 5
+
+// renameSlug recovers a program's source-local slug.
+func renameSlug(p domain.Program) string {
+	if p.Slug != "" {
+		return p.Slug
+	}
+	return strings.TrimPrefix(p.ID, p.Source+":")
+}
+
+// sourceFor returns the adapter a program came from, or nil when the scan
+// holds no such adapter (a source removed from the profile between runs).
+func (s *Scanner) sourceFor(name string) domain.ProgramSource {
+	for _, src := range s.cfg.Sources {
+		if src.Name() == name {
+			return src
+		}
+	}
+	return nil
 }

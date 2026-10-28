@@ -82,6 +82,9 @@ type fakeSource struct {
 	fetches     map[string]int
 	discoverErr error
 	now         time.Time
+	// redirects maps a vanished slug to the slug its address now serves. A
+	// nil map means the source answers no rename questions.
+	redirects map[string]string
 }
 
 func newFakeSource(ids ...string) *fakeSource {
@@ -127,6 +130,19 @@ func defaultRecord(id string) domain.RawProgram {
 }
 
 func (s *fakeSource) Name() string { return "fake" }
+
+// ResolveProgramSlug implements the optional rename capability. The map, not
+// the network, decides the answer: a test states the redirect it wants the
+// pipeline to act on.
+func (s *fakeSource) ResolveProgramSlug(_ context.Context, oldSlug string) (string, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	target, ok := s.redirects[oldSlug]
+	if !ok {
+		return "", false, nil
+	}
+	return target, true, nil
+}
 
 func (s *fakeSource) Capabilities() domain.SourceCapabilities {
 	return domain.SourceCapabilities{MaxConcurrent: 2, HasStableIDs: true}

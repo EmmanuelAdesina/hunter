@@ -128,10 +128,10 @@ func (s *Stage) Verify(ctx context.Context, req Request) (Result, error) {
 func (s *Stage) unavailable(cause error) (Result, error) {
 	if s.cfg.OnUnavailable == "deliver" {
 		return Result{
-			Decision:  DecisionAllow,
-			Reason:    "the reader was unavailable, so the pipeline's own message was kept: " + cause.Error(),
+			Decision:   DecisionAllow,
+			Reason:     "the reader was unavailable, so the pipeline's own message was kept: " + cause.Error(),
 			Unverified: true,
-			Model:     s.cfg.Model.Name(),
+			Model:      s.cfg.Model.Name(),
 		}, cause
 	}
 	return Result{

@@ -61,10 +61,10 @@ const (
 	// not reported again. A broken endpoint is reported once and then left
 	// alone, because a notification every five minutes is its own outage.
 	defaultVerifyFailureRepeat = 6 * time.Hour
-	defaultRetryBase     = 1 * time.Second
-	defaultMaxRetryDelay = 30 * time.Second
-	defaultMinInterval   = 500 * time.Millisecond
-	defaultFreshWindow   = 7 * 24 * time.Hour
+	defaultRetryBase           = 1 * time.Second
+	defaultMaxRetryDelay       = 30 * time.Second
+	defaultMinInterval         = 500 * time.Millisecond
+	defaultFreshWindow         = 7 * 24 * time.Hour
 )
 
 // Freshness thresholds are exposed as durations.

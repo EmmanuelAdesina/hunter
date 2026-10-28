@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -354,6 +355,53 @@ func tagStrings(node devalue.Node, key string) []string {
 		}
 	}
 	return out
+}
+
+// ResolveProgramSlug implements domain.SlugResolver: it reports where a
+// program's address leads when the source no longer lists that slug.
+//
+// A permanent redirect to another program address is the platform's own
+// statement that the two slugs are one program. Anything else - a direct
+// answer, a redirect off-program, an error - reports no resolution, because a
+// guessed identity is worse than an honest absence.
+func (s *Source) ResolveProgramSlug(ctx context.Context, oldSlug string) (string, bool, error) {
+	url := s.opts.BaseURL + strings.Replace(s.opts.DetailPathTemplate, "{slug}", oldSlug, 1)
+	status, location, err := s.opts.Client.ProbeWithContext(ctx, url)
+	if err != nil {
+		return "", false, err
+	}
+	if status < 300 || status > 399 || location == "" {
+		return "", false, nil
+	}
+
+	target, err := slugFromProgramLocation(location)
+	if err != nil || target == "" || target == oldSlug {
+		return "", false, nil
+	}
+	return target, true, nil
+}
+
+// slugFromProgramLocation extracts a program slug from a Location header,
+// which may be an absolute URL or a path.
+func slugFromProgramLocation(location string) (string, error) {
+	loc := location
+	if strings.Contains(location, "://") {
+		u, err := url.Parse(location)
+		if err != nil {
+			return "", err
+		}
+		loc = u.Path
+	}
+	const marker = "/programs/"
+	i := strings.Index(loc, marker)
+	if i < 0 {
+		return "", nil
+	}
+	slug := strings.TrimPrefix(loc[i+len(marker):], "/")
+	if j := strings.IndexAny(slug, "/?#"); j >= 0 {
+		slug = slug[:j]
+	}
+	return slug, nil
 }
 
 // Fetch retrieves one program's public record.

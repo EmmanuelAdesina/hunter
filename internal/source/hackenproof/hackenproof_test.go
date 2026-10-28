@@ -809,3 +809,80 @@ func TestPageMarkersAreAbsentForARunningProgram(t *testing.T) {
 		t.Errorf("markers = %v, want none for a program that is still running", raw.PageMarkers)
 	}
 }
+
+// A permanent redirect from a vanished program's address to another program
+// address is the platform's own statement that the two slugs are one program.
+func TestResolveProgramSlugFollowsTheRedirect(t *testing.T) {
+	doer := source.HTTPDoerFunc(func(req *http.Request) (*http.Response, error) {
+		if strings.HasSuffix(req.URL.Path, "/ref-finance-smart-contracts") {
+			return &http.Response{
+				StatusCode: http.StatusMovedPermanently,
+				Status:     "301 Moved Permanently",
+				Header:     http.Header{"Location": []string{"https://hackenproof.com/programs/rhea-finance-smart-contracts"}},
+				Body:       io.NopCloser(strings.NewReader("")),
+				Request:    req,
+			}, nil
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     "200 OK",
+			Header:     http.Header{},
+			Body:       io.NopCloser(strings.NewReader("<html></html>")),
+			Request:    req,
+		}, nil
+	})
+	client := source.NewClient(source.ClientConfig{
+		Timeout: time.Second, MaxRetries: 0, MaxConcurrent: 2,
+		UserAgent: "hunter-test/1.0",
+	}, doer)
+	s, err := New(Options{Client: client, BaseURL: "https://hackenproof.test"})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	got, redirected, err := s.ResolveProgramSlug(context.Background(), "ref-finance-smart-contracts")
+	if err != nil {
+		t.Fatalf("ResolveProgramSlug: %v", err)
+	}
+	if !redirected || got != "rhea-finance-smart-contracts" {
+		t.Errorf("resolved = %q redirected = %v, want the target slug", got, redirected)
+	}
+
+	// A slug the source still serves directly resolves to nothing.
+	got, redirected, err = s.ResolveProgramSlug(context.Background(), "bitrue")
+	if err != nil {
+		t.Fatalf("ResolveProgramSlug (direct): %v", err)
+	}
+	if redirected || got != "" {
+		t.Errorf("direct slug resolved = %q redirected = %v, want no resolution", got, redirected)
+	}
+}
+
+// A redirect that leaves the program namespace is not evidence of identity.
+func TestResolveProgramSlugIgnoresOffProgramRedirects(t *testing.T) {
+	doer := source.HTTPDoerFunc(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusFound,
+			Status:     "302 Found",
+			Header:     http.Header{"Location": []string{"https://hackenproof.com/"}},
+			Body:       io.NopCloser(strings.NewReader("")),
+			Request:    req,
+		}, nil
+	})
+	client := source.NewClient(source.ClientConfig{
+		Timeout: time.Second, MaxRetries: 0, MaxConcurrent: 2,
+		UserAgent: "hunter-test/1.0",
+	}, doer)
+	s, err := New(Options{Client: client, BaseURL: "https://hackenproof.test"})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	got, redirected, err := s.ResolveProgramSlug(context.Background(), "some-program")
+	if err != nil {
+		t.Fatalf("ResolveProgramSlug: %v", err)
+	}
+	if redirected || got != "" {
+		t.Errorf("off-program redirect resolved = %q redirected = %v, want no resolution", got, redirected)
+	}
+}
