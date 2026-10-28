@@ -1,22 +1,63 @@
 # hunter
 
-A personal bug-bounty opportunity monitor.
+[![CI](https://github.com/EmmanuelAdesina/hunter/actions/workflows/test.yml/badge.svg)](https://github.com/EmmanuelAdesina/hunter/actions/workflows/test.yml)
+![Go](https://img.shields.io/badge/go-1.26-00ADD8?logo=go&logoColor=white)
+![Single binary](https://img.shields.io/badge/deployment-single%20static%20binary-2F6FEB)
 
-It watches bug-bounty programs, decides whether newly launched programs and
+A bug-bounty opportunity monitor built as an evidence system.
+
+Hunter watches bug-bounty programs, decides whether newly launched programs and
 material changes are actually reachable and worth your time, and emails you only
 when a configured trigger has fresh evidence. Launch age and change age are
 separate clocks: a five-year-old program can still be worth a look when its scope
 or access gates changed recently.
 
+What separates it from a notifier is the verification layer. Every candidate
+alert is checked against the facts the scan actually observed before it can be
+sent: a claim the evidence does not support is withheld, a statement no fact
+backs is rejected, a hedged message is rejected, and a reader that cannot be
+used stops the channel and reports itself instead of passing silence off as a
+quiet platform. Every claim in every email traces back to an observed fact.
+
 The goal is not a dashboard. The goal is to **see the right opportunity before
 you spend an evening reading through everything else**.
 
+Built for offensive-security work: bug bounty program monitoring,
+attack-surface change detection, and evidence-based alerting, in one static Go
+binary with no runtime dependencies.
+
 ```
 $ hunter scan
-scan_id=20261002T215638Z source=hackenproof discovered=324 evaluated=324
-listing_only=324 new=1 changed=4 eligible=156 rejected=168 alerts=1
-sent=1 failed=0 errors=0 duration=38.8s
+scan_id=20261028T112112Z source=hackenproof discovered=329 evaluated=329
+listing_only=268 new=0 changed=0 eligible=12 rejected=317 alerts=0
+sent=0 failed=0 errors=0 duration=1m14s
 ```
+
+---
+
+## How a scan runs
+
+```mermaid
+flowchart LR
+    A["discover<br/>full listing sweep"] --> B["two-tier read<br/>details only on movement"]
+    B --> C["normalize<br/>source vocabulary to domain"]
+    C --> D["diff<br/>content fingerprints"]
+    D --> E["policy<br/>one explainable check at a time"]
+    E --> F["score<br/>every component published"]
+    F --> G["alert<br/>fingerprinted, sent once"]
+    G --> H{"verify<br/>a reader sees only the facts"}
+    H -- "evidence supports it" --> I["deliver<br/>idempotent, retried"]
+    H -- "contradicted or unproven" --> X["withheld"]
+    H -- "reader unusable" --> Y["withheld + operator notice"]
+    A -.-> Z[("state<br/>byte-stable records")]
+```
+
+The verification stage is the gate nothing bypasses. It receives the candidate
+alert and the evidence bundle the scan observed, and it must return a verdict
+whose every statement cites a fact key that exists in that bundle. Validation is
+fail-closed: an unknown citation, a hedge, or an unsupported claim rejects the
+answer, one repair round is offered, and an answer that still fails withholds
+the alert.
 
 ---
 
@@ -39,6 +80,73 @@ A new-program alert is gated by the source-reported launch date. A change alert 
 gated by the interval between the last detail observation that did not show the
 change and the first one that did. If Hunter cannot bound a change in time, it
 does not call that change recent and does not alert on it.
+
+---
+
+## Engineering decisions
+
+The parts of the design that are not obvious from the feature list, each one
+adopted because a specific failure mode demanded it.
+
+### Unknown is never treated as safe
+
+Every access-critical fact is three-valued: `yes`, `no`, `unknown`. An unreadable
+record cannot approve itself: unknown blocks eligibility unless the operator
+explicitly opts in. A broken parser therefore produces silence, never a flood of
+false positives, and `hunter explain` never conflates a real violation with an
+unreadable fact. [Why unknowns are never treated as safe](#why-unknowns-are-never-treated-as-safe).
+
+### An untrustworthy scan is an exit code
+
+A scan that could not observe the whole platform exits `3`, and the scheduler
+treats it as a warning. Silence from a broken scan and silence from a quiet
+platform look identical from outside; the exit code is what keeps them apart.
+Coverage accounting names every program the sweep failed to see, and a program
+that vanished while still accepting reports keeps being reported until it is
+seen again or explicitly resolved. [Observability](#observability).
+
+### Change is detected by content, bounded by observation
+
+Nothing trusts page timestamps. Fingerprints cover three disjoint subsets of the
+record, so a change lands in exactly the signal that describes it, and every
+change carries an `ObservationInterval`: the last read that did not show it and
+the first read that did. Hunter never claims to know the instant between two
+reads; unbounded changes alert on nothing rather than pretending to be fresh.
+[Change detection and opportunity windows](#change-detection-and-opportunity-windows).
+
+### The cheap read makes the expensive read rare
+
+The listing is swept every scan; a detail page is read only when the listing says
+something moved, the record was never completed, or the refresh interval elapsed.
+Against ~330 programs this turned tens of thousands of daily requests into a
+steady-state scan with zero detail reads, in about forty-five seconds, on a
+single small VPS. [Why it is fast: the two-tier read](#why-it-is-fast-the-two-tier-read).
+
+### A reader may only state what the scan observed
+
+Candidate alerts are verified by a second reader that sees the evidence bundle
+and nothing else. Its answer is validated mechanically: every statement must
+cite a fact key that exists, verdicts must agree with the decision, hedging
+vocabulary is rejected outright, and one repair round is granted before an
+answer is refused. A reader that fails operationally withholds its alerts and
+emails the operator with what to fix; it is never allowed to look like a quiet
+day. [Testing](#testing) pins each of those rejections.
+
+### A platform redirect is identity evidence
+
+When a tracked program disappears from the listing, the source is asked one
+question: where does that address now lead? A redirect to another known program
+is the platform's own statement that the two slugs are one program, so the old
+identity is closed as ended and a `PROGRAM_RENAMED` record lands on both sides.
+Name similarity is never consulted; a guessed merge would corrupt exactly the
+history this system keeps.
+
+### State is evidence, so it is written like evidence
+
+Atomic writes, deterministic serialization (identical inputs produce identical
+bytes, so a scan that learned nothing produces no diff), a digest that detects
+out-of-band edits, and corruption that is reported loudly rather than silently
+reset into a hundred phantom "new program" alerts. [State](#state).
 
 ---
 
@@ -514,6 +622,7 @@ internal/
   diff/                        content-based change detection
   scoring/                     deterministic triage
   alerts/                      selection, rendering, fingerprinting
+  verify/                      LLM verification: evidence bundle, fail-closed validation
   notify/                      delivery, with idempotency
   state/                       StateStore contract and file implementation
   pipeline/                    orchestration
@@ -539,6 +648,19 @@ type ProgramSource interface {
 
 Nothing outside `internal/source` changes. Discovery, detail retrieval, and
 eligibility stay separated, so an adapter never decides what is relevant.
+
+A source may additionally implement one optional capability:
+
+```go
+type SlugResolver interface {
+    ResolveProgramSlug(ctx context.Context, oldSlug string) (current string, redirected bool, err error)
+}
+```
+
+When a tracked program disappears from the listing and its address redirects to
+another known program, the pipeline records the rename and carries the history
+over instead of reporting a disappearance and a false birth. A source without
+the capability keeps the honest absence report.
 
 ### Adding a notification channel
 
